@@ -1,0 +1,101 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+branch: main
+nodes_managed: true
+exported_at: "2026-07-20T07:23:40Z"
+modules:
+    "":
+        dir_name: 自定义流程引擎项目根
+        title: 自定义流程引擎项目根
+        scope:
+            - readme.txt
+            - .gitignore
+            - login_page_full.png
+            - package-lock.json
+        source_files: []
+        children:
+            - docs
+            - flow_designer
+            - flow_engine_backend
+            - flow_web_admin
+        depends_on: []
+        related_to: []
+    docs:
+        dir_name: 自定义流程引擎项目文档集
+        title: 自定义流程引擎项目文档集
+        scope:
+            - docs/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    flow_designer:
+        dir_name: 可视化流程设计器前端
+        title: 可视化流程设计器前端
+        scope:
+            - flow-designer/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: flow_engine_backend
+    flow_engine_backend:
+        dir_name: Flow Engine 工作流引擎后端
+        title: Flow Engine 工作流引擎后端
+        scope:
+            - flow-engine/
+        source_files: []
+        children:
+            - flow_engine_backend/data_model
+            - flow_engine_backend/task_center
+            - flow_engine_backend/webhook_event
+        depends_on: []
+        related_to:
+            - path: flow_designer
+            - path: flow_web_admin
+    flow_engine_backend/data_model:
+        dir_name: 数据模型定义与实例管理
+        title: 数据模型定义与实例管理
+        scope:
+            - flow-engine/src/main/java/com/flow/engine/controller/DataModelController.java
+            - flow-engine/src/main/java/com/flow/engine/service/DataModelService.java
+            - flow-engine/src/main/java/com/flow/engine/parser/DataModelParser.java
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    flow_engine_backend/task_center:
+        dir_name: 任务中心（Task Center）
+        title: 任务中心（Task Center）
+        scope:
+            - flow-engine/src/main/java/com/flow/engine/controller/TaskController.java
+            - flow-engine/src/main/java/com/flow/engine/service/TaskService.java
+            - flow-engine/src/main/java/com/flow/engine/entity/Task.java
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: flow_engine_backend/webhook_event
+    flow_engine_backend/webhook_event:
+        dir_name: Webhook 回调事件驱动模块
+        title: Webhook 回调事件驱动模块
+        scope:
+            - flow-engine/src/main/java/com/flow/engine/controllers/WebhookController.java
+            - flow-engine/src/main/java/com/flow/engine/service/WebhookService.java
+            - flow-engine/src/main/java/com/flow/engine/listener/WebhookEventListener.java
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: flow_engine_backend/task_center
+    flow_web_admin:
+        dir_name: 流程引擎 Web 管理端（Vue3 + Ant Design Vue）
+        title: 流程引擎 Web 管理端（Vue3 + Ant Design Vue）
+        scope:
+            - flow-web/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: flow_engine_backend

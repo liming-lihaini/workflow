@@ -3,16 +3,44 @@
     <a-row :gutter="16">
       <!-- 左侧部门树 -->
       <a-col :span="6">
-        <div class="card-wrap">
+        <div class="card-wrap dept-panel">
           <div class="page-header">
             <span class="page-title">部门</span>
+            <a-space :size="4">
+              <span class="tree-tool-link" @click="expandAll">展开全部</span>
+              <a-divider type="vertical" />
+              <span class="tree-tool-link" @click="collapseAll">折叠全部</span>
+            </a-space>
           </div>
-          <a-tree
-            :tree-data="deptTree"
-            :field-names="{ title: 'deptName', key: 'id', children: 'children' }"
-            default-expand-all
-            @select="onDeptSelect"
+          <a-input-search
+            v-model:value="deptSearchText"
+            placeholder="搜索部门名称"
+            allow-clear
+            class="dept-search"
           />
+          <div class="dept-tree-wrap">
+            <a-tree
+              v-if="filteredDeptTree.length"
+              v-model:expanded-keys="expandedKeys"
+              v-model:selected-keys="selectedKeys"
+              :tree-data="filteredDeptTree"
+              :field-names="{ title: 'deptName', key: 'id', children: 'children' }"
+              @select="onDeptSelect"
+            >
+              <template #title="node">
+                <span v-if="deptKeyword && (node.deptName || '').toLowerCase().includes(deptKeyword)">
+                  {{ node.deptName.slice(0, node.deptName.toLowerCase().indexOf(deptKeyword)) }}<span class="dept-name-hit">{{ node.deptName.slice(node.deptName.toLowerCase().indexOf(deptKeyword), node.deptName.toLowerCase().indexOf(deptKeyword) + deptKeyword.length) }}</span>{{ node.deptName.slice(node.deptName.toLowerCase().indexOf(deptKeyword) + deptKeyword.length) }}
+                </span>
+                <span v-else>{{ node.deptName }}</span>
+              </template>
+            </a-tree>
+            <a-empty
+              v-else
+              :image="simpleEmptyImage"
+              description="未找到相关部门"
+              class="dept-empty"
+            />
+          </div>
         </div>
       </a-col>
 
@@ -98,9 +126,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { message, Empty } from 'ant-design-vue'
 import { getUsersPage, createUser, updateUser, deleteUser, resetPassword, getDeptTree } from '../../api/system'
+
+const simpleEmptyImage = Empty.PRESENTED_IMAGE_SIMPLE
 
 const loading = ref(false)
 const dataList = ref([])
@@ -110,6 +140,71 @@ const submitLoading = ref(false)
 const editingRecord = ref(null)
 const searchText = ref('')
 const selectedDeptId = ref(null)
+
+// 部门树：搜索 / 展开折叠控制
+const deptSearchText = ref('')
+const deptKeyword = computed(() => deptSearchText.value.trim().toLowerCase())
+const expandedKeys = ref([])
+const selectedKeys = ref([])
+const allDeptKeys = ref([])
+
+function collectAllKeys(nodes) {
+  const keys = []
+  const walk = (list) => {
+    for (const node of list || []) {
+      keys.push(node.id)
+      walk(node.children)
+    }
+  }
+  walk(nodes)
+  return keys
+}
+
+function collectMatchedPathKeys(nodes, kw) {
+  const keys = []
+  const walk = (list, parents) => {
+    for (const node of list || []) {
+      const path = [...parents, node.id]
+      if ((node.deptName || '').toLowerCase().includes(kw)) {
+        keys.push(...path)
+      }
+      walk(node.children, path)
+    }
+  }
+  walk(nodes, [])
+  return [...new Set(keys)]
+}
+
+function filterDeptNodes(nodes, kw) {
+  const result = []
+  for (const node of nodes || []) {
+    const matched = (node.deptName || '').toLowerCase().includes(kw)
+    const children = filterDeptNodes(node.children, kw)
+    if (matched || children.length) {
+      result.push({ ...node, children })
+    }
+  }
+  return result
+}
+
+const filteredDeptTree = computed(() => {
+  const kw = deptKeyword.value
+  if (!kw) return deptTree.value
+  return filterDeptNodes(deptTree.value, kw)
+})
+
+watch(deptSearchText, (val) => {
+  const kw = (val || '').trim().toLowerCase()
+  expandedKeys.value = kw ? collectMatchedPathKeys(deptTree.value, kw) : [...allDeptKeys.value]
+})
+
+function expandAll() {
+  expandedKeys.value = [...allDeptKeys.value]
+}
+
+function collapseAll() {
+  expandedKeys.value = []
+}
 
 const pagination = reactive({
   current: 1,

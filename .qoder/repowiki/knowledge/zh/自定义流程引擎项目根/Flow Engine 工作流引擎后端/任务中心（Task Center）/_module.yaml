@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: flow_engine_backend/task_center
+title: 任务中心（Task Center）
+scope:
+    - flow-engine/src/main/java/com/flow/engine/controller/TaskController.java
+    - flow-engine/src/main/java/com/flow/engine/service/TaskService.java
+    - flow-engine/src/main/java/com/flow/engine/entity/Task.java
+source_files: []
+depends_on: []
+related_to:
+    - path: flow_engine_backend/webhook_event

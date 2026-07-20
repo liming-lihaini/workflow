@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: flow_designer
+title: 可视化流程设计器前端
+scope:
+    - flow-designer/
+source_files: []
+depends_on: []
+related_to:
+    - path: flow_engine_backend

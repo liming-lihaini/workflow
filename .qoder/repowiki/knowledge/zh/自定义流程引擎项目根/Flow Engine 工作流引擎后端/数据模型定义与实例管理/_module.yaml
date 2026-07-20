@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: flow_engine_backend/data_model
+title: 数据模型定义与实例管理
+scope:
+    - flow-engine/src/main/java/com/flow/engine/controller/DataModelController.java
+    - flow-engine/src/main/java/com/flow/engine/service/DataModelService.java
+    - flow-engine/src/main/java/com/flow/engine/parser/DataModelParser.java
+source_files: []
+depends_on: []
+related_to: []

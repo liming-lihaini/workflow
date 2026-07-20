@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: flow_engine_backend/webhook_event
+title: Webhook 回调事件驱动模块
+scope:
+    - flow-engine/src/main/java/com/flow/engine/controllers/WebhookController.java
+    - flow-engine/src/main/java/com/flow/engine/service/WebhookService.java
+    - flow-engine/src/main/java/com/flow/engine/listener/WebhookEventListener.java
+source_files: []
+depends_on: []
+related_to:
+    - path: flow_engine_backend/task_center

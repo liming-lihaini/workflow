@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: flow_web_admin
+title: 流程引擎 Web 管理端（Vue3 + Ant Design Vue）
+scope:
+    - flow-web/
+source_files: []
+depends_on: []
+related_to:
+    - path: flow_engine_backend
