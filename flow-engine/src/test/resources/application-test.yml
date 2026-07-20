@@ -1,0 +1,20 @@
+server:
+  port: 0
+
+spring:
+  datasource:
+    driver-class-name: org.sqlite.JDBC
+    url: "jdbc:sqlite::memory:"
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      continue-on-error: true
+      separator: ;
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto

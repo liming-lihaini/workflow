@@ -1,0 +1,829 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.flow:flow-engine >------------------------
+[INFO] Building flow-engine 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ flow-engine ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ flow-engine ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 94 source files with javac [debug release 17] to target\classes
+[INFO] /D:/source_code/workflow/flow-engine/src/main/java/com/flow/engine/common/utils/ExpressionUtils.java: D:\source_code\workflow\flow-engine\src\main\java\com\flow\engine\common\utils\ExpressionUtils.java使用了未经检查或不安全的操作。
+[INFO] /D:/source_code/workflow/flow-engine/src/main/java/com/flow/engine/common/utils/ExpressionUtils.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ flow-engine ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ flow-engine ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 22 source files with javac [debug release 17] to target\test-classes
+[INFO] /D:/source_code/workflow/flow-engine/src/test/java/com/flow/engine/controller/TaskApiTest.java: D:\source_code\workflow\flow-engine\src\test\java\com\flow\engine\controller\TaskApiTest.java使用了未经检查或不安全的操作。
+[INFO] /D:/source_code/workflow/flow-engine/src/test/java/com/flow/engine/controller/TaskApiTest.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 
+[INFO] --- surefire:3.1.2:test (default-test) @ flow-engine ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.flow.engine.common.utils.ExpressionUtilsTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.300 s -- in com.flow.engine.common.utils.ExpressionUtilsTest
+[INFO] Running com.flow.engine.CommonResponseTest
+17:49:40.259 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.flow.engine.CommonResponseTest]: CommonResponseTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+17:49:40.588 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.CommonResponseTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2026-07-16T17:49:41.554+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.CommonResponseTest       : Starting CommonResponseTest using Java 17.0.12 with PID 14256 (started by wb_liming in D:\source_code\workflow\flow-engine)
+2026-07-16T17:49:41.557+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.CommonResponseTest       : No active profile set, falling back to 1 default profile: "default"
+2026-07-16T17:49:45.887+08:00  INFO 14256 --- [flow-engine] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 0 (http)
+2026-07-16T17:49:45.923+08:00  INFO 14256 --- [flow-engine] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-07-16T17:49:45.924+08:00  INFO 14256 --- [flow-engine] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.16]
+2026-07-16T17:49:46.105+08:00  INFO 14256 --- [flow-engine] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-07-16T17:49:46.107+08:00  INFO 14256 --- [flow-engine] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 4512 ms
+2026-07-16T17:49:46.613+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-07-16T17:49:47.121+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.sqlite.jdbc4.JDBC4Connection@16ac4d3d
+2026-07-16T17:49:47.125+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.5 
+2026-07-16T17:49:48.194+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=dummy, class=com.flow.engine.node.DummyNodeHandler
+2026-07-16T17:49:48.195+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=customDemo, class=com.flow.engine.node.impl.CustomDemoNodeHandler
+2026-07-16T17:49:48.195+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=end, class=com.flow.engine.node.impl.EndNodeHandler
+2026-07-16T17:49:48.196+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=exclusiveGateway, class=com.flow.engine.node.impl.ExclusiveGatewayNodeHandler
+2026-07-16T17:49:48.196+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=inclusiveGateway, class=com.flow.engine.node.impl.InclusiveGatewayNodeHandler
+2026-07-16T17:49:48.196+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=parallelGateway, class=com.flow.engine.node.impl.ParallelGatewayNodeHandler
+2026-07-16T17:49:48.196+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=scriptTask, class=com.flow.engine.node.impl.ScriptTaskNodeHandler
+2026-07-16T17:49:48.196+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=serviceTask, class=com.flow.engine.node.impl.ServiceTaskNodeHandler
+2026-07-16T17:49:48.196+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=start, class=com.flow.engine.node.impl.StartNodeHandler
+2026-07-16T17:49:48.197+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=subProcess, class=com.flow.engine.node.impl.SubProcessNodeHandler
+2026-07-16T17:49:48.197+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=userTask, class=com.flow.engine.node.impl.UserTaskNodeHandler
+2026-07-16T17:49:49.219+08:00  INFO 14256 --- [flow-engine] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-07-16T17:49:49.469+08:00  INFO 14256 --- [flow-engine] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 62600 (http) with context path ''
+2026-07-16T17:49:49.495+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.CommonResponseTest       : Started CommonResponseTest in 8.624 seconds (process running for 11.94)
+D:\apache-maven-3.9.14\bin\mvn.cmd : Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot load
+er classes because bootstrap classpath has been appended
+所在位置 行:1 字符: 41
++ ... low\flow-engine; D:\apache-maven-3.9.14\bin\mvn.cmd test 2>&1 | Out-F ...
++                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Java HotSpot(TM...s been appended:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-07-16T17:49:53.565+08:00  INFO 14256 --- [flow-engine] [o-auto-1-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-07-16T17:49:53.565+08:00  INFO 14256 --- [flow-engine] [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-07-16T17:49:53.568+08:00  INFO 14256 --- [flow-engine] [o-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2026-07-16T17:49:53.610+08:00  WARN 14256 --- [flow-engine] [o-auto-1-exec-1] o.s.web.servlet.PageNotFound             : No mapping for GET /api/not-exist-route
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 14.27 s -- in com.flow.engine.CommonResponseTest
+[INFO] Running com.flow.engine.controller.ProcessDefinitionApiTest
+2026-07-16T17:49:54.147+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.controller.ProcessDefinitionApiTest]: ProcessDefinitionApiTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:49:54.218+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.controller.ProcessDefinitionApiTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2026-07-16T17:49:54.376+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.c.ProcessDefinitionApiTest         : Starting ProcessDefinitionApiTest using Java 17.0.12 with PID 14256 (started by wb_liming in D:\source_code\workflow\flow-engine)
+2026-07-16T17:49:54.376+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.c.ProcessDefinitionApiTest         : The following 1 profile is active: "test"
+2026-07-16T17:49:55.639+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2026-07-16T17:49:55.641+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection org.sqlite.jdbc4.JDBC4Connection@16269ff4
+2026-07-16T17:49:55.641+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.5 
+2026-07-16T17:49:56.143+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=dummy, class=com.flow.engine.node.DummyNodeHandler
+2026-07-16T17:49:56.144+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=customDemo, class=com.flow.engine.node.impl.CustomDemoNodeHandler
+2026-07-16T17:49:56.145+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=end, class=com.flow.engine.node.impl.EndNodeHandler
+2026-07-16T17:49:56.145+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=exclusiveGateway, class=com.flow.engine.node.impl.ExclusiveGatewayNodeHandler
+2026-07-16T17:49:56.145+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=inclusiveGateway, class=com.flow.engine.node.impl.InclusiveGatewayNodeHandler
+2026-07-16T17:49:56.145+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=parallelGateway, class=com.flow.engine.node.impl.ParallelGatewayNodeHandler
+2026-07-16T17:49:56.145+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=scriptTask, class=com.flow.engine.node.impl.ScriptTaskNodeHandler
+2026-07-16T17:49:56.145+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=serviceTask, class=com.flow.engine.node.impl.ServiceTaskNodeHandler
+2026-07-16T17:49:56.146+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=start, class=com.flow.engine.node.impl.StartNodeHandler
+2026-07-16T17:49:56.146+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=subProcess, class=com.flow.engine.node.impl.SubProcessNodeHandler
+2026-07-16T17:49:56.146+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=userTask, class=com.flow.engine.node.impl.UserTaskNodeHandler
+2026-07-16T17:49:56.637+08:00  INFO 14256 --- [flow-engine] [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-07-16T17:49:56.637+08:00  INFO 14256 --- [flow-engine] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-07-16T17:49:56.647+08:00  INFO 14256 --- [flow-engine] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-07-16T17:49:56.673+08:00  INFO 14256 --- [flow-engine] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 34 ms
+2026-07-16T17:49:56.717+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.c.ProcessDefinitionApiTest         : Started ProcessDefinitionApiTest in 2.499 seconds (process running for 19.162)
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.584 s -- in com.flow.engine.controller.ProcessDefinitionApiTest
+[INFO] Running com.flow.engine.controller.TaskApiTest
+2026-07-16T17:49:57.734+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.controller.TaskApiTest]: TaskApiTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:49:57.741+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.controller.TaskApiTest
+2026-07-16T17:49:57.860+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=1, processKey=task_api_test
+2026-07-16T17:49:57.874+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:49:57.874+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 1 进入开始节点
+2026-07-16T17:49:57.875+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 1 离开开始节点
+2026-07-16T17:49:57.882+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:49:57.883+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=1, nodeId=task1, assignee=apiUser1, candidates=apiUser1,apiUser2
+2026-07-16T17:49:57.893+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=1, node=task1, assignee=apiUser1
+2026-07-16T17:49:57.897+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 1 等待在节点 task1
+2026-07-16T17:49:57.948+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 1 被 apiUser1 签收
+2026-07-16T17:49:57.968+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=end, type=end, name=结束
+2026-07-16T17:49:57.969+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.node.impl.EndNodeHandler   : [EndNode] 流程实例 1 进入结束节点
+2026-07-16T17:49:57.970+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.node.impl.EndNodeHandler   : [EndNode] 流程实例 1 离开结束节点，流程完成
+2026-07-16T17:49:57.978+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程完成事件: instanceId=1, processKey=task_api_test
+2026-07-16T17:49:57.987+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 1 已完成
+2026-07-16T17:49:57.987+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 1 被 apiUser1 通过
+2026-07-16T17:49:58.021+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=2, processKey=task_api_test
+2026-07-16T17:49:58.027+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:49:58.027+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 2 进入开始节点
+2026-07-16T17:49:58.028+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 2 离开开始节点
+2026-07-16T17:49:58.033+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:49:58.034+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=2, nodeId=task1, assignee=apiUser1, candidates=apiUser1,apiUser2
+2026-07-16T17:49:58.036+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=2, node=task1, assignee=apiUser1
+2026-07-16T17:49:58.039+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 2 等待在节点 task1
+2026-07-16T17:49:58.073+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=3, processKey=task_api_test
+2026-07-16T17:49:58.084+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:49:58.084+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 3 进入开始节点
+2026-07-16T17:49:58.084+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 3 离开开始节点
+2026-07-16T17:49:58.092+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:49:58.092+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=3, nodeId=task1, assignee=apiUser1, candidates=apiUser1,apiUser2
+2026-07-16T17:49:58.095+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=3, node=task1, assignee=apiUser1
+2026-07-16T17:49:58.101+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 3 等待在节点 task1
+2026-07-16T17:49:58.132+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=4, node=task1, assignee=apiUser3
+2026-07-16T17:49:58.134+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 3 由 apiUser1 转办给 apiUser3
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.408 s -- in com.flow.engine.controller.TaskApiTest
+[INFO] Running com.flow.engine.engine.FlowEngineE2ETest
+2026-07-16T17:49:58.154+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.engine.FlowEngineE2ETest]: FlowEngineE2ETest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:49:58.213+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.engine.FlowEngineE2ETest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2026-07-16T17:49:58.301+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.engine.FlowEngineE2ETest   : Starting FlowEngineE2ETest using Java 17.0.12 with PID 14256 (started by wb_liming in D:\source_code\workflow\flow-engine)
+2026-07-16T17:49:58.302+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.engine.FlowEngineE2ETest   : The following 1 profile is active: "test"
+2026-07-16T17:49:59.036+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Starting...
+2026-07-16T17:49:59.037+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-3 - Added connection org.sqlite.jdbc4.JDBC4Connection@77954f77
+2026-07-16T17:49:59.038+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Start completed.
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.5 
+2026-07-16T17:49:59.345+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=dummy, class=com.flow.engine.node.DummyNodeHandler
+2026-07-16T17:49:59.345+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=customDemo, class=com.flow.engine.node.impl.CustomDemoNodeHandler
+2026-07-16T17:49:59.345+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=end, class=com.flow.engine.node.impl.EndNodeHandler
+2026-07-16T17:49:59.348+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=exclusiveGateway, class=com.flow.engine.node.impl.ExclusiveGatewayNodeHandler
+2026-07-16T17:49:59.349+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=inclusiveGateway, class=com.flow.engine.node.impl.InclusiveGatewayNodeHandler
+2026-07-16T17:49:59.349+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=parallelGateway, class=com.flow.engine.node.impl.ParallelGatewayNodeHandler
+2026-07-16T17:49:59.349+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=scriptTask, class=com.flow.engine.node.impl.ScriptTaskNodeHandler
+2026-07-16T17:49:59.349+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=serviceTask, class=com.flow.engine.node.impl.ServiceTaskNodeHandler
+2026-07-16T17:49:59.349+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=start, class=com.flow.engine.node.impl.StartNodeHandler
+2026-07-16T17:49:59.349+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=subProcess, class=com.flow.engine.node.impl.SubProcessNodeHandler
+2026-07-16T17:49:59.349+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=userTask, class=com.flow.engine.node.impl.UserTaskNodeHandler
+2026-07-16T17:49:59.712+08:00  INFO 14256 --- [flow-engine] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-07-16T17:49:59.757+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.engine.FlowEngineE2ETest   : Started FlowEngineE2ETest in 1.524 seconds (process running for 22.202)
+2026-07-16T17:49:59.802+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=1, processKey=e2e_simple
+2026-07-16T17:49:59.816+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:49:59.817+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 1 进入开始节点
+2026-07-16T17:49:59.818+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 1 离开开始节点
+2026-07-16T17:49:59.823+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:49:59.824+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=1, nodeId=task1, assignee=null, candidates=null
+2026-07-16T17:49:59.829+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=1, node=task1, assignee=null
+2026-07-16T17:49:59.834+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 1 等待在节点 task1
+2026-07-16T17:49:59.868+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=2, processKey=e2e_simple
+2026-07-16T17:49:59.872+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:49:59.873+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 2 进入开始节点
+2026-07-16T17:49:59.873+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 2 离开开始节点
+2026-07-16T17:49:59.879+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:49:59.880+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=2, nodeId=task1, assignee=null, candidates=null
+2026-07-16T17:49:59.884+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=2, node=task1, assignee=null
+2026-07-16T17:49:59.907+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 2 等待在节点 task1
+2026-07-16T17:49:59.917+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=end, type=end, name=结束
+2026-07-16T17:49:59.917+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.node.impl.EndNodeHandler   : [EndNode] 流程实例 2 进入结束节点
+2026-07-16T17:49:59.918+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.node.impl.EndNodeHandler   : [EndNode] 流程实例 2 离开结束节点，流程完成
+2026-07-16T17:49:59.922+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程完成事件: instanceId=2, processKey=e2e_simple
+2026-07-16T17:49:59.927+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 2 已完成
+2026-07-16T17:49:59.949+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=3, processKey=e2e_condition
+2026-07-16T17:49:59.956+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:49:59.956+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 3 进入开始节点
+2026-07-16T17:49:59.956+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 3 离开开始节点
+2026-07-16T17:49:59.960+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=gateway1, type=exclusiveGateway, name=金额判断
+2026-07-16T17:49:59.960+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.ExclusiveGatewayNodeHandler    : [ExclusiveGateway] 流程实例 3 进入排他网关 gateway1
+2026-07-16T17:49:59.960+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.ExclusiveGatewayNodeHandler    : [ExclusiveGateway] 排他网关执行: nodeId=gateway1
+2026-07-16T17:49:59.960+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.ExclusiveGatewayNodeHandler    : [ExclusiveGateway] 流程实例 3 离开排他网关 gateway1
+2026-07-16T17:49:59.961+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 排他网关 gateway1 条件匹配: amount <= 1000 -> task_small
+2026-07-16T17:49:59.964+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task_small, type=userTask, name=小额审批
+2026-07-16T17:49:59.965+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=3, nodeId=task_small, assignee=null, candidates=null
+2026-07-16T17:49:59.967+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=3, node=task_small, assignee=null
+2026-07-16T17:49:59.970+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 3 等待在节点 task_small
+2026-07-16T17:49:59.999+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=4, processKey=e2e_condition
+2026-07-16T17:50:00.005+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:00.006+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 4 进入开始节点
+2026-07-16T17:50:00.006+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 4 离开开始节点
+2026-07-16T17:50:00.009+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=gateway1, type=exclusiveGateway, name=金额判断
+2026-07-16T17:50:00.010+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.ExclusiveGatewayNodeHandler    : [ExclusiveGateway] 流程实例 4 进入排他网关 gateway1
+2026-07-16T17:50:00.010+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.ExclusiveGatewayNodeHandler    : [ExclusiveGateway] 排他网关执行: nodeId=gateway1
+2026-07-16T17:50:00.010+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.ExclusiveGatewayNodeHandler    : [ExclusiveGateway] 流程实例 4 离开排他网关 gateway1
+2026-07-16T17:50:00.010+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 排他网关 gateway1 条件匹配: amount > 1000 -> task_large
+2026-07-16T17:50:00.013+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task_large, type=userTask, name=大额审批
+2026-07-16T17:50:00.014+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=4, nodeId=task_large, assignee=null, candidates=null
+2026-07-16T17:50:00.016+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=4, node=task_large, assignee=null
+2026-07-16T17:50:00.019+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 4 等待在节点 task_large
+2026-07-16T17:50:00.041+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=5, processKey=e2e_simple
+2026-07-16T17:50:00.050+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:00.050+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 5 进入开始节点
+2026-07-16T17:50:00.050+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 5 离开开始节点
+2026-07-16T17:50:00.055+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:50:00.055+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=5, nodeId=task1, assignee=null, candidates=null
+2026-07-16T17:50:00.057+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=5, node=task1, assignee=null
+2026-07-16T17:50:00.061+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 5 等待在节点 task1
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.942 s -- in com.flow.engine.engine.FlowEngineE2ETest
+[INFO] Running com.flow.engine.engine.StateMachineTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.042 s -- in com.flow.engine.engine.StateMachineTest
+[INFO] Running com.flow.engine.engine.UserTaskCreationTest
+2026-07-16T17:50:00.172+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.engine.UserTaskCreationTest]: UserTaskCreationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:50:00.175+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.engine.UserTaskCreationTest
+2026-07-16T17:50:00.195+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown initiated...
+2026-07-16T17:50:00.213+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-3 - Shutdown completed.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2026-07-16T17:50:00.304+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.engine.UserTaskCreationTest   : Starting UserTaskCreationTest using Java 17.0.12 with PID 14256 (started by wb_liming in D:\source_code\workflow\flow-engine)
+2026-07-16T17:50:00.305+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.engine.UserTaskCreationTest   : The following 1 profile is active: "test"
+2026-07-16T17:50:01.135+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Starting...
+2026-07-16T17:50:01.136+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-4 - Added connection org.sqlite.jdbc4.JDBC4Connection@12dab9a8
+2026-07-16T17:50:01.136+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Start completed.
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.5 
+2026-07-16T17:50:01.482+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=dummy, class=com.flow.engine.node.DummyNodeHandler
+2026-07-16T17:50:01.482+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=customDemo, class=com.flow.engine.node.impl.CustomDemoNodeHandler
+2026-07-16T17:50:01.482+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=end, class=com.flow.engine.node.impl.EndNodeHandler
+2026-07-16T17:50:01.482+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=exclusiveGateway, class=com.flow.engine.node.impl.ExclusiveGatewayNodeHandler
+2026-07-16T17:50:01.482+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=inclusiveGateway, class=com.flow.engine.node.impl.InclusiveGatewayNodeHandler
+2026-07-16T17:50:01.482+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=parallelGateway, class=com.flow.engine.node.impl.ParallelGatewayNodeHandler
+2026-07-16T17:50:01.483+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=scriptTask, class=com.flow.engine.node.impl.ScriptTaskNodeHandler
+2026-07-16T17:50:01.483+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=serviceTask, class=com.flow.engine.node.impl.ServiceTaskNodeHandler
+2026-07-16T17:50:01.483+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=start, class=com.flow.engine.node.impl.StartNodeHandler
+2026-07-16T17:50:01.483+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=subProcess, class=com.flow.engine.node.impl.SubProcessNodeHandler
+2026-07-16T17:50:01.483+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=userTask, class=com.flow.engine.node.impl.UserTaskNodeHandler
+2026-07-16T17:50:01.957+08:00  INFO 14256 --- [flow-engine] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-07-16T17:50:02.056+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.engine.UserTaskCreationTest   : Started UserTaskCreationTest in 1.825 seconds (process running for 24.501)
+2026-07-16T17:50:02.122+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=1, processKey=auto_task_test
+2026-07-16T17:50:02.125+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:02.126+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 1 进入开始节点
+2026-07-16T17:50:02.126+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 1 离开开始节点
+2026-07-16T17:50:02.131+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=一级审批
+2026-07-16T17:50:02.131+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=1, nodeId=task1, assignee=autoUser1, candidates=null
+2026-07-16T17:50:02.133+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=1, node=task1, assignee=autoUser1
+2026-07-16T17:50:02.136+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 1 等待在节点 task1
+2026-07-16T17:50:02.158+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=2, processKey=auto_task_test
+2026-07-16T17:50:02.163+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:02.163+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 2 进入开始节点
+2026-07-16T17:50:02.163+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 2 离开开始节点
+2026-07-16T17:50:02.166+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=一级审批
+2026-07-16T17:50:02.166+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=2, nodeId=task1, assignee=autoUser1, candidates=null
+2026-07-16T17:50:02.168+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=2, node=task1, assignee=autoUser1
+2026-07-16T17:50:02.172+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 2 等待在节点 task1
+2026-07-16T17:50:02.186+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task2, type=userTask, name=二级审批
+2026-07-16T17:50:02.187+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=2, nodeId=task2, assignee=null, candidates=autoUser2,autoUser3
+2026-07-16T17:50:02.188+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=3, node=task2, assignee=null
+2026-07-16T17:50:02.190+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 2 等待在节点 task2
+2026-07-16T17:50:02.190+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 2 被 autoUser1 通过
+2026-07-16T17:50:02.213+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=3, processKey=auto_task_test
+2026-07-16T17:50:02.222+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:02.222+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 3 进入开始节点
+2026-07-16T17:50:02.222+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 3 离开开始节点
+2026-07-16T17:50:02.225+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=一级审批
+2026-07-16T17:50:02.226+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=3, nodeId=task1, assignee=autoUser1, candidates=null
+2026-07-16T17:50:02.226+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=4, node=task1, assignee=autoUser1
+2026-07-16T17:50:02.228+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 3 等待在节点 task1
+2026-07-16T17:50:02.239+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task2, type=userTask, name=二级审批
+2026-07-16T17:50:02.239+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=3, nodeId=task2, assignee=null, candidates=autoUser2,autoUser3
+2026-07-16T17:50:02.240+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=5, node=task2, assignee=null
+2026-07-16T17:50:02.243+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 3 等待在节点 task2
+2026-07-16T17:50:02.243+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 4 被 autoUser1 通过
+2026-07-16T17:50:02.269+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 5 被 autoUser2 签收
+2026-07-16T17:50:02.288+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=end, type=end, name=结束
+2026-07-16T17:50:02.289+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.node.impl.EndNodeHandler   : [EndNode] 流程实例 3 进入结束节点
+2026-07-16T17:50:02.290+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.node.impl.EndNodeHandler   : [EndNode] 流程实例 3 离开结束节点，流程完成
+2026-07-16T17:50:02.297+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程完成事件: instanceId=3, processKey=auto_task_test
+2026-07-16T17:50:02.302+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 3 已完成
+2026-07-16T17:50:02.302+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 5 被 autoUser2 通过
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.137 s -- in com.flow.engine.engine.UserTaskCreationTest
+[INFO] Running com.flow.engine.HealthCheckTest
+2026-07-16T17:50:02.313+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.HealthCheckTest]: HealthCheckTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:50:02.316+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.HealthCheckTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.147 s -- in com.flow.engine.HealthCheckTest
+[INFO] Running com.flow.engine.node.BuiltinNodeTest
+2026-07-16T17:50:02.468+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.SubProcessNodeHandler    : [SubProcess] 流程实例 1 进入子流程节点 sub1
+2026-07-16T17:50:02.469+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.SubProcessNodeHandler    : [SubProcess] 子流程执行: nodeId=sub1
+2026-07-16T17:50:02.470+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.SubProcessNodeHandler    : [SubProcess] 流程实例 1 离开子流程节点 sub1
+2026-07-16T17:50:02.473+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 1 进入开始节点
+2026-07-16T17:50:02.475+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 1 离开开始节点
+2026-07-16T17:50:02.480+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.InclusiveGatewayNodeHandler    : [InclusiveGateway] 流程实例 1 进入包容网关 igw1
+2026-07-16T17:50:02.481+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.InclusiveGatewayNodeHandler    : [InclusiveGateway] 包容网关执行: nodeId=igw1
+2026-07-16T17:50:02.482+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.InclusiveGatewayNodeHandler    : [InclusiveGateway] 流程实例 1 离开包容网关 igw1
+2026-07-16T17:50:02.484+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.node.impl.EndNodeHandler   : [EndNode] 流程实例 1 进入结束节点
+2026-07-16T17:50:02.486+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.node.impl.EndNodeHandler   : [EndNode] 流程实例 1 离开结束节点，流程完成
+2026-07-16T17:50:02.491+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.ExclusiveGatewayNodeHandler    : [ExclusiveGateway] 流程实例 1 进入排他网关 gw1
+2026-07-16T17:50:02.491+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.ExclusiveGatewayNodeHandler    : [ExclusiveGateway] 排他网关执行: nodeId=gw1
+2026-07-16T17:50:02.492+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.i.ExclusiveGatewayNodeHandler    : [ExclusiveGateway] 流程实例 1 离开排他网关 gw1
+2026-07-16T17:50:02.495+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.ScriptTaskNodeHandler    : [ScriptTask] 流程实例 1 进入脚本任务节点 script1
+2026-07-16T17:50:02.495+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.ScriptTaskNodeHandler    : [ScriptTask] 脚本任务执行完成: nodeId=script1
+2026-07-16T17:50:02.495+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.ScriptTaskNodeHandler    : [ScriptTask] 流程实例 1 离开脚本任务节点 script1
+2026-07-16T17:50:02.497+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.ServiceTaskNodeHandler   : [ServiceTask] 流程实例 1 进入服务任务节点 svc1
+2026-07-16T17:50:02.497+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.ServiceTaskNodeHandler   : [ServiceTask] 服务任务执行完成: nodeId=svc1
+2026-07-16T17:50:02.498+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.ServiceTaskNodeHandler   : [ServiceTask] 流程实例 1 离开服务任务节点 svc1
+2026-07-16T17:50:02.500+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.impl.ParallelGatewayNodeHandler  : [ParallelGateway] 流程实例 1 进入并行网关 pgw1
+2026-07-16T17:50:02.501+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.impl.ParallelGatewayNodeHandler  : [ParallelGateway] 并行网关执行: nodeId=pgw1
+2026-07-16T17:50:02.501+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.n.impl.ParallelGatewayNodeHandler  : [ParallelGateway] 流程实例 1 离开并行网关 pgw1
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.042 s -- in com.flow.engine.node.BuiltinNodeTest
+[INFO] Running com.flow.engine.node.CustomNodeExtensionTest
+2026-07-16T17:50:02.510+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.node.CustomNodeExtensionTest]: CustomNodeExtensionTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:50:02.560+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.node.CustomNodeExtensionTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2026-07-16T17:50:02.610+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.CustomNodeExtensionTest  : Starting CustomNodeExtensionTest using Java 17.0.12 with PID 14256 (started by wb_liming in D:\source_code\workflow\flow-engine)
+2026-07-16T17:50:02.611+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.CustomNodeExtensionTest  : No active profile set, falling back to 1 default profile: "default"
+2026-07-16T17:50:03.422+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Starting...
+2026-07-16T17:50:03.424+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-5 - Added connection org.sqlite.jdbc4.JDBC4Connection@67171221
+2026-07-16T17:50:03.425+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-5 - Start completed.
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.5 
+2026-07-16T17:50:03.655+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=dummy, class=com.flow.engine.node.DummyNodeHandler
+2026-07-16T17:50:03.656+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=customDemo, class=com.flow.engine.node.impl.CustomDemoNodeHandler
+2026-07-16T17:50:03.656+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=end, class=com.flow.engine.node.impl.EndNodeHandler
+2026-07-16T17:50:03.656+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=exclusiveGateway, class=com.flow.engine.node.impl.ExclusiveGatewayNodeHandler
+2026-07-16T17:50:03.656+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=inclusiveGateway, class=com.flow.engine.node.impl.InclusiveGatewayNodeHandler
+2026-07-16T17:50:03.656+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=parallelGateway, class=com.flow.engine.node.impl.ParallelGatewayNodeHandler
+2026-07-16T17:50:03.656+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=scriptTask, class=com.flow.engine.node.impl.ScriptTaskNodeHandler
+2026-07-16T17:50:03.656+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=serviceTask, class=com.flow.engine.node.impl.ServiceTaskNodeHandler
+2026-07-16T17:50:03.656+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=start, class=com.flow.engine.node.impl.StartNodeHandler
+2026-07-16T17:50:03.656+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=subProcess, class=com.flow.engine.node.impl.SubProcessNodeHandler
+2026-07-16T17:50:03.656+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=userTask, class=com.flow.engine.node.impl.UserTaskNodeHandler
+2026-07-16T17:50:04.050+08:00  INFO 14256 --- [flow-engine] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-07-16T17:50:04.115+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.CustomNodeExtensionTest  : Started CustomNodeExtensionTest in 1.55 seconds (process running for 26.56)
+2026-07-16T17:50:04.134+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.CustomDemoNodeHandler    : [CustomDemo] onEnter: 流程实例 test-instance 进入自定义节点 custom1
+2026-07-16T17:50:04.134+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.CustomDemoNodeHandler    : [CustomDemo] execute: 自定义节点 custom1 执行业务逻辑
+2026-07-16T17:50:04.134+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.CustomDemoNodeHandler    : [CustomDemo] onLeave: 流程实例 test-instance 离开自定义节点 custom1
+2026-07-16T17:50:04.139+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.CustomDemoNodeHandler    : [CustomDemo] onEnter: 流程实例 test-instance 进入自定义节点 custom2
+2026-07-16T17:50:04.145+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.CustomDemoNodeHandler    : [CustomDemo] onEnter: 流程实例 test-instance 进入自定义节点 custom3
+2026-07-16T17:50:04.145+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.CustomDemoNodeHandler    : [CustomDemo] execute: 自定义节点 custom3 执行业务逻辑
+2026-07-16T17:50:04.149+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.CustomDemoNodeHandler    : [CustomDemo] onEnter: 流程实例 test-instance 进入自定义节点 custom4
+2026-07-16T17:50:04.150+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.CustomDemoNodeHandler    : [CustomDemo] execute: 自定义节点 custom4 执行业务逻辑
+2026-07-16T17:50:04.150+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.CustomDemoNodeHandler    : [CustomDemo] onLeave: 流程实例 test-instance 离开自定义节点 custom4
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.657 s -- in com.flow.engine.node.CustomNodeExtensionTest
+[INFO] Running com.flow.engine.node.ExecutionContextTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in com.flow.engine.node.ExecutionContextTest
+[INFO] Running com.flow.engine.node.NodeHandlerAutoRegisterTest
+2026-07-16T17:50:04.179+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.node.NodeHandlerAutoRegisterTest]: NodeHandlerAutoRegisterTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:50:04.181+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.node.NodeHandlerAutoRegisterTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s -- in com.flow.engine.node.NodeHandlerAutoRegisterTest
+[INFO] Running com.flow.engine.node.NodeHandlerRegistryTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in com.flow.engine.node.NodeHandlerRegistryTest
+[INFO] Running com.flow.engine.parser.ComputedFieldTest
+2026-07-16T17:50:04.226+08:00  WARN 14256 --- [flow-engine] [           main] com.flow.engine.parser.DataModelParser   : 计算字段表达式求值失败: invalid expression !!!, error: EL 表达式求值失败 [invalid expression !!!]: Expression [invalid expression !!!] @8: EL1041E: After parsing a valid expression, there is still more data in the expression: 'expression'
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s -- in com.flow.engine.parser.ComputedFieldTest
+[INFO] Running com.flow.engine.parser.DataModelParserTest
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.047 s -- in com.flow.engine.parser.DataModelParserTest
+[INFO] Running com.flow.engine.parser.ProcessJsonParserTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s -- in com.flow.engine.parser.ProcessJsonParserTest
+[INFO] Running com.flow.engine.SchemaInitTest
+2026-07-16T17:50:04.300+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.SchemaInitTest]: SchemaInitTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:50:04.302+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.SchemaInitTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.073 s -- in com.flow.engine.SchemaInitTest
+[INFO] Running com.flow.engine.service.FormPermissionApiTest
+2026-07-16T17:50:04.376+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.service.FormPermissionApiTest]: FormPermissionApiTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:50:04.418+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.service.FormPermissionApiTest
+2026-07-16T17:50:04.425+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown initiated...
+2026-07-16T17:50:04.427+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-4 - Shutdown completed.
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2026-07-16T17:50:04.489+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.service.FormPermissionApiTest      : Starting FormPermissionApiTest using Java 17.0.12 with PID 14256 (started by wb_liming in D:\source_code\workflow\flow-engine)
+2026-07-16T17:50:04.489+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.service.FormPermissionApiTest      : The following 1 profile is active: "test"
+2026-07-16T17:50:05.209+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Starting...
+2026-07-16T17:50:05.215+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-6 - Added connection org.sqlite.jdbc4.JDBC4Connection@1eb21f22
+2026-07-16T17:50:05.216+08:00  INFO 14256 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-6 - Start completed.
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.5 
+2026-07-16T17:50:05.552+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=dummy, class=com.flow.engine.node.DummyNodeHandler
+2026-07-16T17:50:05.552+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=customDemo, class=com.flow.engine.node.impl.CustomDemoNodeHandler
+2026-07-16T17:50:05.552+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=end, class=com.flow.engine.node.impl.EndNodeHandler
+2026-07-16T17:50:05.552+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=exclusiveGateway, class=com.flow.engine.node.impl.ExclusiveGatewayNodeHandler
+2026-07-16T17:50:05.552+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=inclusiveGateway, class=com.flow.engine.node.impl.InclusiveGatewayNodeHandler
+2026-07-16T17:50:05.552+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=parallelGateway, class=com.flow.engine.node.impl.ParallelGatewayNodeHandler
+2026-07-16T17:50:05.553+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=scriptTask, class=com.flow.engine.node.impl.ScriptTaskNodeHandler
+2026-07-16T17:50:05.553+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=serviceTask, class=com.flow.engine.node.impl.ServiceTaskNodeHandler
+2026-07-16T17:50:05.553+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=start, class=com.flow.engine.node.impl.StartNodeHandler
+2026-07-16T17:50:05.553+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=subProcess, class=com.flow.engine.node.impl.SubProcessNodeHandler
+2026-07-16T17:50:05.553+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=userTask, class=com.flow.engine.node.impl.UserTaskNodeHandler
+2026-07-16T17:50:05.892+08:00  INFO 14256 --- [flow-engine] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-07-16T17:50:05.939+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.service.FormPermissionApiTest      : Started FormPermissionApiTest in 1.508 seconds (process running for 28.384)
+2026-07-16T17:50:05.978+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=1, processKey=perm_test
+2026-07-16T17:50:05.986+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:05.986+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 1 进入开始节点
+2026-07-16T17:50:05.986+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 1 离开开始节点
+2026-07-16T17:50:05.989+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=第一审批
+2026-07-16T17:50:05.989+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=1, nodeId=task1, assignee=user1, candidates=null
+2026-07-16T17:50:05.990+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=1, node=task1, assignee=user1
+2026-07-16T17:50:05.993+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 1 等待在节点 task1
+2026-07-16T17:50:06.023+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=2, processKey=perm_test
+2026-07-16T17:50:06.026+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:06.027+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 2 进入开始节点
+2026-07-16T17:50:06.027+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 2 离开开始节点
+2026-07-16T17:50:06.029+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=第一审批
+2026-07-16T17:50:06.029+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=2, nodeId=task1, assignee=user1, candidates=null
+2026-07-16T17:50:06.029+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=2, node=task1, assignee=user1
+2026-07-16T17:50:06.044+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 2 等待在节点 task1
+2026-07-16T17:50:06.085+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task2, type=userTask, name=第二审批
+2026-07-16T17:50:06.085+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=2, nodeId=task2, assignee=user2, candidates=null
+2026-07-16T17:50:06.088+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=3, node=task2, assignee=user2
+2026-07-16T17:50:06.090+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 2 等待在节点 task2
+2026-07-16T17:50:06.091+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 2 被 user1 通过
+2026-07-16T17:50:06.100+08:00  WARN 14256 --- [flow-engine] [           main] c.f.engine.service.PermissionCalculator  : 条件表达式求值失败: amount > 1000, 使用默认权限
+
+com.flow.engine.common.exception.FlowException: EL 表达式求值失败 [amount > 1000]: EL1008E: Property or field 'amount' cannot be found on object of type 'java.util.HashMap' - maybe not public or not valid?
+	at com.flow.engine.common.utils.ExpressionUtils.eval(ExpressionUtils.java:68) ~[classes/:na]
+	at com.flow.engine.common.utils.ExpressionUtils.evalBoolean(ExpressionUtils.java:46) ~[classes/:na]
+	at com.flow.engine.service.PermissionCalculator.evaluateCondition(PermissionCalculator.java:151) ~[classes/:na]
+	at com.flow.engine.service.PermissionCalculator.calculateFieldPermissions(PermissionCalculator.java:196) ~[classes/:na]
+	at com.flow.engine.service.PermissionCalculator.calculatePermissions(PermissionCalculator.java:74) ~[classes/:na]
+	at com.flow.engine.service.FormPermissionService.calculateWithInheritance(FormPermissionService.java:100) ~[classes/:na]
+	at com.flow.engine.service.FormPermissionService.getFormPermissions(FormPermissionService.java:80) ~[classes/:na]
+	at com.flow.engine.service.FormPermissionApiTest.testNodeReadonlyPermission(FormPermissionApiTest.java:142) ~[test-classes/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:728) ~[junit-platform-commons-1.10.1.jar:1.10.1]
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:103) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:93) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:92) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:86) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:218) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:214) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:139) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:69) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:198) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:169) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:93) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:58) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:141) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:57) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184) ~[surefire-junit-platform-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148) ~[surefire-junit-platform-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122) ~[surefire-junit-platform-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.1.2.jar:3.1.2]
+
+2026-07-16T17:50:06.139+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=3, processKey=perm_test
+2026-07-16T17:50:06.141+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:06.142+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 3 进入开始节点
+2026-07-16T17:50:06.142+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 3 离开开始节点
+2026-07-16T17:50:06.143+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=第一审批
+2026-07-16T17:50:06.144+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=3, nodeId=task1, assignee=user1, candidates=null
+2026-07-16T17:50:06.145+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=4, node=task1, assignee=user1
+2026-07-16T17:50:06.148+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 3 等待在节点 task1
+2026-07-16T17:50:06.177+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=4, processKey=perm_test
+2026-07-16T17:50:06.179+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:06.179+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 4 进入开始节点
+2026-07-16T17:50:06.179+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 4 离开开始节点
+2026-07-16T17:50:06.183+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=第一审批
+2026-07-16T17:50:06.183+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=4, nodeId=task1, assignee=user1, candidates=null
+2026-07-16T17:50:06.184+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=5, node=task1, assignee=user1
+2026-07-16T17:50:06.185+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 4 等待在节点 task1
+2026-07-16T17:50:06.244+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=5, processKey=perm_test
+2026-07-16T17:50:06.248+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:06.248+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 5 进入开始节点
+2026-07-16T17:50:06.248+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 5 离开开始节点
+2026-07-16T17:50:06.250+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=第一审批
+2026-07-16T17:50:06.251+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=5, nodeId=task1, assignee=user1, candidates=null
+2026-07-16T17:50:06.252+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=6, node=task1, assignee=user1
+2026-07-16T17:50:06.254+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 5 等待在节点 task1
+2026-07-16T17:50:06.296+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task2, type=userTask, name=第二审批
+2026-07-16T17:50:06.297+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=5, nodeId=task2, assignee=user2, candidates=null
+2026-07-16T17:50:06.298+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=7, node=task2, assignee=user2
+2026-07-16T17:50:06.300+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 5 等待在节点 task2
+2026-07-16T17:50:06.300+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 6 被 user1 通过
+2026-07-16T17:50:06.308+08:00  WARN 14256 --- [flow-engine] [           main] c.f.engine.service.PermissionCalculator  : 条件表达式求值失败: amount > 1000, 使用默认权限
+
+com.flow.engine.common.exception.FlowException: EL 表达式求值失败 [amount > 1000]: EL1008E: Property or field 'amount' cannot be found on object of type 'java.util.HashMap' - maybe not public or not valid?
+	at com.flow.engine.common.utils.ExpressionUtils.eval(ExpressionUtils.java:68) ~[classes/:na]
+	at com.flow.engine.common.utils.ExpressionUtils.evalBoolean(ExpressionUtils.java:46) ~[classes/:na]
+	at com.flow.engine.service.PermissionCalculator.evaluateCondition(PermissionCalculator.java:151) ~[classes/:na]
+	at com.flow.engine.service.PermissionCalculator.calculateFieldPermissions(PermissionCalculator.java:196) ~[classes/:na]
+	at com.flow.engine.service.PermissionCalculator.calculatePermissions(PermissionCalculator.java:74) ~[classes/:na]
+	at com.flow.engine.service.FormPermissionService.calculateWithInheritance(FormPermissionService.java:100) ~[classes/:na]
+	at com.flow.engine.service.FormPermissionService.getFormPermissions(FormPermissionService.java:80) ~[classes/:na]
+	at com.flow.engine.service.FormPermissionApiTest.testInheritance(FormPermissionApiTest.java:202) ~[test-classes/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:728) ~[junit-platform-commons-1.10.1.jar:1.10.1]
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:103) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:93) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:92) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:86) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:218) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:214) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:139) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:69) ~[junit-jupiter-engine-5.10.1.jar:5.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:151) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511) ~[na:na]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:155) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:141) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:139) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:138) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54) ~[junit-platform-engine-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:198) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:169) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:93) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:58) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:141) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:57) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47) ~[junit-platform-launcher-1.10.1.jar:1.10.1]
+	at org.apache.maven.surefire.junitplatform.LazyLauncher.execute(LazyLauncher.java:56) ~[surefire-junit-platform-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:184) ~[surefire-junit-platform-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:148) ~[surefire-junit-platform-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:122) ~[surefire-junit-platform-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385) ~[surefire-booter-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.1.2.jar:3.1.2]
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.1.2.jar:3.1.2]
+
+2026-07-16T17:50:06.319+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=6, processKey=perm_test
+2026-07-16T17:50:06.334+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:06.334+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 6 进入开始节点
+2026-07-16T17:50:06.334+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 6 离开开始节点
+2026-07-16T17:50:06.336+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=第一审批
+2026-07-16T17:50:06.336+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=6, nodeId=task1, assignee=user1, candidates=null
+2026-07-16T17:50:06.336+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=8, node=task1, assignee=user1
+2026-07-16T17:50:06.348+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 6 等待在节点 task1
+2026-07-16T17:50:06.360+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task2, type=userTask, name=第二审批
+2026-07-16T17:50:06.360+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=6, nodeId=task2, assignee=user2, candidates=null
+2026-07-16T17:50:06.363+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=9, node=task2, assignee=user2
+2026-07-16T17:50:06.365+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 6 等待在节点 task2
+2026-07-16T17:50:06.365+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 8 被 user1 通过
+2026-07-16T17:50:06.395+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=7, processKey=perm_test
+2026-07-16T17:50:06.399+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:06.404+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 7 进入开始节点
+2026-07-16T17:50:06.405+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 7 离开开始节点
+2026-07-16T17:50:06.413+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=第一审批
+2026-07-16T17:50:06.413+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=7, nodeId=task1, assignee=user1, candidates=null
+2026-07-16T17:50:06.415+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=10, node=task1, assignee=user1
+2026-07-16T17:50:06.426+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 7 等待在节点 task1
+2026-07-16T17:50:06.444+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task2, type=userTask, name=第二审批
+2026-07-16T17:50:06.445+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=7, nodeId=task2, assignee=user2, candidates=null
+2026-07-16T17:50:06.446+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=11, node=task2, assignee=user2
+2026-07-16T17:50:06.450+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 7 等待在节点 task2
+2026-07-16T17:50:06.450+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 10 被 user1 通过
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.103 s -- in com.flow.engine.service.FormPermissionApiTest
+[INFO] Running com.flow.engine.service.ModelInstanceIntegrationTest
+2026-07-16T17:50:06.484+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.service.ModelInstanceIntegrationTest]: ModelInstanceIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:50:06.486+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.service.ModelInstanceIntegrationTest
+2026-07-16T17:50:06.525+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 创建数据模型: modelKey=order_model_1784195406492
+2026-07-16T17:50:06.579+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 创建数据模型: modelKey=order_model_1784195406560
+2026-07-16T17:50:06.671+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 发布数据模型: modelKey=order_model_1784195406560, version=2
+2026-07-16T17:50:06.735+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.service.ModelInstanceManager  : 创建模型实例: modelKey=order_model_1784195406560, instanceId=5277dd16-822a-400c-9a2f-8c9f344ba5c3
+2026-07-16T17:50:06.770+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 创建数据模型: modelKey=order_model_1784195406764
+2026-07-16T17:50:06.786+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 发布数据模型: modelKey=order_model_1784195406764, version=2
+2026-07-16T17:50:06.805+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.service.ModelInstanceManager  : 创建模型实例: modelKey=order_model_1784195406764, instanceId=94cfa7a8-d983-487c-acba-71e1b895053f
+2026-07-16T17:50:06.831+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 创建数据模型: modelKey=order_model_1784195406824
+2026-07-16T17:50:06.851+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 发布数据模型: modelKey=order_model_1784195406824, version=2
+2026-07-16T17:50:06.873+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.service.ModelInstanceManager  : 创建模型实例: modelKey=order_model_1784195406824, instanceId=edc60331-2d8d-40da-ab30-98411dfcb582
+2026-07-16T17:50:06.892+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.service.ModelInstanceManager  : 更新模型实例: instanceId=edc60331-2d8d-40da-ab30-98411dfcb582
+2026-07-16T17:50:06.915+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 创建数据模型: modelKey=order_model_1784195406905
+2026-07-16T17:50:06.932+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 发布数据模型: modelKey=order_model_1784195406905, version=2
+2026-07-16T17:50:06.947+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.service.ModelInstanceManager  : 创建模型实例: modelKey=order_model_1784195406905, instanceId=b19b8a4f-d072-48af-aa52-8950d8a922e0
+2026-07-16T17:50:06.973+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.service.ModelInstanceManager  : 更新模型实例: instanceId=b19b8a4f-d072-48af-aa52-8950d8a922e0
+2026-07-16T17:50:06.996+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 创建数据模型: modelKey=order_model_1784195406989
+2026-07-16T17:50:07.012+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 发布数据模型: modelKey=order_model_1784195406989, version=2
+2026-07-16T17:50:07.040+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 创建数据模型: modelKey=order_model_1784195407036
+2026-07-16T17:50:07.061+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 发布数据模型: modelKey=order_model_1784195407036, version=2
+2026-07-16T17:50:07.087+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.service.ModelInstanceManager  : 创建模型实例: modelKey=order_model_1784195407036, instanceId=198125d4-99a1-4b90-b5a5-8857cfd43c5e
+2026-07-16T17:50:07.125+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.service.ModelInstanceManager  : 归档模型实例: instanceId=198125d4-99a1-4b90-b5a5-8857cfd43c5e, modelKey=order_model_1784195407036
+2026-07-16T17:50:07.136+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 创建数据模型: modelKey=order_model_1784195407132
+2026-07-16T17:50:07.161+08:00  INFO 14256 --- [flow-engine] [           main] c.flow.engine.service.DataModelService   : 创建数据模型: modelKey=order_model_1784195407155
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.717 s -- in com.flow.engine.service.ModelInstanceIntegrationTest
+[INFO] Running com.flow.engine.service.PermissionCalculatorTest
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.021 s -- in com.flow.engine.service.PermissionCalculatorTest
+[INFO] Running com.flow.engine.service.ProcessVariableTest
+2026-07-16T17:50:07.224+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.service.ProcessVariableTest]: ProcessVariableTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:50:07.226+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.service.ProcessVariableTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.044 s -- in com.flow.engine.service.ProcessVariableTest
+[INFO] Running com.flow.engine.service.TaskServiceTest
+2026-07-16T17:50:07.272+08:00  INFO 14256 --- [flow-engine] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.flow.engine.service.TaskServiceTest]: TaskServiceTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-07-16T17:50:07.274+08:00  INFO 14256 --- [flow-engine] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.flow.engine.FlowEngineApplication for test class com.flow.engine.service.TaskServiceTest
+2026-07-16T17:50:07.289+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=8, processKey=task_test
+2026-07-16T17:50:07.291+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:07.292+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 8 进入开始节点
+2026-07-16T17:50:07.292+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 8 离开开始节点
+2026-07-16T17:50:07.294+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:50:07.295+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=8, nodeId=task1, assignee=user1, candidates=user1,user2
+2026-07-16T17:50:07.298+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=12, node=task1, assignee=user1
+2026-07-16T17:50:07.306+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 8 等待在节点 task1
+2026-07-16T17:50:07.321+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=9, processKey=task_test
+2026-07-16T17:50:07.324+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:07.324+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 9 进入开始节点
+2026-07-16T17:50:07.324+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 9 离开开始节点
+2026-07-16T17:50:07.326+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:50:07.326+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=9, nodeId=task1, assignee=user1, candidates=user1,user2
+2026-07-16T17:50:07.333+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=13, node=task1, assignee=user1
+2026-07-16T17:50:07.335+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 9 等待在节点 task1
+2026-07-16T17:50:07.349+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 13 被 user1 签收
+2026-07-16T17:50:07.356+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=10, processKey=task_test
+2026-07-16T17:50:07.360+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:07.360+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 10 进入开始节点
+2026-07-16T17:50:07.360+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 10 离开开始节点
+2026-07-16T17:50:07.363+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:50:07.363+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=10, nodeId=task1, assignee=user1, candidates=user1,user2
+2026-07-16T17:50:07.364+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=14, node=task1, assignee=user1
+2026-07-16T17:50:07.367+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 10 等待在节点 task1
+2026-07-16T17:50:07.377+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 14 被 user1 签收
+2026-07-16T17:50:07.382+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 14 取消签收
+2026-07-16T17:50:07.398+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=11, processKey=task_test
+2026-07-16T17:50:07.403+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:07.403+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 11 进入开始节点
+2026-07-16T17:50:07.404+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 11 离开开始节点
+2026-07-16T17:50:07.410+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:50:07.410+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=11, nodeId=task1, assignee=user1, candidates=user1,user2
+2026-07-16T17:50:07.411+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=15, node=task1, assignee=user1
+2026-07-16T17:50:07.414+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 11 等待在节点 task1
+2026-07-16T17:50:07.426+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task2, type=userTask, name=二级审批
+2026-07-16T17:50:07.426+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=11, nodeId=task2, assignee=null, candidates=null
+2026-07-16T17:50:07.427+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=16, node=task2, assignee=null
+2026-07-16T17:50:07.429+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 11 等待在节点 task2
+2026-07-16T17:50:07.429+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 15 被 user1 通过
+2026-07-16T17:50:07.442+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=12, processKey=task_test
+2026-07-16T17:50:07.445+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:07.445+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 12 进入开始节点
+2026-07-16T17:50:07.445+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 12 离开开始节点
+2026-07-16T17:50:07.447+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:50:07.447+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=12, nodeId=task1, assignee=user1, candidates=user1,user2
+2026-07-16T17:50:07.448+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=17, node=task1, assignee=user1
+2026-07-16T17:50:07.450+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 12 等待在节点 task1
+2026-07-16T17:50:07.461+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=18, node=task1, assignee=user3
+2026-07-16T17:50:07.461+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 17 由 user1 转办给 user3
+2026-07-16T17:50:07.476+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=13, processKey=task_test
+2026-07-16T17:50:07.480+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:07.480+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 13 进入开始节点
+2026-07-16T17:50:07.480+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 13 离开开始节点
+2026-07-16T17:50:07.483+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:50:07.483+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=13, nodeId=task1, assignee=user1, candidates=user1,user2
+2026-07-16T17:50:07.484+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=19, node=task1, assignee=user1
+2026-07-16T17:50:07.486+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 13 等待在节点 task1
+2026-07-16T17:50:07.494+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=20, node=task1, assignee=user4
+2026-07-16T17:50:07.495+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 19 由 user1 委派给 user4
+2026-07-16T17:50:07.513+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=14, processKey=task_test
+2026-07-16T17:50:07.513+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:07.513+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 14 进入开始节点
+2026-07-16T17:50:07.513+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 14 离开开始节点
+2026-07-16T17:50:07.520+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:50:07.520+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=14, nodeId=task1, assignee=user1, candidates=user1,user2
+2026-07-16T17:50:07.520+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=21, node=task1, assignee=user1
+2026-07-16T17:50:07.520+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 14 等待在节点 task1
+2026-07-16T17:50:07.528+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 21 被 user1 签收
+2026-07-16T17:50:07.539+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.listener.DataModelProcessListener  : [DataModel] 流程启动事件: instanceId=15, processKey=task_test
+2026-07-16T17:50:07.539+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=start, type=start, name=开始
+2026-07-16T17:50:07.539+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 15 进入开始节点
+2026-07-16T17:50:07.539+08:00  INFO 14256 --- [flow-engine] [           main] c.f.engine.node.impl.StartNodeHandler    : [StartNode] 流程实例 15 离开开始节点
+2026-07-16T17:50:07.539+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.NodeExecutor      : [NodeExecutor] 执行节点: id=task1, type=userTask, name=审批
+2026-07-16T17:50:07.539+08:00  INFO 14256 --- [flow-engine] [           main] c.f.e.node.impl.UserTaskNodeHandler      : [UserTaskNodeHandler] userTask 节点进入: instanceId=15, nodeId=task1, assignee=user1, candidates=user1,user2
+2026-07-16T17:50:07.539+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 创建任务: id=22, node=task1, assignee=user1
+2026-07-16T17:50:07.539+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 15 等待在节点 task1
+2026-07-16T17:50:07.554+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.engine.FlowEngine        : [FlowEngine] 流程实例 15 回退到节点 null
+2026-07-16T17:50:07.554+08:00  INFO 14256 --- [flow-engine] [           main] com.flow.engine.service.TaskService      : [TaskService] 任务 22 被 user1 驳回
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.287 s -- in com.flow.engine.service.TaskServiceTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 142, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  59.137 s
+[INFO] Finished at: 2026-07-16T17:50:07+08:00
+[INFO] ------------------------------------------------------------------------
