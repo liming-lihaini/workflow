@@ -85,6 +85,9 @@ export function assignRoleUsers(id, data) {
 export function getPermissions(params) {
   return request.get('/system/permissions', { params })
 }
+export function getPermissionsGrouped() {
+  return request.get('/system/permissions/grouped')
+}
 export function createPermission(data) {
   return request.post('/system/permissions', data)
 }

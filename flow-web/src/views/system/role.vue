@@ -46,12 +46,13 @@
     </a-modal>
 
     <!-- 权限分配弹窗 -->
-    <a-modal v-model:open="permModalVisible" title="权限分配" @ok="handleAssignPerm" width="500px">
+    <a-modal v-model:open="permModalVisible" title="权限分配" @ok="handleAssignPerm" width="560px">
       <a-tree
         v-model:checkedKeys="checkedPermIds"
         :tree-data="permTree"
         checkable
-        :field-names="{ title: 'permName', key: 'id', children: 'children' }"
+        default-expand-all
+        :field-names="{ title: 'title', key: 'key', children: 'children' }"
       />
     </a-modal>
   </div>
@@ -61,7 +62,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { getRoles, createRole, updateRole, deleteRole, getRolePermissions, assignRolePermissions } from '../../api/system'
-import { getPermissions } from '../../api/system'
+import { getPermissionsGrouped } from '../../api/system'
 
 const loading = ref(false)
 const dataList = ref([])
@@ -112,7 +113,7 @@ async function loadData() {
   try {
     const res = await getRoles({ page: pagination.current, size: pagination.pageSize })
     const data = res.data || res
-    dataList.value = data.list || data.records || []
+    dataList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     pagination.total = data.total || dataList.value.length
   } catch {
     // ignore
@@ -156,11 +157,11 @@ async function handleDelete(record) {
 
 async function showPermModal(record) {
   currentRoleForPerm.value = record
-  // 加载权限树
+  // 加载分组权限树
   try {
-    const res = await getPermissions()
+    const res = await getPermissionsGrouped()
     const data = res.data || res
-    permTree.value = Array.isArray(data) ? data : (data.list || data.records || [])
+    permTree.value = Array.isArray(data) ? data : []
   } catch {
     permTree.value = []
   }
@@ -177,7 +178,9 @@ async function showPermModal(record) {
 
 async function handleAssignPerm() {
   try {
-    await assignRolePermissions(currentRoleForPerm.value.id, checkedPermIds.value)
+    // 过滤掉分组节点key（字符串），只保留权限ID（数字）
+    const permIds = checkedPermIds.value.filter(k => typeof k === 'number')
+    await assignRolePermissions(currentRoleForPerm.value.id, permIds)
     message.success('权限分配成功')
     permModalVisible.value = false
   } catch {

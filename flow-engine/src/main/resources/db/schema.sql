@@ -172,6 +172,7 @@ CREATE TABLE IF NOT EXISTS sys_permission (
     perm_name     TEXT,
     perm_key      TEXT,
     perm_type     INTEGER,
+    perm_group    TEXT,
     resource_path TEXT,
     sort_order    INTEGER,
     create_time   TEXT

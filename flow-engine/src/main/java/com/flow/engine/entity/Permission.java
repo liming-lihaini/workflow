@@ -27,6 +27,9 @@ public class Permission {
     /** 权限类型：1-菜单，2-按钮，3-接口 */
     private Integer permType;
 
+    /** 功能模块分组：dashboard-工作台, process-流程管理, task-任务中心, system-后台管理, monitor-流程监控 */
+    private String permGroup;
+
     /** 资源路径 */
     private String resourcePath;
 
