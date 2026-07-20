@@ -279,6 +279,8 @@ async function loadDepts() {
     const res = await getDeptTree()
     const data = res.data || res
     deptTree.value = Array.isArray(data) ? data : []
+    allDeptKeys.value = collectAllKeys(deptTree.value)
+    expandedKeys.value = [...allDeptKeys.value]
   } catch {
     // ignore
   }

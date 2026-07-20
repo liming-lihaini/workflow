@@ -15,7 +15,6 @@ spring:
       mode: always
       encoding: UTF-8
       schema-locations: classpath:db/schema.sql
-      data-locations: classpath:db/data.sql
       continue-on-error: true
   # 未匹配到 Handler 时抛出异常，交由全局异常处理器返回统一 404
   mvc:

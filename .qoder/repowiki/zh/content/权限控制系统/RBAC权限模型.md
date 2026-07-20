@@ -24,6 +24,13 @@
 - [schema.sql](file://flow-engine/src/main/resources/db/schema.sql)
 </cite>
 
+## 更新摘要
+**变更内容**   
+- 新增权限分组功能：Permission实体增加permGroup字段支持权限分组管理
+- 增强权限查询接口：PermissionController扩展了基于权限组的查询能力
+- 更新数据模型：在权限实体中引入分组概念，支持更精细的权限组织
+- 改进API设计：提供按权限组筛选和管理的REST接口
+
 ## 目录
 1. [简介](#简介)
 2. [项目结构](#项目结构)
@@ -38,6 +45,8 @@
 
 ## 简介
 本技术文档围绕RBAC（基于角色的访问控制）权限模型，系统阐述用户、角色、权限之间的多对多关系设计与实现，包括实体类结构、数据库表关系与关联查询；说明用户与角色的分配机制、角色与权限的绑定关系；描述权限继承机制的实现思路与规则；提供完整的CRUD操作示例路径；给出权限缓存策略与性能优化方案；并说明权限验证拦截器与注解的使用方式。最后结合实际业务场景给出最佳实践建议。
+
+**更新** 本次更新新增了权限分组功能，通过permGroup字段实现对权限的分类管理，提升了权限系统的可维护性和组织性。
 
 ## 项目结构
 本项目采用分层架构：
@@ -150,7 +159,7 @@ SQL --> RPM
 - 实体层
   - 用户实体：承载用户基本信息与登录态相关字段
   - 角色实体：承载角色标识、名称、层级等信息
-  - 权限实体：承载权限标识、资源、动作等元信息
+  - 权限实体：承载权限标识、资源、动作、分组等元信息
   - 用户-角色中间表：维护用户与角色的多对多关系
   - 角色-权限中间表：维护角色与权限的多对多关系
 - 数据访问层
@@ -165,6 +174,8 @@ SQL --> RPM
   - MVC配置：注册拦截器、全局异常处理、跨域等
 - 资源层
   - 数据库初始化脚本：定义表结构与索引
+
+**更新** 权限实体现在支持permGroup字段，允许将权限按功能模块或业务领域进行分组管理，提升了权限的组织性和可维护性。
 
 章节来源
 - [Permission.java](file://flow-engine/src/main/java/com/flow/engine/entity/Permission.java)
@@ -232,7 +243,10 @@ Controller-->>Client : "返回响应"
   - 权限继承规则：子角色自动继承父角色及其祖先角色的全部权限
 - 权限维度
   - 资源与动作组合形成细粒度权限标识
+  - **新增** 权限分组字段permGroup，支持按功能模块或业务领域组织权限
   - 支持通配符或前缀匹配以简化配置
+
+**更新** 权限实体现在包含permGroup字段，允许将相关权限进行逻辑分组，便于批量管理和权限审计。
 
 ```mermaid
 erDiagram
@@ -257,6 +271,7 @@ PERMISSION {
 bigint id PK
 string resource
 string action
+string perm_group
 string description
 datetime created_at
 datetime updated_at
@@ -322,21 +337,27 @@ Invalidate --> End(["结束"])
   - 支持批量绑定与幂等处理
 - 权限继承生效
   - 当查询某角色的权限时，需递归向上查找父角色并合并权限集合
+- **新增** 权限分组管理
+  - 支持按权限组进行批量权限分配和管理
+  - 提供基于权限组的查询和过滤功能
 
 ```mermaid
 flowchart TD
 S(["开始"]) --> Bind["写入角色-权限关联"]
-Bind --> CacheUpdate["更新角色权限缓存"]
+Bind --> GroupCheck["检查权限分组"]
+GroupCheck --> CacheUpdate["更新角色权限缓存"]
 CacheUpdate --> E(["结束"])
 ```
 
 图表来源
 - [RolePermissionMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/RolePermissionMapper.java)
 - [RolePermissionService.java](file://flow-engine/src/main/java/com/flow/engine/service/RolePermissionService.java)
+- [PermissionController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/PermissionController.java)
 
 章节来源
 - [RolePermissionMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/RolePermissionMapper.java)
 - [RolePermissionService.java](file://flow-engine/src/main/java/com/flow/engine/service/RolePermissionService.java)
+- [PermissionController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/PermissionController.java)
 
 ### 权限继承机制与传递规则
 - 角色层级结构
@@ -346,6 +367,8 @@ CacheUpdate --> E(["结束"])
   - 权限计算时需自底向上遍历至根节点，合并权限集合
 - 冲突与覆盖
   - 若存在显式拒绝策略，可优先于继承的允许策略
+- **新增** 权限分组继承
+  - 权限分组信息随权限一起继承，保持分组的完整性
 
 ```mermaid
 flowchart TD
@@ -353,7 +376,8 @@ Enter(["进入权限计算"]) --> LoadRoles["加载用户角色集合"]
 LoadRoles --> ForEachRole{"遍历每个角色"}
 ForEachRole --> |是| LoadAncestors["加载角色祖先链"]
 LoadAncestors --> MergePerms["合并祖先角色权限"]
-MergePerms --> NextRole["下一个角色"]
+MergePerms --> GroupPreserve["保持权限分组信息"]
+GroupPreserve --> NextRole["下一个角色"]
 ForEachRole --> |否| ReturnSet["返回权限集合"]
 NextRole --> ForEachRole
 ```
@@ -388,6 +412,10 @@ NextRole --> ForEachRole
   - 更新权限：[PermissionController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/PermissionController.java)
   - 删除权限：[PermissionController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/PermissionController.java)
   - 查询权限列表/详情：[PermissionController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/PermissionController.java)
+  - **新增** 按权限组查询：[PermissionController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/PermissionController.java)
+  - **新增** 权限组管理接口：[PermissionController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/PermissionController.java)
+
+**更新** 权限管理功能现已增强，支持基于权限组的查询和管理操作，提供更灵活的权限组织方式。
 
 章节来源
 - [UserController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/UserController.java)
@@ -440,12 +468,17 @@ end
   - 后台管理系统：管理员对用户、角色、权限进行集中管理
   - 流程引擎：任务节点审批人依据角色与权限动态生成待办
   - 表单权限：不同角色对同一表单具备不同的可见与编辑范围
+  - **新增** 模块化权限管理：按业务模块组织权限，便于大型系统的权限治理
 - 最佳实践
-  - 将权限标识设计为“资源:动作”形式，便于前端按钮级控制
+  - 将权限标识设计为"资源:动作"形式，便于前端按钮级控制
   - 角色层级不宜过深，避免权限计算开销过大
   - 对高频鉴权路径引入缓存，降低数据库压力
   - 变更用户角色或角色权限后，及时失效相关缓存
   - 使用唯一约束与幂等写入，防止重复分配与绑定
+  - **新增** 合理使用权限分组，将相关权限归类管理，提升可维护性
+  - **新增** 在设计权限分组时考虑业务边界，避免过度拆分导致管理复杂度增加
+
+**更新** 新增权限分组功能的最佳实践建议，帮助开发者更好地利用新的分组特性来组织和管理权限。
 
 [本节为通用指导，不直接分析具体文件]
 
@@ -499,12 +532,17 @@ M --> D["数据库"]
   - 用户权限缓存：以用户ID为键，存储其所有权限集合，设置合理过期时间
   - 角色权限缓存：以角色ID为键，存储其直接权限集合；继承权限在计算时合并
   - 缓存失效：在用户角色变更、角色权限变更时主动失效相关缓存
+  - **新增** 权限分组缓存：可按权限组维度缓存权限集合，提高分组查询性能
 - 查询优化
   - 使用批量查询减少往返次数
-  - 为常用查询字段建立索引（如用户ID、角色ID、权限ID）
+  - 为常用查询字段建立索引（如用户ID、角色ID、权限ID、权限分组）
+  - **新增** 为permGroup字段建立索引，优化按分组查询的性能
 - 计算优化
   - 预计算并缓存角色祖先链，避免每次递归查询
   - 对频繁鉴权的热点资源进行局部缓存
+  - **新增** 缓存权限分组映射关系，减少分组信息的重复计算
+
+**更新** 新增权限分组相关的性能优化策略，包括分组索引和缓存机制，确保新功能不会影响系统性能。
 
 [本节为通用指导，不直接分析具体文件]
 
@@ -513,17 +551,24 @@ M --> D["数据库"]
   - 权限未生效：检查是否已正确分配用户角色与角色权限，确认缓存是否失效
   - 鉴权失败：检查权限注解是否正确标注，资源与动作是否与权限实体一致
   - 性能问题：关注慢查询日志，检查是否存在N+1查询或缺少索引
+  - **新增** 权限分组查询异常：检查permGroup字段值是否正确，确认分组索引是否建立
 - 定位步骤
   - 查看请求链路日志，确认拦截器是否触发
   - 核对权限评估器的决策分支与返回值
   - 检查数据库表关联数据完整性与唯一约束
+  - **新增** 验证权限分组数据的完整性和一致性
+
+**更新** 新增权限分组相关的故障排查指南，帮助开发者快速定位和解决分组功能相关问题。
 
 章节来源
 - [PermissionEvaluator.java](file://flow-engine/src/main/java/com/flow/engine/service/PermissionEvaluator.java)
 - [WebMvcConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebMvcConfig.java)
+- [PermissionController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/PermissionController.java)
 
 ## 结论
-本RBAC模型通过清晰的用户-角色-权限多对多关系与角色层级继承机制，实现了灵活且可扩展的权限控制。配合拦截器与注解，可在应用层统一实施鉴权。通过合理的缓存策略与查询优化，能够满足高并发场景下的性能要求。建议在业务实践中持续完善权限标识规范与审计机制，保障系统安全与可维护性。
+本RBAC模型通过清晰的用户-角色-权限多对多关系与角色层级继承机制，实现了灵活且可扩展的权限控制。配合拦截器与注解，可在应用层统一实施鉴权。通过合理的缓存策略与查询优化，能够满足高并发场景下的性能要求。
+
+**更新** 本次新增的权限分组功能进一步增强了系统的可维护性和组织性，使得大型系统的权限管理更加清晰和高效。建议在业务实践中持续完善权限标识规范与审计机制，保障系统安全与可维护性。
 
 ## 附录
 - 术语
@@ -531,10 +576,14 @@ M --> D["数据库"]
   - 动作：对资源的操作（如查看、编辑、删除）
   - 角色：一组权限的集合，代表一种职责
   - 权限：资源与动作的组合，表示最小授权单元
+  - **新增** 权限分组：对权限进行逻辑分类的标识，便于批量管理和组织
 - 参考实现路径
   - 实体与表结构：见实体类与schema.sql
   - 控制器与服务：见controllers与service包
   - 数据访问：见mapper包
   - 鉴权与配置：见config与evaluator相关类
+  - **新增** 权限分组功能：重点关注Permission实体的permGroup字段和相关查询接口
+
+**更新** 新增权限分组相关的术语解释和参考实现路径，帮助开发者更好地理解和使用新功能。
 
 [本节为补充说明，不直接分析具体文件]
