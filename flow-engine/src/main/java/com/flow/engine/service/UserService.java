@@ -3,8 +3,10 @@ package com.flow.engine.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.flow.engine.common.BusinessException;
 import com.flow.engine.common.ErrorCode;
+import com.flow.engine.entity.Dept;
 import com.flow.engine.entity.User;
 import com.flow.engine.entity.UserPost;
+import com.flow.engine.mapper.DeptMapper;
 import com.flow.engine.mapper.UserMapper;
 import com.flow.engine.mapper.UserPostMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final UserPostMapper userPostMapper;
+    private final DeptMapper deptMapper;
 
     /**
      * 创建用户
@@ -107,8 +110,41 @@ public class UserService {
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<User> result =
                 userMapper.selectPage(pageParam, wrapper);
 
+        // 查询部门名称映射
+        java.util.Map<Long, String> deptNameMap = new java.util.HashMap<>();
+        List<Long> deptIds = result.getRecords().stream()
+                .map(User::getDeptId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        if (!deptIds.isEmpty()) {
+            List<Dept> depts = deptMapper.selectBatchIds(deptIds);
+            for (Dept dept : depts) {
+                deptNameMap.put(dept.getId(), dept.getDeptName());
+            }
+        }
+
+        // 构建含deptName的响应
+        List<java.util.Map<String, Object>> list = new ArrayList<>();
+        for (User user : result.getRecords()) {
+            java.util.Map<String, Object> item = new java.util.LinkedHashMap<>();
+            item.put("id", user.getId());
+            item.put("username", user.getUsername());
+            item.put("realName", user.getRealName());
+            item.put("email", user.getEmail());
+            item.put("phone", user.getPhone());
+            item.put("deptId", user.getDeptId());
+            item.put("deptName", deptNameMap.getOrDefault(user.getDeptId(), ""));
+            item.put("postId", user.getPostId());
+            item.put("securityLevel", user.getSecurityLevel());
+            item.put("status", user.getStatus());
+            item.put("createTime", user.getCreateTime());
+            item.put("updateTime", user.getUpdateTime());
+            list.add(item);
+        }
+
         java.util.Map<String, Object> data = new java.util.LinkedHashMap<>();
-        data.put("list", result.getRecords());
+        data.put("list", list);
         data.put("total", result.getTotal());
         data.put("page", page);
         data.put("size", size);

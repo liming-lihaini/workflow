@@ -120,9 +120,8 @@ const stats = reactive({
 })
 
 const todoColumns = [
-  { title: '流程名称', dataIndex: 'processName', key: 'processName' },
   { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName' },
-  { title: '处理人', dataIndex: 'assigneeName', key: 'assigneeName' },
+  { title: '处理人', dataIndex: 'assignee', key: 'assignee' },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
   { title: '操作', key: 'action', width: 80 }
 ]

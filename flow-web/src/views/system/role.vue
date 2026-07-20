@@ -37,13 +37,10 @@
     >
       <a-form :model="formState" layout="vertical">
         <a-form-item label="角色名称" required>
-          <a-input v-model:value="formState.name" />
+          <a-input v-model:value="formState.roleName" />
         </a-form-item>
         <a-form-item label="角色标识" required>
           <a-input v-model:value="formState.roleKey" :disabled="!!editingRecord" />
-        </a-form-item>
-        <a-form-item label="描述">
-          <a-textarea v-model:value="formState.description" :rows="3" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -54,7 +51,7 @@
         v-model:checkedKeys="checkedPermIds"
         :tree-data="permTree"
         checkable
-        :field-names="{ title: 'name', key: 'id', children: 'children' }"
+        :field-names="{ title: 'permName', key: 'id', children: 'children' }"
       />
     </a-modal>
   </div>
@@ -86,30 +83,26 @@ const pagination = reactive({
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
-  { title: '角色名称', dataIndex: 'name', key: 'name' },
+  { title: '角色名称', dataIndex: 'roleName', key: 'roleName' },
   { title: '角色标识', dataIndex: 'roleKey', key: 'roleKey' },
-  { title: '描述', dataIndex: 'description', key: 'description' },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
   { title: '操作', key: 'action', width: 220 }
 ]
 
 const formState = reactive({
-  name: '',
-  roleKey: '',
-  description: ''
+  roleName: '',
+  roleKey: ''
 })
 
 function showModal(record) {
   if (record) {
     editingRecord.value = record
-    formState.name = record.name
+    formState.roleName = record.roleName
     formState.roleKey = record.roleKey
-    formState.description = record.description
   } else {
     editingRecord.value = null
-    formState.name = ''
+    formState.roleName = ''
     formState.roleKey = ''
-    formState.description = ''
   }
   modalVisible.value = true
 }
@@ -128,7 +121,7 @@ async function loadData() {
 }
 
 async function handleSubmit() {
-  if (!formState.name || !formState.roleKey) {
+  if (!formState.roleName || !formState.roleKey) {
     message.warning('请填写必填项')
     return
   }
@@ -136,8 +129,7 @@ async function handleSubmit() {
   try {
     if (editingRecord.value) {
       await updateRole(editingRecord.value.id, {
-        name: formState.name,
-        description: formState.description
+        roleName: formState.roleName
       })
       message.success('更新成功')
     } else {
@@ -185,7 +177,7 @@ async function showPermModal(record) {
 
 async function handleAssignPerm() {
   try {
-    await assignRolePermissions(currentRoleForPerm.value.id, { permissionIds: checkedPermIds.value })
+    await assignRolePermissions(currentRoleForPerm.value.id, checkedPermIds.value)
     message.success('权限分配成功')
     permModalVisible.value = false
   } catch {

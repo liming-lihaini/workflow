@@ -16,8 +16,8 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'action'">
-            <span class="action-link" @click="handleClaim(record)" v-if="!record.assigneeId">签收</span>
-            <template v-if="record.assigneeId">
+            <span class="action-link" @click="handleClaim(record)" v-if="!record.assignee">签收</span>
+            <template v-if="record.assignee">
               <span class="action-link" @click="showCompleteModal(record)">通过</span>
               <a-divider type="vertical" />
               <span class="action-link" @click="showRejectModal(record)">驳回</span>
@@ -90,7 +90,7 @@ const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
   { title: '流程实例ID', dataIndex: 'processInstanceId', key: 'processInstanceId' },
   { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName' },
-  { title: '处理人', dataIndex: 'assigneeName', key: 'assigneeName' },
+  { title: '处理人', dataIndex: 'assignee', key: 'assignee' },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
   { title: '操作', key: 'action', width: 260 }
@@ -145,7 +145,7 @@ async function loadData() {
 
 async function handleClaim(record) {
   try {
-    await claimTask(record.id)
+    await claimTask(record.id, { userId: record.assignee || 'current-user' })
     message.success('签收成功')
     loadData()
   } catch {
@@ -155,7 +155,7 @@ async function handleClaim(record) {
 
 async function handleComplete() {
   try {
-    await completeTask(currentTask.value.id, { comment: completeComment.value })
+    await completeTask(currentTask.value.id, { opinion: completeComment.value })
     message.success('审批通过')
     completeVisible.value = false
     loadData()
@@ -170,7 +170,7 @@ async function handleReject() {
     return
   }
   try {
-    await rejectTask(currentTask.value.id, { reason: rejectReason.value })
+    await rejectTask(currentTask.value.id, { comment: rejectReason.value })
     message.success('已驳回')
     rejectVisible.value = false
     loadData()
@@ -185,7 +185,10 @@ async function handleTransfer() {
     return
   }
   try {
-    await transferTask(currentTask.value.id, { targetUserId: transferUserId.value })
+    await transferTask(currentTask.value.id, {
+      operatorId: currentTask.value.assignee,
+      targetUserId: String(transferUserId.value)
+    })
     message.success('转办成功')
     transferVisible.value = false
     loadData()
@@ -200,7 +203,10 @@ async function handleDelegate() {
     return
   }
   try {
-    await delegateTask(currentTask.value.id, { targetUserId: delegateUserId.value })
+    await delegateTask(currentTask.value.id, {
+      operatorId: currentTask.value.assignee,
+      delegateUserId: String(delegateUserId.value)
+    })
     message.success('委派成功')
     delegateVisible.value = false
     loadData()

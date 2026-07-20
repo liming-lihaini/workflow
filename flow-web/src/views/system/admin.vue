@@ -13,9 +13,9 @@
                 allow-clear
                 @change="loadUsers"
               >
-                <a-select-option value="system_admin">系统管理员</a-select-option>
-                <a-select-option value="security_admin">安全管理员</a-select-option>
-                <a-select-option value="audit_admin">审计管理员</a-select-option>
+                <a-select-option :value="1">系统管理员</a-select-option>
+                <a-select-option :value="2">安全管理员</a-select-option>
+                <a-select-option :value="3">审计管理员</a-select-option>
               </a-select>
               <a-button @click="loadUsers">查询</a-button>
             </a-space>
@@ -104,12 +104,12 @@ const auditColumns = [
 ]
 
 function typeColor(type) {
-  const map = { system_admin: 'blue', security_admin: 'orange', audit_admin: 'green' }
+  const map = { 1: 'blue', 2: 'orange', 3: 'green' }
   return map[type] || 'default'
 }
 
 function typeName(type) {
-  const map = { system_admin: '系统管理员', security_admin: '安全管理员', audit_admin: '审计管理员' }
+  const map = { 1: '系统管理员', 2: '安全管理员', 3: '审计管理员' }
   return map[type] || type
 }
 

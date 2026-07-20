@@ -78,10 +78,9 @@ const accessColumns = [
   { title: 'ID', dataIndex: 'id', width: 60 },
   { title: '请求方式', dataIndex: 'method', width: 80 },
   { title: 'URL', dataIndex: 'url', ellipsis: true },
-  { title: 'IP', dataIndex: 'clientIp', width: 140 },
+  { title: 'IP', dataIndex: 'ip', width: 140 },
   { title: '用户', dataIndex: 'username', width: 100 },
-  { title: '状态码', dataIndex: 'statusCode', width: 80 },
-  { title: '耗时(ms)', dataIndex: 'duration', width: 90 },
+  { title: '结果', dataIndex: 'result', width: 80 },
   { title: '访问时间', dataIndex: 'accessTime', width: 180 }
 ]
 

@@ -16,13 +16,13 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
-            <a-tag :color="statusColor(record.status)">{{ record.status }}</a-tag>
+            <a-tag :color="statusColor(record.status)">{{ statusText(record.status) }}</a-tag>
           </template>
           <template v-if="column.key === 'action'">
             <span class="action-link" @click="handleView(record)">详情</span>
-            <a-divider type="vertical" v-if="record.status === 'RUNNING'" />
+            <a-divider type="vertical" v-if="record.status === 0" />
             <a-popconfirm
-              v-if="record.status === 'RUNNING'"
+              v-if="record.status === 0"
               title="确定终止该流程？"
               @confirm="handleTerminate(record)"
             >
@@ -37,9 +37,9 @@
     <a-modal v-model:open="detailVisible" title="流程实例详情" :footer="null" width="640px">
       <a-descriptions :column="2" bordered v-if="currentRecord">
         <a-descriptions-item label="实例ID">{{ currentRecord.id }}</a-descriptions-item>
-        <a-descriptions-item label="流程定义ID">{{ currentRecord.processDefinitionId }}</a-descriptions-item>
+        <a-descriptions-item label="流程名称">{{ currentRecord.processName }}</a-descriptions-item>
         <a-descriptions-item label="状态">
-          <a-tag :color="statusColor(currentRecord.status)">{{ currentRecord.status }}</a-tag>
+          <a-tag :color="statusColor(currentRecord.status)">{{ statusText(currentRecord.status) }}</a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="当前节点">{{ currentRecord.currentNodeId || '-' }}</a-descriptions-item>
         <a-descriptions-item label="创建时间" :span="2">{{ currentRecord.createTime }}</a-descriptions-item>
@@ -68,15 +68,20 @@ const pagination = reactive({
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
-  { title: '流程定义ID', dataIndex: 'processDefinitionId', key: 'processDefinitionId' },
+  { title: '流程名称', dataIndex: 'processName', key: 'processName' },
   { title: '状态', key: 'status', width: 120 },
   { title: '当前节点', dataIndex: 'currentNodeId', key: 'currentNodeId' },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
   { title: '操作', key: 'action', width: 150 }
 ]
 
+function statusText(status) {
+  const map = { 0: '运行中', 1: '已完成', 2: '已暂停', 3: '已终止' }
+  return map[status] || '未知'
+}
+
 function statusColor(status) {
-  const map = { RUNNING: 'blue', COMPLETED: 'green', SUSPENDED: 'orange', TERMINATED: 'red' }
+  const map = { 0: 'blue', 1: 'green', 2: 'orange', 3: 'red' }
   return map[status] || 'default'
 }
 

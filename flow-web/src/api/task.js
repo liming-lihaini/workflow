@@ -9,8 +9,8 @@ export function getDoneTasks(params) {
 export function getTaskDetail(id) {
   return request.get(`/tasks/${id}`)
 }
-export function claimTask(id) {
-  return request.post(`/tasks/${id}/claim`)
+export function claimTask(id, data) {
+  return request.post(`/tasks/${id}/claim`, data)
 }
 export function unclaimTask(id) {
   return request.post(`/tasks/${id}/unclaim`)

@@ -27,5 +27,7 @@ export function exportMonitorData(id) {
 
 // 管理员干预
 export function interveneProcess(id, data) {
-  return request.post(`/monitor/instances/${id}/intervene`, data)
+  return request.post(`/monitor/instances/${id}/intervene`, null, {
+    params: { targetNodeId: data.targetNodeId, operatorId: 1, reason: data.reason }
+  })
 }

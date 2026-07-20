@@ -217,7 +217,7 @@ async function handleSubmit() {
 
 async function handleResetPwd(record) {
   try {
-    await resetPassword(record.id, { newPassword: '123456' })
+    await resetPassword(record.id, { password: '123456' })
     message.success('密码已重置为 123456')
   } catch {
     // ignore

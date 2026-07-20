@@ -16,7 +16,7 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
-            <a-tag :color="record.status === 'COMPLETED' ? 'green' : 'orange'">{{ record.status }}</a-tag>
+            <a-tag :color="record.status === 2 ? 'green' : 'orange'">{{ record.status === 2 ? '已完成' : '处理中' }}</a-tag>
           </template>
         </template>
       </a-table>
@@ -43,9 +43,9 @@ const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
   { title: '流程实例ID', dataIndex: 'processInstanceId', key: 'processInstanceId' },
   { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName' },
-  { title: '处理人', dataIndex: 'assigneeName', key: 'assigneeName' },
+  { title: '处理人', dataIndex: 'assignee', key: 'assignee' },
   { title: '状态', key: 'status', width: 100 },
-  { title: '完成时间', dataIndex: 'endTime', key: 'endTime', width: 180 },
+  { title: '完成时间', dataIndex: 'completeTime', key: 'completeTime', width: 180 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 }
 ]
 

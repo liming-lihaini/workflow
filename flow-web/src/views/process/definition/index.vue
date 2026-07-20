@@ -19,8 +19,8 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
-            <a-tag :color="record.status === 'ACTIVE' ? 'green' : 'default'">
-              {{ record.status === 'ACTIVE' ? '已部署' : '草稿' }}
+            <a-tag :color="record.status === 1 ? 'green' : 'default'">
+              {{ record.status === 1 ? '已部署' : '草稿' }}
             </a-tag>
           </template>
           <template v-if="column.key === 'action'">
@@ -50,10 +50,7 @@
           <a-input v-model:value="formState.processKey" :disabled="!!editingRecord" placeholder="如：leave-approval" />
         </a-form-item>
         <a-form-item label="流程名称" required>
-          <a-input v-model:value="formState.name" placeholder="请输入流程名称" />
-        </a-form-item>
-        <a-form-item label="描述">
-          <a-textarea v-model:value="formState.description" :rows="3" placeholder="请输入描述" />
+          <a-input v-model:value="formState.processName" placeholder="请输入流程名称" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -89,7 +86,7 @@ const pagination = reactive({
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
   { title: '流程标识', dataIndex: 'processKey', key: 'processKey' },
-  { title: '流程名称', dataIndex: 'name', key: 'name' },
+  { title: '流程名称', dataIndex: 'processName', key: 'processName' },
   { title: '版本', dataIndex: 'version', key: 'version', width: 80 },
   { title: '状态', key: 'status', width: 100 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
@@ -98,14 +95,12 @@ const columns = [
 
 const formState = reactive({
   processKey: '',
-  name: '',
-  description: ''
+  processName: ''
 })
 
 function resetForm() {
   formState.processKey = ''
-  formState.name = ''
-  formState.description = ''
+  formState.processName = ''
   editingRecord.value = null
 }
 
@@ -113,8 +108,7 @@ function showModal(record) {
   if (record) {
     editingRecord.value = record
     formState.processKey = record.processKey
-    formState.name = record.name
-    formState.description = record.description
+    formState.processName = record.processName
   } else {
     resetForm()
   }
@@ -135,7 +129,7 @@ async function loadData() {
 }
 
 async function handleSubmit() {
-  if (!formState.processKey || !formState.name) {
+  if (!formState.processKey || !formState.processName) {
     message.warning('请填写必填项')
     return
   }
