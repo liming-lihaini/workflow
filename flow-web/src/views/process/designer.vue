@@ -2,7 +2,10 @@
   <div class="designer-wrap">
     <div class="page-header">
       <span class="page-title">流程设计器</span>
-      <a-button @click="handleOpenNew">新窗口打开</a-button>
+      <a-space>
+        <a-button v-if="processKey" @click="router.back()">返回配置</a-button>
+        <a-button @click="handleOpenNew">新窗口打开</a-button>
+      </a-space>
     </div>
     <div class="designer-iframe">
       <iframe
@@ -16,14 +19,26 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+
+const router = useRouter()
+const route = useRoute()
+
+const processKey = computed(() => route.query.processKey || '')
+const definitionId = computed(() => route.query.id || '')
 
 const designerUrl = computed(() => {
+  const params = new URLSearchParams()
+  if (processKey.value) params.set('processKey', processKey.value)
+  if (definitionId.value) params.set('id', definitionId.value)
+  const queryStr = params.toString() ? `?${params.toString()}` : ''
+
   // 开发环境：React 设计器运行在 3001 端口
   if (import.meta.env.DEV) {
-    return 'http://localhost:3001'
+    return `http://localhost:3001${queryStr}`
   }
   // 生产环境：独立部署地址或相对路径
-  return '/designer'
+  return `/designer${queryStr}`
 })
 
 function handleOpenNew() {

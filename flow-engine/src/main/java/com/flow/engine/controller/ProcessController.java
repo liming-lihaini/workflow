@@ -53,6 +53,16 @@ public class ProcessController {
     }
 
     /**
+     * 根据 processKey 获取最新版本的流程定义
+     * GET /api/v1/process/definitions/key/{processKey}
+     */
+    @GetMapping("/key/{processKey}")
+    public Result<ProcessDefinitionResponse> getByKey(@PathVariable String processKey) {
+        ProcessDefinitionResponse response = definitionService.getByKey(processKey);
+        return Result.ok(response);
+    }
+
+    /**
      * 更新流程定义
      * PUT /api/v1/process/definitions/{id}
      */

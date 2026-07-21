@@ -30,6 +30,9 @@
           <a-menu-item key="process-definition" @click="$router.push('/process/definition')">流程定义</a-menu-item>
           <a-menu-item key="process-designer" @click="$router.push('/process/designer')">流程设计器</a-menu-item>
           <a-menu-item key="process-instance" @click="$router.push('/process/instance')">流程实例</a-menu-item>
+          <a-menu-item key="form-definition" @click="$router.push('/form/definition')">表单定义</a-menu-item>
+          <a-menu-item key="form-design" @click="$router.push('/form/design')">表单设计器</a-menu-item>
+          <a-menu-item key="data-model" @click="$router.push('/data-model')">数据模型</a-menu-item>
         </a-sub-menu>
 
         <a-sub-menu key="task">
@@ -114,6 +117,9 @@ watch(() => route.path, (path) => {
     '/process/definition': ['process-definition'],
     '/process/designer': ['process-designer'],
     '/process/instance': ['process-instance'],
+    '/form/definition': ['form-definition'],
+    '/form/design': ['form-design'],
+    '/data-model': ['data-model'],
     '/task/todo': ['task-todo'],
     '/task/done': ['task-done'],
     '/system/dept': ['system-dept'],

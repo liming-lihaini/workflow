@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import ReactFlow, {
   addEdge,
   useNodesState,
@@ -18,8 +18,10 @@ import { NODE_TYPES_CONFIG } from './nodeTypes'
 import {
   createProcessDefinition,
   updateProcessDefinition,
+  getProcessDefinition,
   importProcessDefinition
 } from './api'
+import request from './api'
 
 import './index.css'
 
@@ -63,7 +65,83 @@ function Designer() {
   const [toast, setToast] = useState(null)
   const [definitionId, setDefinitionId] = useState(null)
   const [definitionName, setDefinitionName] = useState('未命名流程')
+  const [processKey, setProcessKey] = useState(null)
   const reactFlowWrapper = useRef(null)
+
+  // 从 URL 参数加载已有流程定义
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const urlId = params.get('id')
+    const urlProcessKey = params.get('processKey')
+
+    if (urlId) {
+      setDefinitionId(Number(urlId))
+      loadExistingDefinition(Number(urlId))
+    } else if (urlProcessKey) {
+      setProcessKey(urlProcessKey)
+      loadDefinitionByKey(urlProcessKey)
+    }
+  }, [])
+
+  async function loadExistingDefinition(id) {
+    try {
+      const res = await getProcessDefinition(id)
+      const def = res.data || res
+      if (def.processName) setDefinitionName(def.processName)
+      if (def.processKey) setProcessKey(def.processKey)
+      if (def.processJson) {
+        parseAndLoadJson(def.processJson)
+      }
+    } catch (e) {
+      showToast('加载流程定义失败: ' + (e.message || ''), 'error')
+    }
+  }
+
+  async function loadDefinitionByKey(key) {
+    try {
+      const res = await request.get(`/process/definitions/key/${key}`)
+      const def = res.data || res
+      if (def.id) setDefinitionId(def.id)
+      if (def.processName) setDefinitionName(def.processName)
+      if (def.processJson) {
+        parseAndLoadJson(def.processJson)
+      }
+    } catch {
+      // If loading fails, start fresh with the processKey
+    }
+  }
+
+  function parseAndLoadJson(jsonStr) {
+    try {
+      const data = JSON.parse(jsonStr)
+      if (data.nodes && data.edges) {
+        setNodes(data.nodes.map((n, i) => ({
+          id: String(i + 1),
+          type: n.type,
+          position: { x: n.x || 200 + i * 50, y: n.y || 100 + i * 80 },
+          data: {
+            nodeId: n.id,
+            nodeType: n.type,
+            name: n.name,
+            assignee: n.assignee,
+            candidateUsers: n.candidateUsers,
+            ...(n.properties || {})
+          }
+        })))
+        setEdges(data.edges.map((e, i) => ({
+          id: `e${i + 1}`,
+          source: String(data.nodes.findIndex(n => n.id === e.source) + 1),
+          target: String(data.nodes.findIndex(n => n.id === e.target) + 1),
+          data: { condition: e.condition || '', name: e.label || '', priority: '1' },
+          markerEnd: { type: MarkerType.ArrowClosed },
+          animated: true
+        })))
+        nodeIdCounter = data.nodes.length + 10
+      }
+    } catch {
+      // Invalid JSON, ignore
+    }
+  }
 
   // Toast 提示
   const showToast = useCallback((message, type = 'success') => {
@@ -313,38 +391,60 @@ function Designer() {
       return
     }
 
-    const processJson = {
-      processKey: definitionName.replace(/\s+/g, '-').toLowerCase(),
-      name: definitionName,
+    const pk = processKey || definitionName.replace(/\s+/g, '-').toLowerCase()
+
+    // 构建符合后端 ProcessModel 的 JSON 结构
+    const processModel = {
+      processKey: pk,
+      processName: definitionName,
       nodes: nodes.map((n) => ({
-        nodeId: n.data.nodeId,
-        nodeType: n.data.nodeType,
+        id: n.data.nodeId,
+        type: n.data.nodeType,
         name: n.data.name,
-        config: Object.fromEntries(
-          Object.entries(n.data).filter(([k]) => !['nodeType', 'nodeId', 'name'].includes(k))
-        )
+        assignee: n.data.assignee || null,
+        candidateUsers: n.data.candidateUsers || null,
+        properties: Object.fromEntries(
+          Object.entries(n.data).filter(([k]) => !['nodeType', 'nodeId', 'name', 'assignee', 'candidateUsers'].includes(k))
+        ),
+        x: Math.round(n.position.x),
+        y: Math.round(n.position.y)
       })),
-      edges: edges.map((e) => ({
-        source: e.source,
-        target: e.target,
-        condition: e.data?.condition || '',
-        name: e.data?.name || ''
-      }))
+      edges: edges.map((e, i) => {
+        // 将 ReactFlow 内部节点 ID 映射为 nodeId
+        const sourceNode = nodes.find((n) => n.id === e.source)
+        const targetNode = nodes.find((n) => n.id === e.target)
+        return {
+          id: `edge_${i + 1}`,
+          source: sourceNode ? sourceNode.data.nodeId : e.source,
+          target: targetNode ? targetNode.data.nodeId : e.target,
+          label: e.data?.name || '',
+          condition: e.data?.condition || ''
+        }
+      })
     }
 
     try {
       if (definitionId) {
-        await updateProcessDefinition(definitionId, processJson)
+        await updateProcessDefinition(definitionId, {
+          processName: definitionName,
+          processJson: JSON.stringify(processModel)
+        })
         showToast('保存成功')
       } else {
-        const res = await createProcessDefinition(processJson)
-        setDefinitionId(res.data?.id || res.id)
+        const res = await createProcessDefinition({
+          processKey: pk,
+          processName: definitionName,
+          processJson: JSON.stringify(processModel)
+        })
+        const newId = res.data?.id || res.id
+        setDefinitionId(newId)
+        if (!processKey) setProcessKey(pk)
         showToast('创建成功')
       }
-    } catch {
-      showToast('保存失败，请检查后端服务', 'error')
+    } catch (err) {
+      showToast(err.message || '保存失败，请检查后端服务', 'error')
     }
-  }, [definitionId, definitionName, nodes, edges, validateProcess, showToast])
+  }, [definitionId, definitionName, processKey, nodes, edges, validateProcess, showToast])
 
   // 键盘事件
   const handleKeyDown = useCallback(

@@ -32,10 +32,34 @@ const routes = [
         meta: { title: '流程设计器' }
       },
       {
+        path: 'process/config',
+        name: 'ProcessConfig',
+        component: () => import('../views/process/config/index.vue'),
+        meta: { title: '流程配置' }
+      },
+      {
         path: 'process/instance',
         name: 'ProcessInstance',
         component: () => import('../views/process/instance/index.vue'),
         meta: { title: '流程实例' }
+      },
+      {
+        path: 'form/definition',
+        name: 'FormDefinition',
+        component: () => import('../views/form/definition/index.vue'),
+        meta: { title: '表单定义' }
+      },
+      {
+        path: 'form/design',
+        name: 'FormDesign',
+        component: () => import('../views/form/design/index.vue'),
+        meta: { title: '表单设计器' }
+      },
+      {
+        path: 'data-model',
+        name: 'DataModel',
+        component: () => import('../views/data-model/index.vue'),
+        meta: { title: '数据模型' }
       },
       {
         path: 'task/todo',

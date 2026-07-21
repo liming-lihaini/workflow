@@ -16,6 +16,8 @@ public class ProcessDefinitionResponse {
     private Integer version;
     private String processJson;
     private String category;
+    private String processType;
+    private String description;
     private Integer status;
     private String deploymentId;
     private LocalDateTime createTime;

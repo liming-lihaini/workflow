@@ -25,6 +25,12 @@ public class ProcessDefinition {
 
     private String category;
 
+    /** 流程类型：approval-审批流，process-业务流程 */
+    private String processType;
+
+    /** 用途/描述 */
+    private String description;
+
     /** 状态：0-草稿，1-已部署 */
     private Integer status;
 

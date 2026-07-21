@@ -65,4 +65,13 @@ export function importProcessDefinition(data) {
   return request.post('/process/definitions/import', data)
 }
 
+// 表单 API
+export function getFormAll() {
+  return request.get('/forms/all')
+}
+
+export function getForm(formKey) {
+  return request.get(`/forms/${formKey}`)
+}
+
 export default request

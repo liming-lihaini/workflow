@@ -68,16 +68,14 @@ public class PermissionCalculator {
         }
 
         // 2. 字段级权限（含条件化评估）
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> fieldPermConfigs =
-                (List<Map<String, Object>>) nodePermissions.get("fieldPermissions");
+        Object rawFieldPerms = nodePermissions.get("fieldPermissions");
+        List<Map<String, Object>> fieldPermConfigs = normalizeFieldPermissions(rawFieldPerms);
         List<FieldPermission> fieldPermissions = calculateFieldPermissions(fieldPermConfigs, variables);
         response.setFieldPermissions(fieldPermissions);
 
         // 3. 按钮级权限（含条件化评估）
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> buttonPermConfigs =
-                (List<Map<String, Object>>) nodePermissions.get("buttonPermissions");
+        Object rawButtonPerms = nodePermissions.get("buttonPermissions");
+        List<Map<String, Object>> buttonPermConfigs = normalizeButtonPermissions(rawButtonPerms);
         List<ButtonPermission> buttonPermissions = calculateButtonPermissions(buttonPermConfigs, variables);
         response.setButtonPermissions(buttonPermissions);
 
@@ -171,6 +169,62 @@ public class PermissionCalculator {
     }
 
     // ==================== 内部方法 ====================
+
+    /**
+     * 将 fieldPermissions 规范化为 List<Map> 格式
+     * 支持两种输入格式：
+     * - Map<String, String>: {"reason": "edit", "days": "readonly"}
+     * - List<Map>: [{"fieldKey": "reason", "permission": "edit"}, ...]
+     */
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> normalizeFieldPermissions(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof List) {
+            return (List<Map<String, Object>>) raw;
+        }
+        if (raw instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) raw;
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("fieldKey", entry.getKey());
+                item.put("permission", String.valueOf(entry.getValue()));
+                result.add(item);
+            }
+            return result;
+        }
+        return null;
+    }
+
+    /**
+     * 将 buttonPermissions 规范化为 List<Map> 格式
+     * 支持两种输入格式：
+     * - Map<String, Map>: {"submit": {"visible": true, "enabled": true}, ...}
+     * - List<Map>: [{"buttonKey": "submit", "visible": true, "enabled": true}, ...]
+     */
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> normalizeButtonPermissions(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof List) {
+            return (List<Map<String, Object>>) raw;
+        }
+        if (raw instanceof Map) {
+            Map<String, Object> map = (Map<String, Object>) raw;
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("buttonKey", entry.getKey());
+                if (entry.getValue() instanceof Map) {
+                    Map<String, Object> val = (Map<String, Object>) entry.getValue();
+                    if (val.containsKey("visible")) item.put("visible", val.get("visible"));
+                    if (val.containsKey("enabled")) item.put("enabled", val.get("enabled"));
+                }
+                result.add(item);
+            }
+            return result;
+        }
+        return null;
+    }
 
     /**
      * 计算字段权限（含条件化评估）

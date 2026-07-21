@@ -42,12 +42,11 @@ public class ProcessDefinitionService {
         if (!StringUtils.hasText(request.getProcessName())) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "processName不能为空");
         }
-        if (!StringUtils.hasText(request.getProcessJson())) {
-            throw new BusinessException(ErrorCode.PARAM_INVALID, "processJson不能为空");
-        }
 
-        // 校验JSON格式
-        jsonParser.parse(request.getProcessJson());
+        // processJson 可选，允许先创建基本信息再设计流程图
+        if (StringUtils.hasText(request.getProcessJson())) {
+            jsonParser.parse(request.getProcessJson());
+        }
 
         // 检查 processKey 是否已存在同版本
         Long count = definitionMapper.selectCount(
@@ -63,6 +62,8 @@ public class ProcessDefinitionService {
         entity.setProcessKey(request.getProcessKey());
         entity.setProcessName(request.getProcessName());
         entity.setCategory(request.getCategory());
+        entity.setProcessType(request.getProcessType());
+        entity.setDescription(request.getDescription());
         entity.setProcessJson(request.getProcessJson());
         entity.setVersion(1);
         entity.setStatus(0); // 草稿
@@ -98,6 +99,12 @@ public class ProcessDefinitionService {
         }
         if (request.getCategory() != null) {
             entity.setCategory(request.getCategory());
+        }
+        if (request.getProcessType() != null) {
+            entity.setProcessType(request.getProcessType());
+        }
+        if (request.getDescription() != null) {
+            entity.setDescription(request.getDescription());
         }
         entity.setUpdateTime(LocalDateTime.now());
 
@@ -195,7 +202,10 @@ public class ProcessDefinitionService {
             throw new BusinessException(ErrorCode.PROCESS_DEF_NOT_FOUND);
         }
 
-        // 再次校验JSON
+        // 部署前必须校验 processJson 存在且合法
+        if (!StringUtils.hasText(entity.getProcessJson())) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "流程定义JSON为空，请先设计流程图再部署");
+        }
         jsonParser.parse(entity.getProcessJson());
 
         entity.setStatus(1); // 已部署
@@ -269,6 +279,8 @@ public class ProcessDefinitionService {
         response.setVersion(entity.getVersion());
         response.setProcessJson(entity.getProcessJson());
         response.setCategory(entity.getCategory());
+        response.setProcessType(entity.getProcessType());
+        response.setDescription(entity.getDescription());
         response.setStatus(entity.getStatus());
         response.setDeploymentId(entity.getDeploymentId());
         response.setCreateTime(entity.getCreateTime());

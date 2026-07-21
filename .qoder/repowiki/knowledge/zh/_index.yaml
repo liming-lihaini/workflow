@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-20T08:14:52Z"
+exported_at: "2026-07-20T08:44:17Z"
 modules:
     "":
-        dir_name: 可视化流程编排系统（Flow Engine）
-        title: 可视化流程编排系统（Flow Engine）
+        dir_name: 可视化工作流引擎全栈项目
+        title: 可视化工作流引擎全栈项目
         scope:
             - readme.txt
             - .gitignore
@@ -41,8 +41,8 @@ modules:
         related_to:
             - path: flow_engine_backend
     flow_engine_backend:
-        dir_name: Flow Engine 流程引擎后端服务
-        title: Flow Engine 流程引擎后端服务
+        dir_name: Flow Engine 后端（流程引擎核心服务）
+        title: Flow Engine 后端（流程引擎核心服务）
         scope:
             - flow-engine/
         source_files: []

@@ -7,6 +7,9 @@ export function getProcessDefinitions(params) {
 export function getProcessDefinition(id) {
   return request.get(`/process/definitions/${id}`)
 }
+export function getProcessDefinitionByKey(processKey) {
+  return request.get(`/process/definitions/key/${processKey}`)
+}
 export function createProcessDefinition(data) {
   return request.post('/process/definitions', data)
 }

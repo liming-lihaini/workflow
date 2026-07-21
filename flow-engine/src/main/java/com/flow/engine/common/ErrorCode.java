@@ -62,7 +62,11 @@ public enum ErrorCode {
     INSTANCE_NOT_FOUND(1047, "流程实例不存在"),
     INSTANCE_NOT_RUNNING(1048, "流程实例不在运行状态"),
     NODE_NOT_FOUND(1049, "节点不存在"),
-    INTERVENE_FAILED(1050, "干预操作失败");
+    INTERVENE_FAILED(1050, "干预操作失败"),
+    FORM_KEY_DUPLICATE(1051, "表单Key已存在"),
+    FORM_NOT_FOUND(1052, "表单不存在"),
+    FORM_VALIDATION_FAILED(1053, "表单校验失败"),
+    PARAM_ERROR(400, "参数错误");
 
     private final int code;
     private final String message;

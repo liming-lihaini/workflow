@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS wf_process_definition (
     version       INTEGER,
     process_json  TEXT,
     category      TEXT,
+    process_type  TEXT,
+    description   TEXT,
     status        INTEGER,
     deployment_id TEXT,
     create_time   TEXT,
@@ -66,6 +68,7 @@ CREATE TABLE IF NOT EXISTS wf_form_definition (
     form_name   TEXT,
     form_json   TEXT,
     category    TEXT,
+    model_key   TEXT,
     create_time TEXT,
     update_time TEXT
 );
