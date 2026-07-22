@@ -396,3 +396,112 @@ body {
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
 }
+
+/* 权限字段行 */
+.perm-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+  margin-bottom: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+}
+.perm-field-row:hover {
+  background: #e8f4ff;
+}
+.perm-field-name {
+  font-size: 12px;
+  color: var(--text-content);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+/* 操作权限按钮行 */
+.perm-btn-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-md);
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+}
+.perm-btn-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-content);
+  width: 40px;
+}
+.perm-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-content);
+  cursor: pointer;
+}
+.perm-checkbox-label input[type="checkbox"] {
+  accent-color: var(--color-primary);
+}
+
+/* 处理人下拉 */
+.handler-dropdown {
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  max-height: 150px;
+  overflow-y: auto;
+  margin-top: 4px;
+  background: #fff;
+}
+.handler-dropdown-item {
+  padding: 5px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+}
+.handler-dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+/* 处理人标签 */
+.handler-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  font-size: 11px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: 3px;
+  border: 1px solid var(--color-primary);
+}
+.handler-tag-close {
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  margin-left: 2px;
+  color: var(--color-primary);
+}
+.handler-tag-close:hover {
+  color: var(--color-danger);
+}
+
+/* 处理人单选 */
+.handler-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-content);
+  cursor: pointer;
+  padding: 4px 0;
+}
+.handler-radio-label input[type="radio"] {
+  accent-color: var(--color-primary);
+}

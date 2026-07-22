@@ -134,7 +134,7 @@ async function loadAuditLogs() {
       module: auditQuery.module || undefined
     })
     const data = res.data || res
-    auditList.value = data.list || data.records || []
+    auditList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     auditPagination.total = data.total || auditList.value.length
   } catch {
     // ignore

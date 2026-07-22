@@ -113,7 +113,7 @@ async function loadAccessLogs() {
       keyword: accessQuery.keyword || undefined
     })
     const data = res.data || res
-    accessList.value = data.list || data.records || []
+    accessList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     accessPagination.total = data.total || accessList.value.length
   } catch {
     // ignore
@@ -130,7 +130,7 @@ async function loadOperationLogs() {
       keyword: opQuery.keyword || undefined
     })
     const data = res.data || res
-    opList.value = data.list || data.records || []
+    opList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     opPagination.total = data.total || opList.value.length
   } catch {
     // ignore

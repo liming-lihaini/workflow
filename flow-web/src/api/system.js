@@ -22,8 +22,8 @@ export function updateDept(id, data) {
 export function deleteDept(id) {
   return request.delete(`/system/depts/${id}`)
 }
-export function setDeptLeader(id, data) {
-  return request.put(`/system/depts/${id}/leader`, data)
+export function setDeptLeader(id, leaderId, leaderName) {
+  return request.put(`/system/depts/${id}/leader`, null, { params: { leaderId, leaderName } })
 }
 
 // 用户管理

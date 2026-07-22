@@ -66,7 +66,7 @@ Assert ((GetApi "/data-models/$dmKey").code -eq 0) "A1.4 Get by key works"
 # --- A2: Form Design ---
 Log "A2" "Create Form (bound to data model)"
 $r = PostJson "/forms" @{
-    formKey = $formKey; formName = "E2E Leave Form"; category = "leave"
+    formKey = $formKey; formName = "E2E Leave Form"; category = "test"
     modelKey = $dmKey
     formJson = (@{ fields = @(
         @{ id = "f1"; key = "reason"; label = "Reason"; type = "textarea"; required = $true }
@@ -269,27 +269,10 @@ Assert ($r4.code -eq 0) "B8.5 Terminate code=0"
 Assert ($r4.data.status -eq 3) "B8.6 Status=3 (TERMINATED)"
 
 # ============================================================
-# CLEANUP
+# CLEANUP (Skipped - preserve test data)
 # ============================================================
-Log "Cleanup" "Remove all test data"
-
-function TryDelete($method, $url) {
-    try { Invoke-RestMethod -Uri "$base$url" -Method $method | Out-Null; return $true }
-    catch { return $false }
-}
-
-# Delete process definitions (all with our key prefix)
-$defs = (GetApi "/process/definitions").data | Where-Object { $_.processKey -like "e2e_proc_$ts*" -or $_.processKey -like "neg_*_$ts*" }
-foreach ($d in $defs) { TryDelete "Delete" "/process/definitions/$($d.id)" | Out-Null }
-Assert ($true) "C.1 Process definitions cleaned"
-
-# Delete form
-TryDelete "Delete" "/forms/$formKey" | Out-Null
-Assert ($true) "C.2 Form cleaned"
-
-# Delete data model
-TryDelete "Delete" "/data-models/$dmKey" | Out-Null
-Assert ($true) "C.3 Data model cleaned"
+Log "Cleanup" "SKIPPED - test data preserved"
+Write-Host "  [SKIP] Data cleanup skipped per requirement" -ForegroundColor Yellow
 
 # ============================================================
 # SUMMARY

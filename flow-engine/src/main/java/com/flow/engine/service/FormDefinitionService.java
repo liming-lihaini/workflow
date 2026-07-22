@@ -33,6 +33,9 @@ public class FormDefinitionService {
 
     /**
      * 创建表单定义
+     * <p>
+     * 对于测试类表单（category=test），如果同名称表单已存在，则删除旧记录后重新创建（upsert）。
+     * 对于非测试表单，formKey 必须唯一。
      */
     @Transactional
     public FormDefinition createForm(FormDefinition form) {
@@ -44,10 +47,25 @@ public class FormDefinitionService {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "表单名称不能为空");
         }
 
-        LambdaQueryWrapper<FormDefinition> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FormDefinition::getFormKey, form.getFormKey());
-        if (formDefinitionMapper.selectCount(wrapper) > 0) {
+        // 检查 formKey 是否已存在
+        LambdaQueryWrapper<FormDefinition> keyWrapper = new LambdaQueryWrapper<>();
+        keyWrapper.eq(FormDefinition::getFormKey, form.getFormKey());
+        if (formDefinitionMapper.selectCount(keyWrapper) > 0) {
             throw new BusinessException(ErrorCode.FORM_KEY_DUPLICATE, "表单Key已存在: " + form.getFormKey());
+        }
+
+        // 测试类表单：如果同名表单已存在，删除旧记录（避免测试数据重复堆积）
+        if ("test".equals(form.getCategory())) {
+            LambdaQueryWrapper<FormDefinition> nameWrapper = new LambdaQueryWrapper<>();
+            nameWrapper.eq(FormDefinition::getFormName, form.getFormName())
+                    .ne(FormDefinition::getFormKey, form.getFormKey());
+            List<FormDefinition> existing = formDefinitionMapper.selectList(nameWrapper);
+            if (!existing.isEmpty()) {
+                for (FormDefinition old : existing) {
+                    formDefinitionMapper.deleteById(old.getId());
+                    log.info("清理同名测试表单: formKey={}, formName={}", old.getFormKey(), old.getFormName());
+                }
+            }
         }
 
         form.setCreateTime(LocalDateTime.now());

@@ -96,9 +96,12 @@ public class TaskService {
             }
         }
 
-        // 查 DB：assignee=userId 且 status!=已完成
+        // 查 DB：(assignee=userId OR candidateUsers包含userId) 且 status!=已完成
         LambdaQueryWrapper<Task> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Task::getAssignee, userId)
+        wrapper.and(w -> w
+                .eq(Task::getAssignee, userId)
+                .or()
+                .apply("candidate_users LIKE {0}", "%" + userId + "%"))
                 .ne(Task::getStatus, TaskStatus.COMPLETED.getValue())
                 .orderByDesc(Task::getCreateTime);
 
@@ -122,7 +125,10 @@ public class TaskService {
         }
 
         LambdaQueryWrapper<Task> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Task::getAssignee, userId)
+        wrapper.and(w -> w
+                .eq(Task::getAssignee, userId)
+                .or()
+                .apply("candidate_users LIKE {0}", "%" + userId + "%"))
                 .eq(Task::getStatus, TaskStatus.COMPLETED.getValue())
                 .orderByDesc(Task::getCompleteTime);
 

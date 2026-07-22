@@ -105,7 +105,7 @@ async function loadData() {
   try {
     const res = await getProcessInstances({ page: pagination.current, size: pagination.pageSize })
     const data = res.data || res
-    dataList.value = data.list || data.records || []
+    dataList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     pagination.total = data.total || dataList.value.length
   } catch {
     // ignore

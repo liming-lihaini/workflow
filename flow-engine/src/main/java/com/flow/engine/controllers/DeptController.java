@@ -66,4 +66,14 @@ public class DeptController {
     public Result<Dept> setLeader(@PathVariable Long id, @RequestParam Long leaderId, @RequestParam String leaderName) {
         return Result.ok(deptService.setLeader(id, leaderId, leaderName));
     }
+
+    /**
+     * 通过 JSON body 设置部门领导（解决 query string 中文编码问题）
+     */
+    @PostMapping("/{id}/leader")
+    public Result<Dept> setLeaderByBody(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        Long leaderId = Long.valueOf(body.get("leaderId").toString());
+        String leaderName = body.get("leaderName").toString();
+        return Result.ok(deptService.setLeader(id, leaderId, leaderName));
+    }
 }

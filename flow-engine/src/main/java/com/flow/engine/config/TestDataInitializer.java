@@ -7,6 +7,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Random;
+
 /**
  * 测试数据初始化器 - 水浒传人物部门与用户数据
  * 在 schema.sql 和 PermissionDataInitializer 之后执行
@@ -24,14 +27,16 @@ public class TestDataInitializer implements CommandLineRunner {
         Long count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM sys_user WHERE id BETWEEN 100 AND 264", Long.class);
         if (count != null && count > 0) {
-            log.info("[TestDataInitializer] 测试数据已存在({}条)，跳过初始化", count);
-            return;
+            log.info("[TestDataInitializer] 测试数据已存在({}条)，跳过部门/用户初始化", count);
+        } else {
+            log.info("[TestDataInitializer] 开始初始化测试数据(水浒传人物)...");
+            initDepts();
+            initUsers();
+            initUserPosts();
+            log.info("[TestDataInitializer] 测试数据初始化完成: 33个部门 + 165个用户");
         }
-        log.info("[TestDataInitializer] 开始初始化测试数据(水浒传人物)...");
-        initDepts();
-        initUsers();
-        initUserPosts();
-        log.info("[TestDataInitializer] 测试数据初始化完成: 33个部门 + 165个用户");
+        // 始终执行部门领导初始化（修正乱码数据或首次设置）
+        initDeptLeaders();
     }
 
     private void initDepts() {
@@ -279,6 +284,37 @@ public class TestDataInitializer implements CommandLineRunner {
                 "INSERT INTO sys_user_post (user_id, dept_id, post_id, is_main) " +
                 "SELECT u.id, u.dept_id, 0, 1 FROM sys_user u WHERE u.id BETWEEN 100 AND 264 " +
                 "AND NOT EXISTS (SELECT 1 FROM sys_user_post WHERE user_id = u.id AND is_main = 1)");
+    }
+
+    /**
+     * 为所有部门（100~139）随机设置部门领导，从该部门直管人员中选取一位。
+     * 每次启动均执行，以修正历史上 PowerShell 脚本写入导致的中文乱码数据。
+     */
+    private void initDeptLeaders() {
+        log.info("[TestDataInitializer] 开始初始化部门领导...");
+        Random rand = new Random(42);
+        int updated = 0;
+        int skipped = 0;
+        for (int deptId = 100; deptId <= 139; deptId++) {
+            // 查询该部门下所有直管用户
+            List<Long> userIds = jdbcTemplate.queryForList(
+                    "SELECT id FROM sys_user WHERE dept_id = ? AND status = 1", Long.class, deptId);
+            if (userIds.isEmpty()) {
+                skipped++;
+                log.warn("[TestDataInitializer] 部门 {} 无直管人员，跳过领导设置", deptId);
+                continue;
+            }
+            // 随机选取一位用户
+            Long leaderId = userIds.get(rand.nextInt(userIds.size()));
+            String leaderName = jdbcTemplate.queryForObject(
+                    "SELECT real_name FROM sys_user WHERE id = ?", String.class, leaderId);
+            // 直接 SQL 更新，Java 字符串天然 UTF-8，不存在编码问题
+            jdbcTemplate.update(
+                    "UPDATE sys_dept SET leader_id = ?, leader_name = ?, update_time = datetime('now') WHERE id = ?",
+                    leaderId, leaderName, deptId);
+            updated++;
+        }
+        log.info("[TestDataInitializer] 部门领导初始化完成: 更新{}个, 跳过{}个", updated, skipped);
     }
 
     private void dept(int id, int parentId, String name, String code, String type, int sort) {

@@ -125,8 +125,9 @@ public class ProcessJsonParser {
      */
     private void validate(ProcessModel model) {
         List<NodeModel> nodes = model.getNodes();
+        // 允许空节点（表单配置阶段），严格校验在部署时由 deployForStrict 触发
         if (nodes == null || nodes.isEmpty()) {
-            throw new BusinessException(ErrorCode.PROCESS_JSON_INVALID, "流程定义节点列表不能为空");
+            return;
         }
 
         // 节点数上限校验
@@ -146,6 +147,17 @@ public class ProcessJsonParser {
         if (!hasEnd) {
             throw new BusinessException(ErrorCode.PROCESS_MISSING_END_NODE);
         }
+    }
+
+    /**
+     * 严格解析（部署时使用），必须有完整节点结构
+     */
+    public ProcessModel parseForDeploy(String processJson) {
+        ProcessModel model = parse(processJson);
+        if (model.getNodes() == null || model.getNodes().isEmpty()) {
+            throw new BusinessException(ErrorCode.PROCESS_JSON_INVALID, "流程定义节点列表不能为空，请先设计流程图再部署");
+        }
+        return model;
     }
 
     private NodeModel findNode(ProcessModel model, String nodeId) {

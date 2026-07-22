@@ -202,11 +202,11 @@ public class ProcessDefinitionService {
             throw new BusinessException(ErrorCode.PROCESS_DEF_NOT_FOUND);
         }
 
-        // 部署前必须校验 processJson 存在且合法
+        // 部署前必须校验 processJson 存在且合法（含节点结构严格校验）
         if (!StringUtils.hasText(entity.getProcessJson())) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "流程定义JSON为空，请先设计流程图再部署");
         }
-        jsonParser.parse(entity.getProcessJson());
+        jsonParser.parseForDeploy(entity.getProcessJson());
 
         entity.setStatus(1); // 已部署
         entity.setDeploymentId(UUID.randomUUID().toString().replace("-", ""));

@@ -66,6 +66,7 @@ function Designer() {
   const [definitionId, setDefinitionId] = useState(null)
   const [definitionName, setDefinitionName] = useState('未命名流程')
   const [processKey, setProcessKey] = useState(null)
+  const [processFormKey, setProcessFormKey] = useState(null)
   const reactFlowWrapper = useRef(null)
 
   // 从 URL 参数加载已有流程定义
@@ -103,6 +104,7 @@ function Designer() {
       const def = res.data || res
       if (def.id) setDefinitionId(def.id)
       if (def.processName) setDefinitionName(def.processName)
+      if (def.processKey) setProcessKey(def.processKey)
       if (def.processJson) {
         parseAndLoadJson(def.processJson)
       }
@@ -114,6 +116,10 @@ function Designer() {
   function parseAndLoadJson(jsonStr) {
     try {
       const data = JSON.parse(jsonStr)
+      // 提取流程级 formKey
+      if (data.formKey) {
+        setProcessFormKey(data.formKey)
+      }
       if (data.nodes && data.edges) {
         setNodes(data.nodes.map((n, i) => ({
           id: String(i + 1),
@@ -523,6 +529,7 @@ function Designer() {
         <ConfigPanel
           selectedNode={selectedNode}
           selectedEdge={selectedEdge}
+          processFormKey={processFormKey}
           onNodeConfigChange={onNodeConfigChange}
           onEdgeConfigChange={onEdgeConfigChange}
         />

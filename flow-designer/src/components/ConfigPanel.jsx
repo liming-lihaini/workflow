@@ -1,27 +1,42 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { NODE_TYPES_CONFIG, EDGE_SCHEMA } from '../nodeTypes'
-import { getFormAll, getForm } from '../api'
+import { getFormAll, getForm, getUsersPage, getRoles } from '../api'
 
-function ConfigPanel({ selectedNode, selectedEdge, onNodeConfigChange, onEdgeConfigChange }) {
+function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigChange, onEdgeConfigChange }) {
   const [formList, setFormList] = useState([])
   const [formFields, setFormFields] = useState([])
-  const [showPermissionPanel, setShowPermissionPanel] = useState(false)
+  const [activeSection, setActiveSection] = useState('basic')
+  const [userOptions, setUserOptions] = useState([])
+  const [userSearchLoading, setUserSearchLoading] = useState(false)
+  const [processFormName, setProcessFormName] = useState('')
+  const [roleList, setRoleList] = useState([])
+  const searchTimer = useRef(null)
 
-  // 加载表单列表
   useEffect(() => {
     getFormAll().then(res => {
-      setFormList(res.data || res || [])
+      const list = Array.isArray(res.data) ? res.data : (res || [])
+      setFormList(list)
+    }).catch(() => {})
+    getRoles({ page: 1, size: 100 }).then(res => {
+      const d = res.data || res
+      setRoleList(Array.isArray(d) ? d : (d.records || d.list || []))
     }).catch(() => {})
   }, [])
 
-  // 当选中的节点有 formKey 时，加载表单字段
+  // 当流程定义绑定了表单时，获取表单名称
   useEffect(() => {
-    if (selectedNode?.data?.formKey) {
-      loadFormFields(selectedNode.data.formKey)
-    } else {
-      setFormFields([])
+    if (processFormKey && formList.length > 0) {
+      const form = formList.find(f => f.formKey === processFormKey)
+      if (form) setProcessFormName(form.formName || processFormKey)
     }
-  }, [selectedNode?.data?.formKey])
+  }, [processFormKey, formList])
+
+  // 表单字段加载：优先使用流程级 formKey，否则使用节点级
+  useEffect(() => {
+    const effectiveFormKey = processFormKey || selectedNode?.data?.formKey
+    if (effectiveFormKey) { loadFormFields(effectiveFormKey) }
+    else { setFormFields([]) }
+  }, [processFormKey, selectedNode?.data?.formKey])
 
   async function loadFormFields(formKey) {
     try {
@@ -30,17 +45,25 @@ function ConfigPanel({ selectedNode, selectedEdge, onNodeConfigChange, onEdgeCon
       if (form?.formJson) {
         try {
           const formJson = JSON.parse(form.formJson)
-          setFormFields(formJson.components || formJson.fields || [])
-        } catch {
-          setFormFields([])
-        }
+          let fields = []
+          if (formJson.sections) {
+            formJson.sections.forEach(sec => {
+              (sec.children || []).forEach(row => {
+                (row.cells || []).forEach(cell => {
+                  (cell.fields || []).forEach(f => {
+                    fields.push({ key: f.field || f.id, label: f.label || f.field, type: f.type })
+                  })
+                })
+              })
+            })
+          }
+          if (fields.length === 0) fields = formJson.components || formJson.fields || []
+          setFormFields(fields)
+        } catch { setFormFields([]) }
       }
-    } catch {
-      setFormFields([])
-    }
+    } catch { setFormFields([]) }
   }
 
-  // 获取当前节点的表单权限配置
   function getFormPermissions() {
     if (!selectedNode?.data?.formPermissions) return {}
     if (typeof selectedNode.data.formPermissions === 'string') {
@@ -49,201 +72,384 @@ function ConfigPanel({ selectedNode, selectedEdge, onNodeConfigChange, onEdgeCon
     return selectedNode.data.formPermissions
   }
 
-  // 更新字段权限
   function updateFieldPermission(fieldKey, permission) {
     const current = getFormPermissions()
     const fields = current.fields || {}
     fields[fieldKey] = permission
-    const updated = { ...current, fields }
-    onNodeConfigChange(selectedNode.id, 'formPermissions', updated)
+    onNodeConfigChange(selectedNode.id, 'formPermissions', { ...current, fields })
   }
 
-  // 更新按钮权限
   function updateButtonPermission(buttonKey, key, value) {
     const current = getFormPermissions()
     const buttons = current.buttons || {}
     buttons[buttonKey] = { ...buttons[buttonKey], [key]: value }
-    const updated = { ...current, buttons }
-    onNodeConfigChange(selectedNode.id, 'formPermissions', updated)
+    onNodeConfigChange(selectedNode.id, 'formPermissions', { ...current, buttons })
   }
 
-  // 更新节点级权限
   function updateNodePermission(permission) {
     const current = getFormPermissions()
-    const updated = { ...current, nodePermission: permission }
-    onNodeConfigChange(selectedNode.id, 'formPermissions', updated)
+    onNodeConfigChange(selectedNode.id, 'formPermissions', { ...current, nodePermission: permission })
   }
 
-  // 处理表单选择变化
   function handleFormKeyChange(newFormKey) {
     onNodeConfigChange(selectedNode.id, 'formKey', newFormKey)
-    // 清空旧的权限
-    if (newFormKey) {
-      loadFormFields(newFormKey)
-    } else {
-      setFormFields([])
-      onNodeConfigChange(selectedNode.id, 'formPermissions', null)
-    }
+    if (newFormKey) loadFormFields(newFormKey)
+    else { setFormFields([]); onNodeConfigChange(selectedNode.id, 'formPermissions', null) }
   }
 
-  // 是否显示表单权限配置（仅用户任务节点）
-  const showFormConfig = selectedNode && ['userTask'].includes(selectedNode.data.nodeType)
+  // --- User remote search ---
+  function handleUserSearch(keyword) {
+    clearTimeout(searchTimer.current)
+    if (!keyword) { setUserOptions([]); return }
+    searchTimer.current = setTimeout(async () => {
+      setUserSearchLoading(true)
+      try {
+        const res = await getUsersPage({ keyword, page: 1, size: 10 })
+        const d = res.data || res
+        const records = Array.isArray(d) ? d : (d.records || d.list || [])
+        setUserOptions(records)
+      } catch { setUserOptions([]) }
+      finally { setUserSearchLoading(false) }
+    }, 300)
+  }
 
-  // 选中了节点
+  // Multi-select assignees (comma separated)
+  function getAssigneeList() {
+    const val = selectedNode?.data?.candidateUsers || selectedNode?.data?.assignee || ''
+    return val ? val.split(',').filter(Boolean) : []
+  }
+
+  function toggleAssignee(username) {
+    let list = getAssigneeList()
+    if (list.includes(username)) { list = list.filter(u => u !== username) }
+    else { list.push(username) }
+    const joined = list.join(',')
+    onNodeConfigChange(selectedNode.id, 'candidateUsers', joined)
+    onNodeConfigChange(selectedNode.id, 'assignee', joined)
+  }
+
+  function removeAssignee(username) {
+    let list = getAssigneeList().filter(u => u !== username)
+    const joined = list.join(',')
+    onNodeConfigChange(selectedNode.id, 'candidateUsers', joined)
+    onNodeConfigChange(selectedNode.id, 'assignee', joined)
+  }
+
+  const showFormConfig = selectedNode && ['userTask'].includes(selectedNode.data.nodeType)
+  const isUserTask = selectedNode?.data?.nodeType === 'userTask'
+
+  const SectionTabs = ({ tabs }) => (
+    <div style={{ display: 'flex', borderBottom: '1px solid #e8e8e8', marginBottom: 8 }}>
+      {tabs.map(t => (
+        <div key={t.key} onClick={() => setActiveSection(t.key)}
+          style={{
+            padding: '6px 14px', fontSize: 12, cursor: 'pointer',
+            borderBottom: activeSection === t.key ? '2px solid #1677ff' : '2px solid transparent',
+            color: activeSection === t.key ? '#1677ff' : '#666',
+            fontWeight: activeSection === t.key ? 600 : 400, transition: 'all 0.2s'
+          }}>
+          {t.label}
+        </div>
+      ))}
+    </div>
+  )
+
   if (selectedNode) {
     const config = NODE_TYPES_CONFIG[selectedNode.data.nodeType] || NODE_TYPES_CONFIG.custom
     const schema = config.schema
     const permissions = getFormPermissions()
+    const assigneeType = selectedNode.data.assigneeType || 'user'
+
+    const tabs = [{ key: 'basic', label: '基础配置' }]
+    if (showFormConfig) {
+      tabs.push({ key: 'formPerm', label: '表单权限' })
+      tabs.push({ key: 'opPerm', label: '操作权限' })
+    }
 
     return (
       <div className="config-panel">
         <div className="config-title">
-          {config.label} 配置
-          <span style={{ fontSize: 12, color: 'var(--text-placeholder)', marginLeft: 8 }}>
-            {selectedNode.data.nodeId}
-          </span>
+          {config.label}
+          <span style={{ fontSize: 11, color: '#999', marginLeft: 8 }}>{selectedNode.data.nodeId}</span>
         </div>
 
-        {/* 基础配置 */}
-        <div style={{ maxHeight: showFormConfig ? '40%' : '100%', overflowY: 'auto' }}>
-          {schema.map((field) => (
-            <div key={field.key} className="config-form-item">
-              <label className="config-label">
-                {field.label}
-                {field.required && <span style={{ color: 'var(--color-danger)' }}> *</span>}
-              </label>
-              {field.type === 'input' && (
-                <input
-                  className="config-input"
-                  value={selectedNode.data[field.key] || field.default || ''}
-                  placeholder={field.placeholder || ''}
-                  onChange={(e) => onNodeConfigChange(selectedNode.id, field.key, e.target.value)}
-                />
-              )}
-              {field.type === 'textarea' && (
-                <textarea
-                  className="config-textarea"
-                  value={selectedNode.data[field.key] || ''}
-                  placeholder={field.placeholder || ''}
-                  onChange={(e) => onNodeConfigChange(selectedNode.id, field.key, e.target.value)}
-                />
-              )}
-              {field.type === 'select' && (
-                <select
-                  className="config-select"
-                  value={selectedNode.data[field.key] || field.default || ''}
-                  onChange={(e) => onNodeConfigChange(selectedNode.id, field.key, e.target.value)}
-                >
-                  <option value="">请选择</option>
-                  {field.options.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          ))}
-        </div>
+        <SectionTabs tabs={tabs} />
 
-        {/* 表单权限配置（仅用户任务） */}
-        {showFormConfig && (
-          <div style={{ borderTop: '1px solid var(--border-color, #e8e8e8)', paddingTop: 8, marginTop: 4 }}>
-            <div className="config-form-item">
-              <label className="config-label">关联表单</label>
-              <select
-                className="config-select"
-                value={selectedNode.data.formKey || ''}
-                onChange={(e) => handleFormKeyChange(e.target.value)}
-              >
-                <option value="">不关联表单</option>
-                {formList.map(f => (
-                  <option key={f.formKey} value={f.formKey}>{f.formName} ({f.formKey})</option>
-                ))}
-              </select>
-            </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 2px' }}>
+          {/* ===== 基础配置 ===== */}
+          {activeSection === 'basic' && (
+            <div>
+              {/* 通用字段 (名称、描述) */}
+              <div className="config-form-item">
+                <label className="config-label">节点名称 <span style={{ color: '#f53f3f' }}>*</span></label>
+                <input className="config-input" value={selectedNode.data.name || ''}
+                  placeholder="请输入节点名称"
+                  onChange={(e) => onNodeConfigChange(selectedNode.id, 'name', e.target.value)} />
+              </div>
 
-            {selectedNode.data.formKey && (
-              <>
-                <div className="config-form-item">
-                  <label className="config-label">节点级权限</label>
-                  <select
-                    className="config-select"
-                    value={permissions.nodePermission || 'edit'}
-                    onChange={(e) => updateNodePermission(e.target.value)}
-                  >
-                    <option value="edit">可编辑</option>
-                    <option value="readonly">只读</option>
-                    <option value="hidden">隐藏</option>
-                  </select>
-                </div>
-
-                <div className="config-form-item">
-                  <label className="config-label" style={{ cursor: 'pointer' }}
-                    onClick={() => setShowPermissionPanel(!showPermissionPanel)}>
-                    {showPermissionPanel ? '▼' : '▶'} 字段级权限 ({formFields.length} 个字段)
-                  </label>
-                </div>
-
-                {showPermissionPanel && formFields.length > 0 && (
-                  <div style={{ maxHeight: 200, overflowY: 'auto', padding: '0 4px' }}>
-                    {formFields.map(field => {
-                      const fieldKey = field.key || field.id || field.name
-                      const fieldPerm = permissions.fields?.[fieldKey] || 'edit'
-                      return (
-                        <div key={fieldKey} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: 12 }}>
-                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                            title={field.label || field.title || fieldKey}>
-                            {field.label || field.title || fieldKey}
-                          </span>
-                          <select
-                            style={{ width: 72, fontSize: 11, padding: '2px 4px', border: '1px solid #d9d9d9', borderRadius: 3 }}
-                            value={fieldPerm}
-                            onChange={(e) => updateFieldPermission(fieldKey, e.target.value)}
-                          >
-                            <option value="edit">编辑</option>
-                            <option value="readonly">只读</option>
-                            <option value="hidden">隐藏</option>
-                          </select>
-                        </div>
-                      )
-                    })}
+              {/* userTask: 处理人配置 */}
+              {isUserTask && (
+                <>
+                  <div className="config-form-item">
+                    <label className="config-label">分配方式</label>
+                    <select className="config-select" value={assigneeType}
+                      onChange={(e) => {
+                        onNodeConfigChange(selectedNode.id, 'assigneeType', e.target.value)
+                        onNodeConfigChange(selectedNode.id, 'assignee', '')
+                        onNodeConfigChange(selectedNode.id, 'candidateUsers', '')
+                      }}>
+                      <option value="user">指定用户</option>
+                      <option value="role">指定角色</option>
+                      <option value="dept">部门领导</option>
+                      <option value="expression">表单表达式</option>
+                    </select>
                   </div>
-                )}
 
-                {/* 按钮权限 */}
-                <div className="config-form-item" style={{ marginTop: 4 }}>
-                  <label className="config-label">按钮权限</label>
-                </div>
-                {['submit', 'reject', 'transfer', 'delegate'].map(btn => {
-                  const btnPerm = permissions.buttons?.[btn] || {}
-                  return (
-                    <div key={btn} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: 12, paddingLeft: 4 }}>
-                      <span style={{ width: 50 }}>{btn}</span>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <input type="checkbox"
-                          checked={btnPerm.visible !== false}
-                          onChange={(e) => updateButtonPermission(btn, 'visible', e.target.checked)}
-                        />
-                        显示
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <input type="checkbox"
-                          checked={btnPerm.enabled !== false}
-                          onChange={(e) => updateButtonPermission(btn, 'enabled', e.target.checked)}
-                        />
-                        可用
-                      </label>
+                  {/* user: 多用户远程搜索 */}
+                  {assigneeType === 'user' && (
+                    <div className="config-form-item">
+                      <label className="config-label">处理人（支持多选）</label>
+                      <input className="config-input" placeholder="输入姓名搜索用户"
+                        onChange={(e) => handleUserSearch(e.target.value)} />
+                      {userSearchLoading && <div style={{ fontSize: 11, color: '#999', padding: 4 }}>搜索中...</div>}
+                      {userOptions.length > 0 && (
+                        <div className="handler-dropdown">
+                          {userOptions.map(u => {
+                            const uname = u.username || u.id
+                            const selected = getAssigneeList().includes(uname)
+                            return (
+                              <div key={uname} className="handler-dropdown-item" onClick={() => toggleAssignee(uname)}>
+                                <span style={{ marginRight: 6, color: selected ? '#1677ff' : '#ccc' }}>{selected ? '✓' : '○'}</span>
+                                {u.realName || u.username} ({u.username})
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                      {/* 已选处理人标签 */}
+                      <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {getAssigneeList().map(u => (
+                          <span key={u} className="handler-tag">
+                            {u}
+                            <span className="handler-tag-close" onClick={() => removeAssignee(u)}>×</span>
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  )
-                })}
-              </>
-            )}
-          </div>
-        )}
+                  )}
+
+                  {/* role: 角色选择 */}
+                  {assigneeType === 'role' && (
+                    <div className="config-form-item">
+                      <label className="config-label">选择角色</label>
+                      <select className="config-select" value={selectedNode.data.assignee || ''}
+                        onChange={(e) => {
+                          onNodeConfigChange(selectedNode.id, 'assignee', e.target.value)
+                          onNodeConfigChange(selectedNode.id, 'candidateUsers', e.target.value)
+                        }}>
+                        <option value="">请选择角色</option>
+                        {roleList.map(r => (
+                          <option key={r.roleKey || r.id} value={r.roleKey || r.id}>{r.roleName}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* dept: 部门领导 */}
+                  {assigneeType === 'dept' && (
+                    <div className="config-form-item">
+                      <label className="config-label">领导类型</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <label className="handler-radio-label">
+                          <input type="radio" name="deptType" checked={selectedNode.data.assignee === 'deptLeader'}
+                            onChange={() => {
+                              onNodeConfigChange(selectedNode.id, 'assignee', 'deptLeader')
+                              onNodeConfigChange(selectedNode.id, 'candidateUsers', 'deptLeader')
+                            }} />
+                          直属部门领导
+                        </label>
+                        <label className="handler-radio-label">
+                          <input type="radio" name="deptType" checked={selectedNode.data.assignee === 'parentDeptLeader'}
+                            onChange={() => {
+                              onNodeConfigChange(selectedNode.id, 'assignee', 'parentDeptLeader')
+                              onNodeConfigChange(selectedNode.id, 'candidateUsers', 'parentDeptLeader')
+                            }} />
+                          二级部门领导
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* expression: 表达式 */}
+                  {assigneeType === 'expression' && (
+                    <div className="config-form-item">
+                      <label className="config-label">处理人表达式</label>
+                      <input className="config-input" value={selectedNode.data.assignee || ''}
+                        placeholder="如: ${formData.approver}"
+                        onChange={(e) => {
+                          onNodeConfigChange(selectedNode.id, 'assignee', e.target.value)
+                          onNodeConfigChange(selectedNode.id, 'candidateUsers', e.target.value)
+                        }} />
+                      <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+                        从表单变量中提取处理人，如 ${formData.approver}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="config-form-item">
+                    <label className="config-label">截止时间</label>
+                    <input className="config-input" value={selectedNode.data.dueDate || ''}
+                      placeholder="如: 2024-12-31"
+                      onChange={(e) => onNodeConfigChange(selectedNode.id, 'dueDate', e.target.value)} />
+                  </div>
+                </>
+              )}
+
+              {/* 非 userTask 节点: 渲染其他 schema 字段 */}
+              {!isUserTask && schema.filter(f => f.key !== 'name').map((field) => (
+                <div key={field.key} className="config-form-item">
+                  <label className="config-label">{field.label}</label>
+                  {field.type === 'input' && (
+                    <input className="config-input" value={selectedNode.data[field.key] || field.default || ''}
+                      placeholder={field.placeholder || ''}
+                      onChange={(e) => onNodeConfigChange(selectedNode.id, field.key, e.target.value)} />
+                  )}
+                  {field.type === 'textarea' && (
+                    <textarea className="config-textarea" value={selectedNode.data[field.key] || ''}
+                      placeholder={field.placeholder || ''}
+                      onChange={(e) => onNodeConfigChange(selectedNode.id, field.key, e.target.value)} />
+                  )}
+                  {field.type === 'select' && (
+                    <select className="config-select" value={selectedNode.data[field.key] || field.default || ''}
+                      onChange={(e) => onNodeConfigChange(selectedNode.id, field.key, e.target.value)}>
+                      <option value="">请选择</option>
+                      {field.options.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
+                    </select>
+                  )}
+                </div>
+              ))}
+
+              {/* 描述字段 */}
+              <div className="config-form-item">
+                <label className="config-label">描述</label>
+                <textarea className="config-textarea" value={selectedNode.data.description || ''}
+                  placeholder="节点描述"
+                  onChange={(e) => onNodeConfigChange(selectedNode.id, 'description', e.target.value)} />
+              </div>
+
+              {/* 关联表单 */}
+              {showFormConfig && (
+                <div className="config-form-item">
+                  <label className="config-label">关联表单</label>
+                  {processFormKey ? (
+                    <div style={{
+                      padding: '6px 10px', background: '#f5f5f5', borderRadius: 4,
+                      border: '1px solid #e8e8e8', fontSize: 13, color: '#333',
+                      display: 'flex', alignItems: 'center', gap: 6
+                    }}>
+                      <span style={{ color: '#1677ff', fontSize: 11 }}>📋</span>
+                      {processFormName || processFormKey}
+                      <span style={{ fontSize: 11, color: '#999', marginLeft: 'auto' }}>继承自流程</span>
+                    </div>
+                  ) : (
+                    <select className="config-select" value={selectedNode.data.formKey || ''}
+                      onChange={(e) => handleFormKeyChange(e.target.value)}>
+                      <option value="">不关联表单</option>
+                      {formList.map(f => (<option key={f.formKey} value={f.formKey}>{f.formName}</option>))}
+                    </select>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ===== 表单权限 ===== */}
+          {activeSection === 'formPerm' && showFormConfig && (
+            <div>
+              {!processFormKey && !selectedNode.data.formKey ? (
+                <div style={{ padding: 16, textAlign: 'center', color: '#999', fontSize: 12 }}>请先在「基础配置」中关联表单</div>
+              ) : (
+                <>
+                  <div className="config-form-item">
+                    <label className="config-label">节点级权限</label>
+                    <select className="config-select" value={permissions.nodePermission || 'edit'}
+                      onChange={(e) => updateNodePermission(e.target.value)}>
+                      <option value="edit">可编辑</option>
+                      <option value="readonly">只读</option>
+                      <option value="hidden">隐藏</option>
+                    </select>
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <div className="config-label" style={{ marginBottom: 6, fontWeight: 500 }}>字段级权限 ({formFields.length})</div>
+                    <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                      {formFields.length === 0 && <div style={{ color: '#999', fontSize: 12, padding: 8 }}>无字段</div>}
+                      {formFields.map(field => {
+                        const fieldKey = field.key || field.id || field.name
+                        const fieldPerm = permissions.fields?.[fieldKey] || 'edit'
+                        return (
+                          <div key={fieldKey} className="perm-field-row">
+                            <span className="perm-field-name" title={field.label || field.title || fieldKey}>
+                              {field.label || field.title || fieldKey}
+                            </span>
+                            <div style={{ display: 'flex', gap: 2 }}>
+                              {['edit', 'readonly', 'hidden'].map(p => (
+                                <button key={p} onClick={() => updateFieldPermission(fieldKey, p)}
+                                  style={{
+                                    fontSize: 11, padding: '2px 8px', border: '1px solid', borderRadius: 3, cursor: 'pointer',
+                                    borderColor: fieldPerm === p ? '#1677ff' : '#d9d9d9',
+                                    background: fieldPerm === p ? '#1677ff' : '#fff',
+                                    color: fieldPerm === p ? '#fff' : '#333',
+                                  }}>
+                                  {p === 'edit' ? '编辑' : p === 'readonly' ? '只读' : '隐藏'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ===== 操作权限 ===== */}
+          {activeSection === 'opPerm' && showFormConfig && (
+            <div>
+              {!processFormKey && !selectedNode.data.formKey ? (
+                <div style={{ padding: 16, textAlign: 'center', color: '#999', fontSize: 12 }}>请先在「基础配置」中关联表单</div>
+              ) : (
+                <>
+                  <div className="config-label" style={{ marginBottom: 8, fontWeight: 500 }}>按钮权限</div>
+                  {['submit', 'reject', 'transfer', 'delegate'].map(btn => {
+                    const btnPerm = permissions.buttons?.[btn] || {}
+                    const btnLabel = { submit: '提交', reject: '驳回', transfer: '转办', delegate: '委派' }[btn] || btn
+                    return (
+                      <div key={btn} className="perm-btn-row">
+                        <span className="perm-btn-name">{btnLabel}</span>
+                        <label className="perm-checkbox-label">
+                          <input type="checkbox" checked={btnPerm.visible !== false}
+                            onChange={(e) => updateButtonPermission(btn, 'visible', e.target.checked)} />
+                          显示
+                        </label>
+                        <label className="perm-checkbox-label">
+                          <input type="checkbox" checked={btnPerm.enabled !== false}
+                            onChange={(e) => updateButtonPermission(btn, 'enabled', e.target.checked)} />
+                          可用
+                        </label>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     )
   }
 
-  // 选中了连线
   if (selectedEdge) {
     return (
       <div className="config-panel">
@@ -252,23 +458,15 @@ function ConfigPanel({ selectedNode, selectedEdge, onNodeConfigChange, onEdgeCon
           <div key={field.key} className="config-form-item">
             <label className="config-label">{field.label}</label>
             {field.type === 'input' && (
-              <input
-                className="config-input"
-                value={selectedEdge.data?.[field.key] || selectedEdge[field.key] || ''}
+              <input className="config-input" value={selectedEdge.data?.[field.key] || selectedEdge[field.key] || ''}
                 placeholder={field.placeholder || ''}
-                onChange={(e) => onEdgeConfigChange(selectedEdge.id, field.key, e.target.value)}
-              />
+                onChange={(e) => onEdgeConfigChange(selectedEdge.id, field.key, e.target.value)} />
             )}
             {field.type === 'select' && (
-              <select
-                className="config-select"
-                value={selectedEdge.data?.[field.key] || field.default || ''}
-                onChange={(e) => onEdgeConfigChange(selectedEdge.id, field.key, e.target.value)}
-              >
+              <select className="config-select" value={selectedEdge.data?.[field.key] || field.default || ''}
+                onChange={(e) => onEdgeConfigChange(selectedEdge.id, field.key, e.target.value)}>
                 <option value="">请选择</option>
-                {field.options.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
+                {field.options.map((opt) => (<option key={opt} value={opt}>{opt}</option>))}
               </select>
             )}
           </div>
@@ -277,13 +475,10 @@ function ConfigPanel({ selectedNode, selectedEdge, onNodeConfigChange, onEdgeCon
     )
   }
 
-  // 未选中
   return (
     <div className="config-panel">
       <div className="config-title">属性面板</div>
-      <div className="empty-state">
-        <p>选中节点或连线查看配置</p>
-      </div>
+      <div className="empty-state"><p>选中节点或连线查看配置</p></div>
     </div>
   )
 }

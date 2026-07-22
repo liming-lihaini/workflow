@@ -131,7 +131,7 @@ onMounted(async () => {
   try {
     const res = await getTodoTasks({ page: 1, size: 5 })
     const data = res.data || res
-    todoList.value = data.list || data.records || []
+    todoList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     stats.todoCount = data.total || todoList.value.length
   } catch {
     // 后端未启动时忽略

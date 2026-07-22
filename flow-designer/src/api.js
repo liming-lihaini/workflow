@@ -74,4 +74,14 @@ export function getForm(formKey) {
   return request.get(`/forms/${formKey}`)
 }
 
+// 用户 API
+export function getUsersPage(params) {
+  return request.get('/system/users/page', { params })
+}
+
+// 角色 API
+export function getRoles(params) {
+  return request.get('/system/roles', { params })
+}
+
 export default request
