@@ -131,6 +131,8 @@ function Designer() {
             name: n.name,
             assignee: n.assignee,
             candidateUsers: n.candidateUsers,
+            assigneeType: n.assigneeType,
+            assigneeDeptId: n.assigneeDeptId,
             ...(n.properties || {})
           }
         })))
@@ -409,8 +411,10 @@ function Designer() {
         name: n.data.name,
         assignee: n.data.assignee || null,
         candidateUsers: n.data.candidateUsers || null,
+        assigneeType: n.data.assigneeType || null,
+        assigneeDeptId: n.data.assigneeDeptId || null,
         properties: Object.fromEntries(
-          Object.entries(n.data).filter(([k]) => !['nodeType', 'nodeId', 'name', 'assignee', 'candidateUsers'].includes(k))
+          Object.entries(n.data).filter(([k]) => !['nodeType', 'nodeId', 'name', 'assignee', 'candidateUsers', 'assigneeType', 'assigneeDeptId'].includes(k))
         ),
         x: Math.round(n.position.x),
         y: Math.round(n.position.y)

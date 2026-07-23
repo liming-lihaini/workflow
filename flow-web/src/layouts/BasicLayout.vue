@@ -28,10 +28,8 @@
           <template #icon><ApartmentOutlined /></template>
           <template #title>流程管理</template>
           <a-menu-item key="process-definition" @click="$router.push('/process/definition')">流程定义</a-menu-item>
-          <a-menu-item key="process-designer" @click="$router.push('/process/designer')">流程设计器</a-menu-item>
           <a-menu-item key="process-instance" @click="$router.push('/process/instance')">流程实例</a-menu-item>
           <a-menu-item key="form-definition" @click="$router.push('/form/definition')">表单定义</a-menu-item>
-          <a-menu-item key="form-design" @click="$router.push('/form/design')">表单设计器</a-menu-item>
           <a-menu-item key="data-model" @click="$router.push('/data-model')">数据模型</a-menu-item>
         </a-sub-menu>
 
@@ -41,6 +39,7 @@
           <a-menu-item key="task-start" @click="$router.push('/task/start')">发起流程</a-menu-item>
           <a-menu-item key="task-todo" @click="$router.push('/task/todo')">待办任务</a-menu-item>
           <a-menu-item key="task-done" @click="$router.push('/task/done')">已办任务</a-menu-item>
+          <a-menu-item key="task-my-request" @click="$router.push('/task/my-request')">我的申请</a-menu-item>
         </a-sub-menu>
 
         <a-sub-menu key="system">
@@ -116,14 +115,16 @@ watch(() => route.path, (path) => {
   const pathMap = {
     '/dashboard': ['dashboard'],
     '/process/definition': ['process-definition'],
-    '/process/designer': ['process-designer'],
+    '/process/designer': ['process-definition'],
     '/process/instance': ['process-instance'],
     '/form/definition': ['form-definition'],
-    '/form/design': ['form-design'],
+    '/form/design': ['form-definition'],
     '/data-model': ['data-model'],
     '/task/start': ['task-start'],
     '/task/todo': ['task-todo'],
+    '/task/handle': ['task-todo'],
     '/task/done': ['task-done'],
+    '/task/my-request': ['task-my-request'],
     '/system/dept': ['system-dept'],
     '/system/user': ['system-user'],
     '/system/role': ['system-role'],
@@ -148,11 +149,13 @@ function handleLogout() {
 
 <style scoped>
 .basic-layout {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sider {
   background: #001529;
+  overflow-y: auto;
 }
 
 .logo {
@@ -173,8 +176,10 @@ function handleLogout() {
   align-items: center;
   justify-content: space-between;
   height: 60px;
+  line-height: 60px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   z-index: 1;
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -208,8 +213,10 @@ function handleLogout() {
 }
 
 .content {
-  margin: 16px;
+  margin: 12px;
   background: var(--bg-page);
-  min-height: 280px;
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
 }
 </style>

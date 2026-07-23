@@ -94,6 +94,16 @@ public class ProcessController {
     }
 
     /**
+     * 取消部署（已部署 → 草稿）
+     * POST /api/v1/process/definitions/{id}/undeploy
+     */
+    @PostMapping("/{id}/undeploy")
+    public Result<ProcessDefinitionResponse> undeploy(@PathVariable Long id) {
+        ProcessDefinitionResponse response = definitionService.undeploy(id);
+        return Result.ok(response);
+    }
+
+    /**
      * 导出流程定义
      * GET /api/v1/process/definitions/{id}/export
      */

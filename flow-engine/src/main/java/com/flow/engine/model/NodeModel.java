@@ -25,6 +25,12 @@ public class NodeModel {
     /** 候选人（逗号分隔） */
     private String candidateUsers;
 
+    /** 处理人分配方式：user-指定用户, dept_leader-部门领导 */
+    private String assigneeType;
+
+    /** 部门ID（assigneeType=dept_leader 时使用） */
+    private Long assigneeDeptId;
+
     /** 节点扩展属性 */
     private Map<String, Object> properties;
 

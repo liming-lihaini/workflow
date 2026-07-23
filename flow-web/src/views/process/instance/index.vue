@@ -42,7 +42,7 @@
           <a-tag :color="statusColor(currentRecord.status)">{{ statusText(currentRecord.status) }}</a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="当前节点">{{ currentRecord.currentNodeId || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="创建时间" :span="2">{{ currentRecord.createTime }}</a-descriptions-item>
+        <a-descriptions-item label="创建时间" :span="2">{{ formatDate(currentRecord.createTime) }}</a-descriptions-item>
       </a-descriptions>
     </a-modal>
   </div>
@@ -52,6 +52,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { getProcessInstances, terminateProcessInstance } from '../../../api/process'
+import { formatDate } from '../../../utils/date'
 
 const loading = ref(false)
 const dataList = ref([])
@@ -71,7 +72,7 @@ const columns = [
   { title: '流程名称', dataIndex: 'processName', key: 'processName' },
   { title: '状态', key: 'status', width: 120 },
   { title: '当前节点', dataIndex: 'currentNodeId', key: 'currentNodeId' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: ({ text }) => formatDate(text) },
   { title: '操作', key: 'action', width: 150 }
 ]
 

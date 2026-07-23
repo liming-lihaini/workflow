@@ -68,10 +68,28 @@ const routes = [
         meta: { title: '发起流程' }
       },
       {
+        path: 'task/start-detail',
+        name: 'TaskStartDetail',
+        component: () => import('../views/task/start-detail.vue'),
+        meta: { title: '发起流程' }
+      },
+      {
         path: 'task/todo',
         name: 'TaskTodo',
         component: () => import('../views/task/todo.vue'),
         meta: { title: '待办任务' }
+      },
+      {
+        path: 'task/handle',
+        name: 'TaskHandle',
+        component: () => import('../views/task/handle.vue'),
+        meta: { title: '任务办理' }
+      },
+      {
+        path: 'task/my-request',
+        name: 'MyRequest',
+        component: () => import('../views/task/my-request.vue'),
+        meta: { title: '我的申请' }
       },
       {
         path: 'task/done',

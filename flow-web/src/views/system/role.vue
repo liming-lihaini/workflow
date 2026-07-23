@@ -63,6 +63,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { getRoles, createRole, updateRole, deleteRole, getRolePermissions, assignRolePermissions } from '../../api/system'
 import { getPermissionsGrouped } from '../../api/system'
+import { renderDate } from '../../utils/date'
 
 const loading = ref(false)
 const dataList = ref([])
@@ -86,7 +87,7 @@ const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
   { title: '角色名称', dataIndex: 'roleName', key: 'roleName' },
   { title: '角色标识', dataIndex: 'roleKey', key: 'roleKey' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
   { title: '操作', key: 'action', width: 220 }
 ]
 

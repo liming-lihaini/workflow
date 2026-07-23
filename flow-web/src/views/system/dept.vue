@@ -108,7 +108,7 @@
                     </div>
                     <div class="detail-row">
                       <span class="detail-label">创建时间</span>
-                      <span class="detail-value">{{ selectedDept.createTime || '-' }}</span>
+                      <span class="detail-value">{{ formatDate(selectedDept.createTime) || '-' }}</span>
                     </div>
                     <div style="margin-top: 16px; display: flex; gap: 8px;">
                       <a-button type="primary" size="small" @click="showLeaderModal(selectedDept)">设置领导</a-button>
@@ -202,6 +202,7 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { getDeptsPage, getDeptTree, getDept, createDept, updateDept, deleteDept, setDeptLeader, getUsersPage } from '../../api/system'
+import { formatDate, renderDate } from '../../utils/date'
 
 // ====== 通用 ======
 const viewMode = ref('table')
@@ -234,7 +235,7 @@ const columns = [
   { title: '部门领导', key: 'leaderName', width: 120 },
   { title: '排序', dataIndex: 'sortOrder', key: 'sortOrder', width: 80 },
   { title: '状态', key: 'status', width: 100 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
   { title: '操作', key: 'action', width: 300 }
 ]
 const formState = reactive({ deptName: '', sortOrder: 0, status: 1 })
@@ -254,7 +255,7 @@ const memberColumns = [
   { title: '用户名', dataIndex: 'username', key: 'username' },
   { title: '姓名', dataIndex: 'realName', key: 'realName' },
   { title: '状态', key: 'status', width: 80 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 160 }
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate }
 ]
 
 // ====== 数据加载 ======

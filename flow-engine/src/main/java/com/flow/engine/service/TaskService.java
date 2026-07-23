@@ -7,7 +7,9 @@ import com.flow.engine.common.enums.TaskAction;
 import com.flow.engine.common.enums.TaskStatus;
 import com.flow.engine.dto.TaskResponse;
 import com.flow.engine.engine.FlowEngine;
+import com.flow.engine.entity.ProcessDefinition;
 import com.flow.engine.entity.Task;
+import com.flow.engine.mapper.ProcessDefinitionMapper;
 import com.flow.engine.mapper.TaskMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,10 +19,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -34,8 +38,12 @@ public class TaskService {
     private final TaskMapper taskMapper;
     private final FlowEngine flowEngine;
     private final CacheManager cacheManager;
+    private final ProcessDefinitionMapper processDefinitionMapper;
 
     private static final String TODO_CACHE_PREFIX = "task:todo:";
+
+    /** 本地缓存：processKey -> ProcessDefinition，避免 N+1 查询 */
+    private final Map<String, ProcessDefinition> processDefCache = new ConcurrentHashMap<>();
 
     /**
      * 创建任务
@@ -427,6 +435,35 @@ public class TaskService {
         resp.setStatusDesc(status != null ? status.getDesc() : "未知");
         resp.setCreateTime(task.getCreateTime());
         resp.setUpdateTime(task.getUpdateTime());
+
+        // 填充流程名称和流程类型（关联查询）
+        if (StringUtils.hasText(task.getProcessKey())) {
+            try {
+                ProcessDefinition def = processDefCache.get(task.getProcessKey());
+                if (def == null && !processDefCache.containsKey(task.getProcessKey())) {
+                    LambdaQueryWrapper<ProcessDefinition> qw = new LambdaQueryWrapper<>();
+                    qw.eq(ProcessDefinition::getProcessKey, task.getProcessKey())
+                      .orderByDesc(ProcessDefinition::getVersion)
+                      .last("LIMIT 1");
+                    def = processDefinitionMapper.selectOne(qw);
+                    if (def != null) {
+                        processDefCache.put(task.getProcessKey(), def);
+                    }
+                }
+                if (def != null) {
+                    resp.setProcessName(def.getProcessName());
+                    resp.setProcessType(def.getProcessType());
+                }
+            } catch (Exception e) {
+                log.warn("查询流程定义失败, processKey={}: {}", task.getProcessKey(), e.getMessage());
+            }
+        }
+
+        // 计算节点耗时（秒）
+        if (task.getCreateTime() != null && task.getCompleteTime() != null) {
+            resp.setDuration(Duration.between(task.getCreateTime(), task.getCompleteTime()).getSeconds());
+        }
+
         return resp;
     }
 }

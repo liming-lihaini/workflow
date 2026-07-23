@@ -217,6 +217,26 @@ public class ProcessDefinitionService {
     }
 
     /**
+     * 取消部署（已部署 → 草稿）
+     */
+    @Transactional
+    public ProcessDefinitionResponse undeploy(Long id) {
+        ProcessDefinition entity = definitionMapper.selectById(id);
+        if (entity == null) {
+            throw new BusinessException(ErrorCode.PROCESS_DEF_NOT_FOUND);
+        }
+        if (entity.getStatus() != 1) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "仅已部署的流程可取消部署");
+        }
+        entity.setStatus(0); // 草稿
+        entity.setDeploymentId(null);
+        entity.setUpdateTime(LocalDateTime.now());
+
+        definitionMapper.updateById(entity);
+        return toResponse(entity);
+    }
+
+    /**
      * 导出流程定义
      */
     public ProcessDefinitionResponse export(Long id) {

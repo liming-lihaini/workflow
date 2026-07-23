@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>流程处置 - 泛微OA风格（左表单右审批历史）</title>
+<style>
+/* 全局重置 泛微标准字体 */
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei",SimSun,sans-serif;font-size:14px;}
+body{background:#f5f7fa;color:#333;}
+a{text-decoration:none;color:#0066cc;}
+ul,li{list-style:none;}
+button{cursor:pointer;border:none;outline:none;}
+input,textarea,select{border:1px solid #d0d7df;padding:4px 8px;border-radius:2px;}
+input:focus,textarea:focus,select:focus{border-color:#0052a5;outline:1px solid #cce0f5;}
+
+/* 顶部操作栏 泛微深蓝色标题栏 */
+.top-bar{
+    height:44px;
+    background:#0052a5;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    padding:0 20px;
+    justify-content:space-between;
+}
+.top-title{font-size:16px;font-weight:normal;}
+.top-opt a{color:#fff;margin-left:16px;opacity:0.9;}
+.top-opt a:hover{opacity:1;}
+
+/* Tab标签切换 */
+.tab-wrap{
+    background:#fff;
+    border:1px solid #e1e6ef;
+    border-bottom:none;
+    margin:10px auto 0;
+    max-width:1400px;
+    padding:0 10px;
+}
+.tab-list{
+    display:flex;
+}
+.tab-item{
+    height:38px;
+    line-height:38px;
+    padding:0 22px;
+    border-right:1px solid #e1e6ef;
+    cursor:pointer;
+    position:relative;
+}
+.tab-item.active{
+    color:#0052a5;
+    font-weight:bold;
+}
+.tab-item.active::after{
+    content:"";
+    position:absolute;
+    left:0;
+    bottom:-1px;
+    width:100%;
+    height:2px;
+    background:#0052a5;
+}
+.tab-content{
+    max-width:1400px;
+    margin:0 auto 10px;
+    padding:0 10px;
+}
+.tab-panel{
+    background:#fff;
+    border:1px solid #e1e6ef;
+    padding:16px;
+    display:none;
+}
+.tab-panel.active{
+    display:block;
+}
+
+/* 表单Tab内左右分栏：左表单 右审批历史 */
+.form-container{
+    display:flex;
+    gap:16px;
+}
+.left-form{
+    flex: 0 0 72%;
+}
+.right-history{
+    flex: 0 0 26%;
+    border:1px solid #e1e6ef;
+    max-height:750px;
+    overflow-y:auto;
+}
+
+.panel-title{
+    height:36px;
+    line-height:36px;
+    background:#f0f4f9;
+    padding:0 12px;
+    font-weight:bold;
+    border:1px solid #e1e6ef;
+    margin-bottom:12px;
+}
+.form-base{margin-bottom:20px;}
+.form-table{width:100%;border-collapse:collapse;}
+.form-table td{
+    border:1px solid #e8edf3;
+    padding:10px 12px;
+}
+.form-table td.label{
+    width:130px;
+    background:#f7f9fc;
+    text-align:right;
+    color:#444;
+}
+.form-content{
+    margin:20px 0;
+    padding:12px;
+    background:#f7f9fc;
+    line-height:1.8;
+    min-height:100px;
+}
+
+/* 流程图样式 */
+.flow-chart-box{
+    padding:30px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:0;
+}
+.flow-node{
+    width:130px;
+    height:70px;
+    border:2px solid #d0d7df;
+    border-radius:6px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    background:#fafbfd;
+}
+.flow-node.finish{
+    border-color:#00a854;
+    background:#e6fffb;
+}
+.flow-node.current{
+    border-color:#0052a5;
+    background:#e1ecf9;
+}
+.flow-node-name{font-weight:bold;margin-bottom:4px;}
+.flow-node-user{font-size:12px;color:#666;}
+.flow-line{
+    width:40px;
+    height:3px;
+    background:#d0d7df;
+    margin:0 -2px;
+    z-index:-1;
+}
+.flow-line.finish{
+    background:#00a854;
+}
+
+/* 右侧审批历史列表 */
+.history-inner{
+    padding:12px;
+}
+.history-item{border-bottom:1px dashed #eee;padding:12px 0;}
+.history-item:last-child{border-bottom:none;}
+.history-user{font-weight:bold;font-size:15px;}
+.history-row{margin:6px 0;}
+.history-opt{color:#0052a5;margin-right:16px;}
+.history-time{color:#999;font-size:12px;}
+.history-opinion{background:#f7f9fc;padding:8px;margin-top:6px;color:#555;line-height:1.6;border-radius:4px;}
+
+/* 审批意见输入区域 */
+.opinion-area{
+    margin:20px 0;
+    padding:16px;
+    border:1px solid #e1e6ef;
+    background:#fafbfd;
+}
+.opinion-title{
+    font-weight:bold;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+}
+.opinion-title::before{
+    content:"";
+    width:4px;
+    height:14px;
+    background:#0052a5;
+    margin-right:8px;
+}
+.common-word{margin:10px 0;display:flex;gap:8px;flex-wrap:wrap;}
+.common-word span{
+    padding:3px 10px;
+    background:#f0f4f9;
+    border:1px solid #d0d7df;
+    cursor:pointer;
+    font-size:12px;
+}
+.common-word span:hover{background:#e1ecf9;}
+#opinionText{
+    width:100%;
+    height:120px;
+    resize:none;
+}
+.tip-text{color:#999;font-size:12px;margin-top:6px;}
+
+/* 底部操作按钮栏 */
+.opt-bottom{
+    padding:12px 0;
+    border-top:1px solid #e1e6ef;
+    background:#fafbfd;
+    margin-top:20px;
+}
+.btn-group{display:flex;gap:10px;flex-wrap:wrap;}
+.btn{
+    height:32px;
+    padding:0 18px;
+    border-radius:2px;
+}
+.btn-agree{background:#0052a5;color:#fff;}
+.btn-refuse{background:#fff;color:#f53f3f;border:1px solid #f53f3f;}
+.btn-back{background:#fff;color:#666;border:1px solid #c0c6cf;}
+.btn-transfer{background:#fff;color:#0066cc;border:1px solid #0066cc;}
+.btn-addsign{background:#fff;color:#00a854;border:1px solid #00a854;}
+
+/* 状态标签 */
+.tag-pass{color:#00a854;}
+.tag-pending{color:#ff7d00;}
+.tag-reject{color:#f53f3f;}
+</style>
+</head>
+<body>
+<!-- 顶部标题操作栏 -->
+<div class="top-bar">
+    <div class="top-title">费用报销单 - 流程处置</div>
+    <div class="top-opt">
+        <a href="#">打印单据</a>
+        <a href="#">导出PDF</a>
+        <a href="#">刷新</a>
+        <a href="#" onclick="history.back()">返回列表</a>
+    </div>
+</div>
+
+<!-- Tab切换栏：表单详情 / 流程图 -->
+<div class="tab-wrap">
+    <div class="tab-list">
+        <div class="tab-item active" data-tab="form">表单详情</div>
+        <div class="tab-item" data-tab="flowchart">流程图</div>
+    </div>
+</div>
+
+<div class="tab-content">
+    <!-- Tab1：表单详情 左右分栏布局 -->
+    <div class="tab-panel active" id="panel-form">
+        <div class="form-container">
+            <!-- 左侧：表单信息 + 审批操作区 -->
+            <div class="left-form">
+                <div class="form-base">
+                    <table class="form-table">
+                        <tr>
+                            <td class="label">流程编号</td>
+                            <td>BX20260723008</td>
+                            <td class="label">单据类型</td>
+                            <td>差旅费报销</td>
+                        </tr>
+                        <tr>
+                            <td class="label">申请人</td>
+                            <td>张三</td>
+                            <td class="label">所属部门</td>
+                            <td>研发一部</td>
+                        </tr>
+                        <tr>
+                            <td class="label">出差起止日期</td>
+                            <td>2026-07-15 ~ 2026-07-18</td>
+                            <td class="label">出差地点</td>
+                            <td>上海客户现场</td>
+                        </tr>
+                        <tr>
+                            <td class="label">报销总金额</td>
+                            <td style="color:#f53f3f;font-weight:bold">￥3280.00</td>
+                            <td class="label">票据张数</td>
+                            <td>12张</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="panel-title">报销事由明细</div>
+                <div class="form-content">
+                    赴上海对接XX项目客户需求，产生交通费、住宿费、餐饮补贴。
+                    <br/>费用明细：
+                    <br/>1. 往返高铁：1600元
+                    <br/>2. 酒店住宿3晚：1200元
+                    <br/>3. 市内交通+餐补：480元
+                    <br/>合计3280元，票据齐全，申请财务报销。
+                </div>
+
+                <!-- 内置审批意见区域，无弹窗 -->
+                <div class="opinion-area">
+                    <div class="opinion-title">填写本次审批意见（必填）</div>
+                    <div class="common-word">
+                        <span onclick="fillWord('情况属实，同意报销')">情况属实，同意报销</span>
+                        <span onclick="fillWord('票据无误，准予通过')">票据无误，准予通过</span>
+                        <span onclick="fillWord('金额有误，请修改后重新提交')">金额有误，请修改后重新提交</span>
+                        <span onclick="fillWord('材料不全，补充票据')">材料不全，补充票据</span>
+                    </div>
+                    <textarea id="opinionText" placeholder="请输入审批意见..."></textarea>
+                    <div class="tip-text">提示：意见不能为空，填写后点击下方【同意】或【驳回】完成处置</div>
+                </div>
+
+                <!-- 底部审批操作按钮 -->
+                <div class="opt-bottom">
+                    <div class="btn-group">
+                        <button class="btn btn-agree" id="btnAgree">同意提交下一节点</button>
+                        <button class="btn btn-refuse" id="btnRefuse">驳回至申请人</button>
+                        <button class="btn btn-transfer">转发他人处理</button>
+                        <button class="btn btn-addsign">加签协同审批</button>
+                        <button class="btn btn-back">暂存待处理</button>
+                        <button class="btn btn-back" onclick="history.back()">返回列表</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：审批历史记录 常驻侧边栏 -->
+            <div class="right-history">
+                <div class="panel-title">审批处置历史</div>
+                <div class="history-inner">
+                    <div class="history-item">
+                        <div class="history-user">李经理（部门经理）</div>
+                        <div class="history-row">
+                            <span class="history-opt tag-pass">审批操作：同意</span>
+                            <span class="history-time">2026-07-23 09:10</span>
+                        </div>
+                        <div class="history-opinion">情况属实，出差业务真实，同意提交财务审核。</div>
+                    </div>
+                    <div class="history-item">
+                        <div class="history-user">张三（申请人）</div>
+                        <div class="history-row">
+                            <span class="history-opt tag-pass">操作：提交申请</span>
+                            <span class="history-time">2026-07-23 08:45</span>
+                        </div>
+                        <div class="history-opinion">赴上海项目出差，相关票据已全部上传，申请费用报销。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab2：流程图 独立页面展示流程轨迹图 -->
+    <div class="tab-panel" id="panel-flowchart">
+        <div class="panel-title">流程轨迹拓扑图</div>
+        <div class="flow-chart-box">
+            <div class="flow-node finish">
+                <div class="flow-node-name">申请人发起</div>
+                <div class="flow-node-user">张三 研发一部</div>
+            </div>
+            <div class="flow-line finish"></div>
+            <div class="flow-node finish">
+                <div class="flow-node-name">部门经理审批</div>
+                <div class="flow-node-user">李经理</div>
+            </div>
+            <div class="flow-line"></div>
+            <div class="flow-node current">
+                <div class="flow-node-name">财务审核</div>
+                <div class="flow-node-user">当前：你</div>
+            </div>
+            <div class="flow-line"></div>
+            <div class="flow-node">
+                <div class="flow-node-name">财务主管复核</div>
+                <div class="flow-node-user">王主管</div>
+            </div>
+            <div class="flow-line"></div>
+            <div class="flow-node">
+                <div class="flow-node-name">出纳打款办结</div>
+                <div class="flow-node-user">出纳</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Tab切换逻辑
+const tabItems = document.querySelectorAll(".tab-item");
+const panels = document.querySelectorAll(".tab-panel");
+tabItems.forEach(item => {
+    item.onclick = () => {
+        const tabKey = item.getAttribute("data-tab");
+        tabItems.forEach(t => t.classList.remove("active"));
+        panels.forEach(p => p.classList.remove("active"));
+        item.classList.add("active");
+        document.getElementById("panel-" + tabKey).classList.add("active");
+    }
+})
+
+const opinionText = document.getElementById("opinionText");
+const btnAgree = document.getElementById("btnAgree");
+const btnRefuse = document.getElementById("btnRefuse");
+
+// 快捷审批语一键填充
+function fillWord(text){
+    opinionText.value = text;
+}
+
+// 同意审批提交
+btnAgree.onclick = function(){
+    let val = opinionText.value.trim();
+    if(!val){
+        alert("请填写审批意见后再提交！");
+        opinionText.focus();
+        return;
+    }
+    alert("审批同意成功，流程自动流转至财务主管复核节点\n审批意见："+val);
+    opinionText.value = "";
+}
+
+// 驳回单据提交
+btnRefuse.onclick = function(){
+    let val = opinionText.value.trim();
+    if(!val){
+        alert("请填写驳回原因后再提交！");
+        opinionText.focus();
+        return;
+    }
+    alert("单据已驳回，退回申请人修改，系统推送消息通知\n驳回意见："+val);
+    opinionText.value = "";
+}
+</script>
+</body>
+</html>

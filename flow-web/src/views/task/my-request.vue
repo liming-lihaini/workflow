@@ -2,7 +2,7 @@
   <div class="page-wrap">
     <div class="card-wrap">
       <div class="page-header">
-        <span class="page-title">已办任务</span>
+        <span class="page-title">我的申请</span>
         <a-button @click="loadData">刷新</a-button>
       </div>
 
@@ -18,13 +18,17 @@
           <template v-if="column.key === 'processName'">
             <a @click="openDetail(record)" style="font-weight: 500">{{ record.processName || '-' }}</a>
           </template>
-          <template v-else-if="column.key === 'processType'">
-            <a-tag :color="typeColorMap[record.processType] || 'default'">
-              {{ typeLabelMap[record.processType] || record.processType || '-' }}
+          <template v-else-if="column.key === 'status'">
+            <a-tag :color="statusColorMap[record.status] || 'default'">
+              {{ statusLabelMap[record.status] || '未知' }}
             </a-tag>
           </template>
           <template v-else-if="column.key === 'duration'">
             {{ formatDuration(record.duration) }}
+          </template>
+          <template v-else-if="column.key === 'action'">
+            <a v-if="record.status === 1" @click="handleTerminate(record)" style="color: #ff4d4f">终止</a>
+            <span v-else style="color: #999">-</span>
           </template>
         </template>
       </a-table>
@@ -35,8 +39,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getDoneTasks } from '../../api/task'
-import { getDictItemsByCode } from '../../api/dict'
+import { message, Modal } from 'ant-design-vue'
+import { getMyProcessInstances, terminateProcessInstance } from '../../api/process'
 import { renderDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
 
@@ -45,22 +49,8 @@ const userStore = useUserStore()
 const loading = ref(false)
 const dataList = ref([])
 
-// 流程类型字典
-const typeLabelMap = ref({})
-const typeColorMap = { approval: 'blue', process: 'green', callback: 'orange' }
-
-async function loadProcessTypeDict() {
-  try {
-    const res = await getDictItemsByCode('process_type')
-    const items = res.data || res || []
-    const arr = Array.isArray(items) ? items : (items.list || [])
-    const map = {}
-    arr.forEach(item => { map[item.value || item.dictValue] = item.label || item.dictLabel })
-    typeLabelMap.value = map
-  } catch {
-    typeLabelMap.value = { approval: '审批流', process: '业务流程', callback: '回调流程' }
-  }
-}
+const statusLabelMap = { 0: '草稿', 1: '进行中', 2: '已完成', 3: '已终止', 4: '已暂停' }
+const statusColorMap = { 0: 'default', 1: 'processing', 2: 'success', 3: 'error', 4: 'warning' }
 
 const pagination = reactive({
   current: 1,
@@ -72,15 +62,14 @@ const pagination = reactive({
 
 const columns = [
   { title: '流程名称', dataIndex: 'processName', key: 'processName', width: 160 },
-  { title: '流程类型', key: 'processType', width: 110 },
-  { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName', width: 140 },
-  { title: '处理人', dataIndex: 'assignee', key: 'assignee', width: 100 },
-  { title: '处理时间', dataIndex: 'completeTime', key: 'completeTime', width: 120, customRender: renderDate },
-  { title: '节点耗时', key: 'duration', width: 120 },
-  { title: '办理时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate }
+  { title: '流程Key', dataIndex: 'processKey', key: 'processKey', width: 140 },
+  { title: '状态', key: 'status', width: 100 },
+  { title: '当前节点', dataIndex: 'currentNodeId', key: 'currentNodeId', width: 140 },
+  { title: '发起时间', dataIndex: 'startTime', key: 'startTime', width: 120, customRender: renderDate },
+  { title: '耗时', key: 'duration', width: 120 },
+  { title: '操作', key: 'action', width: 80 }
 ]
 
-/** 格式化耗时（秒 -> 可读格式） */
 function formatDuration(seconds) {
   if (!seconds && seconds !== 0) return '-'
   if (seconds < 60) return seconds + '秒'
@@ -95,19 +84,36 @@ function formatDuration(seconds) {
   return `${days}天${remainHours > 0 ? remainHours + '时' : ''}`
 }
 
-/** 点击流程名称，打开任务详情 */
 function openDetail(record) {
-  router.push({ path: '/task/handle', query: { id: record.id, from: 'done' } })
+  router.push({ path: '/task/handle', query: { instanceId: record.id } })
+}
+
+function handleTerminate(record) {
+  Modal.confirm({
+    title: '确认终止',
+    content: `确定要终止流程「${record.processName}」吗？`,
+    okType: 'danger',
+    onOk: async () => {
+      try {
+        await terminateProcessInstance(record.id)
+        message.success('终止成功')
+        loadData()
+      } catch {
+        // handled by interceptor
+      }
+    }
+  })
 }
 
 async function loadData() {
   loading.value = true
   try {
     const userId = userStore.username || localStorage.getItem('username') || ''
-    const res = await getDoneTasks({ userId, page: pagination.current, size: pagination.pageSize })
+    const res = await getMyProcessInstances(userId)
     const data = res.data || res
-    dataList.value = Array.isArray(data) ? data : (data.list || data.records || [])
-    pagination.total = data.total || dataList.value.length
+    const list = Array.isArray(data) ? data : (data.list || data.records || [])
+    dataList.value = list
+    pagination.total = list.length
   } catch {
     // ignore
   }
@@ -120,8 +126,5 @@ function handleTableChange(pag) {
   loadData()
 }
 
-onMounted(() => {
-  loadProcessTypeDict()
-  loadData()
-})
+onMounted(loadData)
 </script>

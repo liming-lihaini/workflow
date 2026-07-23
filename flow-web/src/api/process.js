@@ -22,6 +22,9 @@ export function deleteProcessDefinition(id) {
 export function deployProcessDefinition(id) {
   return request.post(`/process/definitions/${id}/deploy`)
 }
+export function undeployProcessDefinition(id) {
+  return request.post(`/process/definitions/${id}/undeploy`)
+}
 export function exportProcessDefinition(id) {
   return request.get(`/process/definitions/${id}/export`)
 }
@@ -32,6 +35,9 @@ export function importProcessDefinition(data) {
 // 流程实例
 export function getProcessInstances(params) {
   return request.get('/process/instances', { params })
+}
+export function getMyProcessInstances(startUser) {
+  return request.get('/process/instances/my', { params: { startUser } })
 }
 export function getProcessInstance(id) {
   return request.get(`/process/instances/${id}`)

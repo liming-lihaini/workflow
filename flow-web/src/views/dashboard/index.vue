@@ -108,6 +108,7 @@ import {
 } from '@ant-design/icons-vue'
 import { getTodoTasks } from '../../api/task'
 import { getProcessDefinitions } from '../../api/process'
+import { renderDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
 
 const userStore = useUserStore()
@@ -124,7 +125,7 @@ const stats = reactive({
 const todoColumns = [
   { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName' },
   { title: '处理人', dataIndex: 'assignee', key: 'assignee' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', customRender: renderDate },
   { title: '操作', key: 'action', width: 80 }
 ]
 

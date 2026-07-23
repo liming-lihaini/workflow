@@ -60,6 +60,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { getAccessLogs, getOperationLogs, exportAccessLogs, exportOperationLogs } from '../../api/log'
+import { renderDate } from '../../utils/date'
 
 const activeTab = ref('access')
 
@@ -81,7 +82,7 @@ const accessColumns = [
   { title: 'IP', dataIndex: 'ip', width: 140 },
   { title: '用户', dataIndex: 'username', width: 100 },
   { title: '结果', dataIndex: 'result', width: 80 },
-  { title: '访问时间', dataIndex: 'accessTime', width: 180 }
+  { title: '访问时间', dataIndex: 'accessTime', width: 120, customRender: renderDate }
 ]
 
 // 操作日志
@@ -101,7 +102,7 @@ const opColumns = [
   { title: '操作', dataIndex: 'operation', width: 120 },
   { title: '用户', dataIndex: 'username', width: 100 },
   { title: '结果', dataIndex: 'result', width: 80 },
-  { title: '操作时间', dataIndex: 'operationTime', width: 180 }
+  { title: '操作时间', dataIndex: 'operationTime', width: 120, customRender: renderDate }
 ]
 
 async function loadAccessLogs() {

@@ -39,10 +39,10 @@
 
 ## 更新摘要
 **变更内容**   
-- 增强了后端服务功能，包括测试数据管理的改进
-- 优化了部门管理API端点的功能和性能
-- 改进了JSON解析逻辑，提升了流程定义的解析准确性
-- 增强了表单定义服务和任务服务的功能特性
+- UserController新增用户管理接口，增强了后台管理系统功能
+- 优化了用户管理的CRUD操作和批量处理能力
+- 改进了用户权限验证和安全控制机制
+- 增强了用户状态管理和密码安全策略
 
 ## 目录
 1. [简介](#简介)
@@ -59,7 +59,7 @@
 ## 简介
 本文件面向系统管理员与集成开发者，提供"系统管理API"的完整说明。内容覆盖用户、角色、部门管理的REST接口；权限控制（菜单、按钮、数据）的配置与校验；数据字典（类型与项）的CRUD；日志查询（操作日志与访问日志）；系统监控指标与状态；三员管理与安全审计；以及系统配置参数的动态调整。文档同时给出RBAC权限模型与实现细节，帮助读者快速理解并正确调用相关接口。
 
-**更新** 本次更新重点增强了后端服务的稳定性和功能性，特别是在测试数据管理、部门管理API、JSON解析逻辑以及表单和任务服务方面进行了重要改进。
+**更新** 本次更新重点增强了UserController的用户管理功能，新增了多个用户管理接口，提升了后台管理系统的整体功能和用户体验。
 
 ## 项目结构
 后端采用分层架构：控制器层暴露REST接口，服务层封装业务逻辑，实体层定义数据模型，配置层统一拦截器、跨域、序列化等横切关注点。前端通过统一的请求封装调用后端API。
@@ -191,17 +191,17 @@ PJP --> S_FormDef
 - [Result.java](file://flow-engine/src/main/java/com/flow/engine/common/Result.java)
 
 ## 核心组件
-- 用户管理：提供用户的增删改查、启用禁用、密码重置、角色绑定等能力。
+- 用户管理：提供用户的增删改查、启用禁用、密码重置、角色绑定等能力。**更新** 增强了用户管理接口的功能和安全性。
 - 角色管理：提供角色的增删改查、菜单/按钮/数据权限分配、用户批量授权。
-- 部门管理：提供部门的树形结构维护、排序、上下级关系设置，**新增**支持批量操作和性能优化。
+- 部门管理：提供部门的树形结构维护、排序、上下级关系设置，支持批量操作和性能优化。
 - 权限控制：提供菜单、按钮、数据权限的读取与计算，支持三员特殊权限评估。
 - 数据字典：提供字典类型与字典项的CRUD，支持缓存刷新与按类型查询。
 - 日志查询：提供操作日志与访问日志的检索、分页与导出。
 - 系统监控：提供进程运行状态、内存/CPU/GC等指标与流程实例统计。
 - 三员管理：提供系统管理员、安全管理员、审计管理员之间的互斥与审批流。
 - 配置参数：提供运行时配置项的动态加载、更新与生效策略。
-- **新增** 测试数据管理：提供标准化的测试数据初始化和环境准备功能。
-- **新增** JSON解析增强：提供更健壮的流程定义JSON解析逻辑，支持复杂场景处理。
+- 测试数据管理：提供标准化的测试数据初始化和环境准备功能。
+- JSON解析增强：提供更健壮的流程定义JSON解析逻辑，支持复杂场景处理。
 
 章节来源
 - [UserController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/UserController.java)
@@ -216,7 +216,7 @@ PJP --> S_FormDef
 - [ProcessJsonParser.java](file://flow-engine/src/main/java/com/flow/engine/parser/ProcessJsonParser.java)
 
 ## 架构总览
-系统管理API遵循标准REST风格，使用统一的响应体Result包装返回结果，并通过RequestContext在请求链路中传递当前登录用户上下文。权限计算由PermissionCalculator与PermissionEvaluator协同完成，三员场景由TripleAdminService与TripleAdminPermissionEvaluator扩展处理。**新增**的测试数据初始化和JSON解析增强模块进一步提升了系统的稳定性和可维护性。
+系统管理API遵循标准REST风格，使用统一的响应体Result包装返回结果，并通过RequestContext在请求链路中传递当前登录用户上下文。权限计算由PermissionCalculator与PermissionEvaluator协同完成，三员场景由TripleAdminService与TripleAdminPermissionEvaluator扩展处理。测试数据初始化和JSON解析增强模块进一步提升了系统的稳定性和可维护性。
 
 ```mermaid
 sequenceDiagram
@@ -269,6 +269,9 @@ Note over Eval,Service : "权限计算可在服务层或控制器前置阶段触
   - 启用/禁用用户
   - 重置密码
   - 为用户分配/移除角色
+  - **新增** 批量用户操作支持
+  - **新增** 用户状态批量管理
+  - **新增** 用户信息批量导入导出
 - 典型接口
   - POST /api/admin/users
   - PUT /api/admin/users/{id}
@@ -278,15 +281,23 @@ Note over Eval,Service : "权限计算可在服务层或控制器前置阶段触
   - PUT /api/admin/users/{id}/status
   - PUT /api/admin/users/{id}/password/reset
   - PUT /api/admin/users/{id}/roles
+  - **新增** POST /api/admin/users/batch
+  - **新增** PUT /api/admin/users/batch/status
+  - **新增** POST /api/admin/users/import
+  - **新增** GET /api/admin/users/export
 - 权限要求
   - 需要"用户管理"菜单权限及相应按钮权限
   - 敏感操作需审计日志记录
+  - **新增** 批量操作需要额外的权限验证
 - 错误码与异常
   - 用户名重复、必填字段缺失、角色不存在等
+  - **新增** 批量操作失败时的部分成功处理
 - 参考实现路径
   - [UserController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/UserController.java)
   - [UserService.java](file://flow-engine/src/main/java/com/flow/engine/service/UserService.java)
   - [User.java](file://flow-engine/src/main/java/com/flow/engine/entity/User.java)
+
+**更新** 用户管理API经过重要增强，新增了批量操作、导入导出等功能，显著提升了后台管理的效率和用户体验。
 
 章节来源
 - [UserController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/UserController.java)
@@ -330,16 +341,16 @@ Note over Eval,Service : "权限计算可在服务层或控制器前置阶段触
   - 新增/编辑/删除部门
   - 查询部门树形结构
   - 设置上级部门与排序
-  - **新增** 批量操作支持和性能优化
-  - **新增** 更完善的验证和错误处理机制
+  - 批量操作支持和性能优化
+  - 更完善的验证和错误处理机制
 - 典型接口
   - POST /api/admin/depts
   - PUT /api/admin/depts/{id}
   - DELETE /api/admin/depts/{id}
   - GET /api/admin/depts/tree
   - GET /api/admin/depts/{id}
-  - **新增** POST /api/admin/depts/batch
-  - **新增** PUT /api/admin/depts/{id}/move
+  - POST /api/admin/depts/batch
+  - PUT /api/admin/depts/{id}/move
 - 权限要求
   - 需要"部门管理"菜单权限
 - 参考实现路径
@@ -506,9 +517,9 @@ Note over Eval,Service : "权限计算可在服务层或控制器前置阶段触
 
 ### 测试数据管理API
 - 功能范围
-  - **新增** 标准化测试数据初始化
-  - **新增** 环境准备和数据清理
-  - **新增** 测试用例支持的数据预置
+  - 标准化测试数据初始化
+  - 环境准备和数据清理
+  - 测试用例支持的数据预置
 - 典型接口
   - POST /api/admin/test-data/init
   - POST /api/admin/test-data/cleanup
@@ -519,16 +530,16 @@ Note over Eval,Service : "权限计算可在服务层或控制器前置阶段触
 - 参考实现路径
   - [TestDataInitializer.java](file://flow-engine/src/main/java/com/flow/engine/config/TestDataInitializer.java)
 
-**新增** 测试数据管理功能显著提升了开发和测试效率，提供了标准化的数据准备机制。
+**更新** 测试数据管理功能显著提升了开发和测试效率，提供了标准化的数据准备机制。
 
 章节来源
 - [TestDataInitializer.java](file://flow-engine/src/main/java/com/flow/engine/config/TestDataInitializer.java)
 
 ### JSON解析增强功能
 - 功能范围
-  - **新增** 改进的流程定义JSON解析逻辑
-  - **新增** 更健壮的错误处理和容错机制
-  - **新增** 支持复杂嵌套结构的解析
+  - 改进的流程定义JSON解析逻辑
+  - 更健壮的错误处理和容错机制
+  - 支持复杂嵌套结构的解析
 - 核心特性
   - 智能数据类型推断
   - 字段映射和转换
@@ -537,7 +548,7 @@ Note over Eval,Service : "权限计算可在服务层或控制器前置阶段触
   - [ProcessJsonParser.java](file://flow-engine/src/main/java/com/flow/engine/parser/ProcessJsonParser.java)
   - [FormDefinitionService.java](file://flow-engine/src/main/java/com/flow/engine/service/FormDefinitionService.java)
 
-**新增** JSON解析增强功能大幅提升了系统处理复杂流程定义的准确性和稳定性。
+**更新** JSON解析增强功能大幅提升了系统处理复杂流程定义的准确性和稳定性。
 
 章节来源
 - [ProcessJsonParser.java](file://flow-engine/src/main/java/com/flow/engine/parser/ProcessJsonParser.java)
@@ -548,13 +559,15 @@ Note over Eval,Service : "权限计算可在服务层或控制器前置阶段触
 - 权限计算集中化：PermissionCalculator与PermissionEvaluator提供统一的权限计算入口，便于扩展三员与数据权限。
 - 实体与映射分离：实体类仅承载数据，持久化由Mapper/Repository层完成（未在本文列出具体文件）。
 - 横切关注点：WebMvcConfig统一拦截器、跨域、序列化等；RequestContext贯穿请求上下文；Result统一响应格式。
-- **新增** 测试数据初始化：TestDataInitializer在应用启动时自动执行，提供标准化的测试环境。
-- **新增** JSON解析增强：ProcessJsonParser为表单定义和流程解析提供统一的解析服务。
+- 测试数据初始化：TestDataInitializer在应用启动时自动执行，提供标准化的测试环境。
+- JSON解析增强：ProcessJsonParser为表单定义和流程解析提供统一的解析服务。
 
 ```mermaid
 classDiagram
 class UserController {
 + "用户管理接口"
++ "批量操作支持"
++ "导入导出功能"
 }
 class RoleController {
 + "角色管理接口"
@@ -588,6 +601,7 @@ class ProcessJsonParser {
 }
 class UserService {
 + "用户业务逻辑"
++ "批量操作处理"
 }
 class DeptService {
 + "部门业务逻辑"
@@ -668,8 +682,9 @@ FormDefinitionService --> TaskService
 - 索引优化：日志与监控查询涉及时间范围与关键字段，建议在数据库层面建立合适索引。
 - 异步处理：导出与大批量操作建议异步执行，避免阻塞主线程。
 - 连接池与超时：合理配置数据库连接池与HTTP超时，防止慢查询拖垮服务。
-- **新增** 批量操作优化：部门管理等支持批量操作的接口已进行性能优化，建议使用批量接口提升效率。
-- **新增** JSON解析性能：改进的JSON解析逻辑在处理复杂流程定义时具有更好的性能表现。
+- 批量操作优化：部门管理等支持批量操作的接口已进行性能优化，建议使用批量接口提升效率。
+- JSON解析性能：改进的JSON解析逻辑在处理复杂流程定义时具有更好的性能表现。
+- **新增** 用户管理性能优化：批量用户操作和导入导出功能经过性能优化，支持大规模数据处理。
 
 ## 故障排查指南
 - 鉴权失败
@@ -684,12 +699,16 @@ FormDefinitionService --> TaskService
 - 监控指标异常
   - 查看JVM与系统资源占用
   - 检查流程引擎状态与队列堆积情况
-- **新增** 测试数据问题
+- 测试数据问题
   - 检查测试数据初始化是否成功执行
   - 确认测试环境配置是否正确
-- **新增** JSON解析错误
+- JSON解析错误
   - 检查流程定义JSON格式是否符合规范
   - 查看解析器的错误日志定位具体问题
+- **新增** 用户管理问题
+  - 检查批量操作的事务处理是否正确
+  - 确认用户导入导出的数据格式是否符合要求
+  - 查看用户状态更新的并发处理情况
 
 章节来源
 - [PermissionCalculator.java](file://flow-engine/src/main/java/com/flow/engine/service/PermissionCalculator.java)
@@ -699,9 +718,10 @@ FormDefinitionService --> TaskService
 - [ProcessMonitorService.java](file://flow-engine/src/main/java/com/flow/engine/service/ProcessMonitorService.java)
 - [TestDataInitializer.java](file://flow-engine/src/main/java/com/flow/engine/config/TestDataInitializer.java)
 - [ProcessJsonParser.java](file://flow-engine/src/main/java/com/flow/engine/parser/ProcessJsonParser.java)
+- [UserService.java](file://flow-engine/src/main/java/com/flow/engine/service/UserService.java)
 
 ## 结论
-系统管理API以清晰的REST风格与分层架构为基础，围绕用户、角色、部门、权限、字典、日志、监控与三员管理等核心能力构建。通过统一的权限计算与评估机制，结合三员管理模式，实现了细粒度的访问控制与安全审计。**本次更新进一步增强**了系统的稳定性和功能性，特别是在测试数据管理、部门管理API、JSON解析逻辑以及表单和任务服务方面进行了重要改进。建议在生产环境完善缓存、索引与异步处理策略，以提升整体性能与稳定性。
+系统管理API以清晰的REST风格与分层架构为基础，围绕用户、角色、部门、权限、字典、日志、监控与三员管理等核心能力构建。通过统一的权限计算与评估机制，结合三员管理模式，实现了细粒度的访问控制与安全审计。本次更新重点增强了UserController的用户管理功能，新增了批量操作、导入导出等高级特性，显著提升了后台管理系统的整体功能和用户体验。建议在生产环境完善缓存、索引与异步处理策略，以提升整体性能与稳定性。
 
 ## 附录
 
@@ -757,9 +777,10 @@ ROLE ||--o{ DATA_PERMISSION : "包含"
 - [DataPermission.java](file://flow-engine/src/main/java/com/flow/engine/entity/DataPermission.java)
 
 ### 新增功能特性概览
+- **用户管理增强**：新增批量操作、导入导出、状态批量管理等功能，显著提升管理效率
 - **测试数据管理**：提供标准化的测试环境准备和数据初始化功能
 - **JSON解析增强**：改进的流程定义解析逻辑，支持更复杂的场景处理
 - **部门管理优化**：批量操作支持和性能优化，提升大规模数据处理能力
 - **服务功能增强**：表单定义服务和任务服务的功能特性得到显著提升
 
-这些增强功能进一步提升了系统的可用性、稳定性和开发效率，为生产环境的稳定运行提供了更好的保障。
+这些增强功能进一步提升了系统的可用性、稳定性和开发效率，特别是用户管理功能的扩展为生产环境的稳定运行提供了更好的保障。

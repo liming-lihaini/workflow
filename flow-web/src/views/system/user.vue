@@ -155,6 +155,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { message, Empty } from 'ant-design-vue'
 import { getUsersPage, createUser, updateUser, deleteUser, resetPassword, getDeptTree, getRoles, getUserRoles, setUserRoles } from '../../api/system'
+import { renderDate } from '../../utils/date'
 
 const simpleEmptyImage = Empty.PRESENTED_IMAGE_SIMPLE
 
@@ -246,7 +247,7 @@ const columns = [
   { title: '姓名', dataIndex: 'realName', key: 'realName' },
   { title: '部门', dataIndex: 'deptName', key: 'deptName' },
   { title: '状态', key: 'status', width: 80 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
   { title: '操作', key: 'action', width: 300 }
 ]
 

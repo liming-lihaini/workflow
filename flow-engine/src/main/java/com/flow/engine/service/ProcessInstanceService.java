@@ -79,6 +79,21 @@ public class ProcessInstanceService {
     }
 
     /**
+     * 获取某用户发起的流程实例
+     */
+    public List<ProcessInstanceResponse> listByStartUser(String startUser) {
+        if (!StringUtils.hasText(startUser)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "startUser不能为空");
+        }
+        LambdaQueryWrapper<ProcessInstance> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProcessInstance::getStartUser, startUser)
+               .orderByDesc(ProcessInstance::getCreateTime);
+        return instanceMapper.selectList(wrapper).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 暂停流程实例
      */
     @Transactional

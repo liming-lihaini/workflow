@@ -16,6 +16,12 @@ public class TaskResponse {
 
     private String processKey;
 
+    /** 流程名称（关联查询） */
+    private String processName;
+
+    /** 流程类型（关联查询） */
+    private String processType;
+
     private String nodeId;
 
     private String nodeName;
@@ -34,6 +40,9 @@ public class TaskResponse {
 
     /** 完成时间 */
     private LocalDateTime completeTime;
+
+    /** 节点耗时（秒） */
+    private Long duration;
 
     /** 任务操作：0-正常/1-通过/2-驳回/3-转办/4-委派 */
     private Integer taskAction;

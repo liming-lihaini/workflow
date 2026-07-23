@@ -50,7 +50,7 @@
                 >
                   <p><strong>{{ item.nodeName }}</strong> ({{ item.nodeType }})</p>
                   <p style="color: var(--text-placeholder); font-size: 12px;">
-                    {{ item.startTime }} ~ {{ item.endTime || '进行中' }}
+                    {{ formatDate(item.startTime) }} ~ {{ formatDate(item.endTime) || '进行中' }}
                     <span v-if="item.duration"> | 耗时 {{ item.duration }}ms</span>
                   </p>
                 </a-timeline-item>
@@ -130,6 +130,7 @@ import {
   exportMonitorData,
   interveneProcess
 } from '../../api/monitor'
+import { formatDate } from '../../utils/date'
 
 const runningLoading = ref(false)
 const runningList = ref([])

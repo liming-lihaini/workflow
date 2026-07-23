@@ -64,6 +64,12 @@ public class DictDataInitializer implements CommandLineRunner {
         
         // 9. 字典类型分类
         createDictTypeIfNotExists("字典类型分类", "dict_type_category", 1, "字典类型的分类：1-系统内置，2-业务自定义");
+        
+        // 10. 流程类型
+        createDictTypeIfNotExists("流程类型", "process_type", 1, "流程的分类");
+        
+        // 11. 表单分类
+        createDictTypeIfNotExists("表单分类", "form_category", 1, "表单的分类");
     }
 
     private void initDictItems() {
@@ -150,6 +156,24 @@ public class DictDataInitializer implements CommandLineRunner {
         if (dictTypeCategoryType != null) {
             createDictItemIfNotExists(dictTypeCategoryType.getId(), "系统内置", "1", 1);
             createDictItemIfNotExists(dictTypeCategoryType.getId(), "业务自定义", "2", 2);
+        }
+        
+        // 流程类型
+        DictType processTypeType = getDictTypeByCode("process_type");
+        if (processTypeType != null) {
+            createDictItemIfNotExists(processTypeType.getId(), "审批流", "approval", 1);
+            createDictItemIfNotExists(processTypeType.getId(), "业务流程", "process", 2);
+            createDictItemIfNotExists(processTypeType.getId(), "回调流程", "callback", 3);
+        }
+        
+        // 表单分类
+        DictType formCategoryType = getDictTypeByCode("form_category");
+        if (formCategoryType != null) {
+            createDictItemIfNotExists(formCategoryType.getId(), "审批表单", "approval", 1);
+            createDictItemIfNotExists(formCategoryType.getId(), "申请表单", "apply", 2);
+            createDictItemIfNotExists(formCategoryType.getId(), "报销表单", "reimbursement", 3);
+            createDictItemIfNotExists(formCategoryType.getId(), "考勤表单", "attendance", 4);
+            createDictItemIfNotExists(formCategoryType.getId(), "其他", "other", 5);
         }
     }
 

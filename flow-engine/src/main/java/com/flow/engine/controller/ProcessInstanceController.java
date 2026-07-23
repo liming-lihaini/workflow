@@ -45,6 +45,16 @@ public class ProcessInstanceController {
     }
 
     /**
+     * 获取我发起的流程实例
+     * GET /api/v1/process/instances/my?startUser=xxx
+     */
+    @GetMapping("/my")
+    public Result<List<ProcessInstanceResponse>> myList(@RequestParam String startUser) {
+        List<ProcessInstanceResponse> list = instanceService.listByStartUser(startUser);
+        return Result.ok(list);
+    }
+
+    /**
      * 获取流程实例详情
      * GET /api/v1/process/instances/{id}
      */

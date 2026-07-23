@@ -61,7 +61,8 @@ public class NodeExecutor {
         eventPublisher.publishEvent(new NodeEnteredEvent(
                 this, instanceId, node.getId(), nodeType, node.getName(),
                 node.getAssignee(), node.getCandidateUsers(),
-                model != null ? model.getProcessKey() : null));
+                model != null ? model.getProcessKey() : null,
+                node.getAssigneeType(), node.getAssigneeDeptId()));
 
         // 查找处理器（如果已注册）
         NodeHandler handler = null;

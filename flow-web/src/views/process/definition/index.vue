@@ -33,7 +33,8 @@
             <a-divider type="vertical" />
             <span class="action-link" @click="showModal(record)">编辑</span>
             <a-divider type="vertical" />
-            <span class="action-link" @click="handleDeploy(record)">部署</span>
+            <span v-if="record.status !== 1" class="action-link" @click="handleDeploy(record)">部署</span>
+            <span v-else class="action-link" style="color: #fa8c16" @click="handleUndeploy(record)">取消部署</span>
             <a-divider type="vertical" />
             <span class="action-link" @click="handleExport(record)">导出</span>
             <a-divider type="vertical" />
@@ -70,9 +71,13 @@
           <a-col :span="12">
             <a-form-item label="流程类型">
               <a-select v-model:value="formState.processType" placeholder="请选择流程类型">
-                <a-select-option value="approval">审批流</a-select-option>
-                <a-select-option value="process">业务流程</a-select-option>
-                <a-select-option value="callback">回调流程</a-select-option>
+                <a-select-option
+                  v-for="item in (processTypeDict.length > 0 ? processTypeDict : defaultTypeOptions)"
+                  :key="item.itemValue || item.value"
+                  :value="item.itemValue || item.value"
+                >
+                  {{ item.itemText || item.label || item.value }}
+                </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
@@ -91,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -100,8 +105,11 @@ import {
   updateProcessDefinition,
   deleteProcessDefinition,
   deployProcessDefinition,
+  undeployProcessDefinition,
   exportProcessDefinition
 } from '../../../api/process'
+import { getDictItemsByCode } from '../../../api/dict'
+import { renderDate } from '../../../utils/date'
 
 const router = useRouter()
 const loading = ref(false)
@@ -126,7 +134,7 @@ const columns = [
   { title: '分类', dataIndex: 'category', key: 'category' },
   { title: '版本', dataIndex: 'version', key: 'version', width: 80 },
   { title: '状态', key: 'status', width: 100 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
   { title: '操作', key: 'action', width: 300 }
 ]
 
@@ -138,18 +146,43 @@ const formState = reactive({
   description: ''
 })
 
-const typeMap = {
-  approval: { name: '审批流', color: 'blue' },
-  process: { name: '业务流程', color: 'green' },
-  callback: { name: '回调流程', color: 'purple' }
-}
+// 流程类型字典数据
+const processTypeDict = ref([])
+
+// 默认选项（字典未加载时的 fallback）
+const defaultTypeOptions = [
+  { itemValue: 'approval', itemText: '审批流' },
+  { itemValue: 'process', itemText: '业务流程' },
+  { itemValue: 'callback', itemText: '回调流程' }
+]
+
+const typeMap = computed(() => {
+  const map = {}
+  for (const item of processTypeDict.value) {
+    const val = item.itemValue || item.value
+    map[val] = { name: item.itemText || item.label || val, color: item.color || 'default' }
+  }
+  // fallback 如果字典为空则使用默认
+  if (Object.keys(map).length === 0) {
+    return { approval: { name: '审批流', color: 'blue' }, process: { name: '业务流程', color: 'green' }, callback: { name: '回调流程', color: 'purple' } }
+  }
+  return map
+})
 
 function getTypeName(type) {
-  return typeMap[type]?.name || type
+  return typeMap.value[type]?.name || type
 }
 
 function getTypeColor(type) {
-  return typeMap[type]?.color || 'default'
+  return typeMap.value[type]?.color || 'default'
+}
+
+async function loadProcessTypeDict() {
+  try {
+    const res = await getDictItemsByCode('process_type')
+    const data = res.data || res || []
+    processTypeDict.value = Array.isArray(data) ? data : (data.list || [])
+  } catch { processTypeDict.value = [] }
 }
 
 function resetForm() {
@@ -206,18 +239,29 @@ async function handleSubmit() {
       await createProcessDefinition(formState)
       message.success('创建成功')
     }
+  } catch {
+    // handled by interceptor
+  } finally {
+    submitLoading.value = false
     modalVisible.value = false
     loadData()
-  } catch {
-    // ignore
   }
-  submitLoading.value = false
 }
 
 async function handleDeploy(record) {
   try {
     await deployProcessDefinition(record.id)
     message.success('部署成功')
+    loadData()
+  } catch {
+    // ignore
+  }
+}
+
+async function handleUndeploy(record) {
+  try {
+    await undeployProcessDefinition(record.id)
+    message.success('已取消部署，状态恢复为草稿')
     loadData()
   } catch {
     // ignore
@@ -249,5 +293,8 @@ function handleTableChange(pag) {
   loadData()
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await loadProcessTypeDict()
+  await loadData()
+})
 </script>

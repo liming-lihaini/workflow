@@ -10,73 +10,58 @@
       <a-spin :spinning="loading">
         <a-empty v-if="!loading && groupedList.length === 0" description="暂无已部署的流程" />
 
-        <div v-for="group in groupedList" :key="group.category" class="category-group">
-          <div class="category-title">
-            <FolderOpenOutlined style="margin-right: 6px" />
-            {{ group.category || '未分类' }}
-            <a-tag style="margin-left: 8px">{{ group.items.length }}</a-tag>
+        <div v-for="(group, gIdx) in groupedList" :key="group.category" class="category-group">
+          <div class="category-header" :style="{ background: categoryColors[gIdx % categoryColors.length].bg, borderColor: categoryColors[gIdx % categoryColors.length].border }">
+            <div class="category-bar" :style="{ background: categoryColors[gIdx % categoryColors.length].bar }"></div>
+            <span class="category-label">{{ group.category || '未分类' }}</span>
+            <span class="category-count">{{ group.items.length }} 个流程</span>
           </div>
-          <a-row :gutter="[16, 16]">
-            <a-col :span="6" v-for="item in group.items" :key="item.id">
-              <div class="process-card" @click="handleStart(item)">
-                <div class="card-icon"><ApartmentOutlined /></div>
-                <div class="card-body">
-                  <div class="card-title">{{ item.processName }}</div>
-                  <div class="card-desc">{{ item.description || '暂无描述' }}</div>
-                  <div class="card-footer">
-                    <a-tag color="blue" size="small">v{{ item.version }}</a-tag>
-                    <span class="card-key">{{ item.processKey }}</span>
+          <div class="category-body" :style="{ borderColor: categoryColors[gIdx % categoryColors.length].border }">
+            <a-row :gutter="[16, 16]">
+              <a-col :span="6" v-for="item in group.items" :key="item.id">
+                <div class="process-card" @click="handleStart(item)">
+                  <div class="card-icon" :style="{ background: categoryColors[gIdx % categoryColors.length].iconBg, color: categoryColors[gIdx % categoryColors.length].bar }">
+                    <ApartmentOutlined />
+                  </div>
+                  <div class="card-body">
+                    <div class="card-title">{{ item.processName }}</div>
+                    <div class="card-desc">{{ item.description || '暂无描述' }}</div>
+                    <div class="card-footer">
+                      <a-tag color="blue" size="small">v{{ item.version }}</a-tag>
+                      <span class="card-key">{{ item.processKey }}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </a-col>
-          </a-row>
+              </a-col>
+            </a-row>
+          </div>
         </div>
       </a-spin>
     </div>
-
-    <!-- 发起流程抽屉 -->
-    <TaskFormDrawer
-      v-model:open="drawerVisible"
-      mode="start"
-      :loading="formLoading"
-      :process-info="drawerProcessInfo"
-      :form-fields="formFields"
-      :initial-values="initialFormValues"
-      :flow-nodes="flowNodes"
-      :flow-edges="flowEdges"
-      @submit="handleSubmitStart"
-      @save="handleSaveDraft"
-      @cancel="drawerVisible = false"
-    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
-import { ApartmentOutlined, FolderOpenOutlined } from '@ant-design/icons-vue'
-import { getProcessDefinitions, startProcessInstance } from '../../api/process'
-import { getForm } from '../../api/form'
-import { useUserStore } from '../../stores/user'
+import { ref, computed, onMounted } from 'vue'
+import { ApartmentOutlined } from '@ant-design/icons-vue'
+import { getProcessDefinitions } from '../../api/process'
 import { useRouter } from 'vue-router'
-import TaskFormDrawer from '../../components/TaskFormDrawer.vue'
 
-const userStore = useUserStore()
 const router = useRouter()
 
 const loading = ref(false)
 const allDefinitions = ref([])
 const searchText = ref('')
 
-const drawerVisible = ref(false)
-const formLoading = ref(false)
-const selectedProcess = ref(null)
-const formFields = ref([])
-const initialFormValues = ref({})
-const drawerProcessInfo = ref({})
-const flowNodes = ref([])
-const flowEdges = ref([])
+// 分类配色方案（循环使用）
+const categoryColors = [
+  { bg: '#e6f4ff', border: '#91caff', bar: '#1677ff', iconBg: '#bae0ff' },
+  { bg: '#f6ffed', border: '#b7eb8f', bar: '#52c41a', iconBg: '#d9f7be' },
+  { bg: '#fff7e6', border: '#ffd591', bar: '#fa8c16', iconBg: '#ffe7ba' },
+  { bg: '#f9f0ff', border: '#d3adf7', bar: '#722ed1', iconBg: '#efdbff' },
+  { bg: '#fff1f0', border: '#ffa39e', bar: '#f5222d', iconBg: '#ffccc7' },
+  { bg: '#e6fffb', border: '#87e8de', bar: '#13c2c2', iconBg: '#b5f5ec' },
+]
 
 // 按分类分组
 const groupedList = computed(() => {
@@ -108,87 +93,9 @@ async function loadData() {
   loading.value = false
 }
 
-/** 从流程 JSON 提取第一个 userTask 的 formKey */
-function extractFormKey(processJson) {
-  try {
-    const pj = typeof processJson === 'string' ? JSON.parse(processJson) : processJson
-    for (const node of (pj.nodes || [])) {
-      if (node.type === 'userTask' && node.properties?.formKey) return node.properties.formKey
-    }
-  } catch {}
-  return null
-}
-
-async function handleStart(processDef) {
-  selectedProcess.value = processDef
-  formFields.value = []
-  initialFormValues.value = {}
-  flowNodes.value = []
-  flowEdges.value = []
-
-  const userId = userStore.username || localStorage.getItem('username') || ''
-  drawerProcessInfo.value = {
-    processName: processDef.processName,
-    processKey: processDef.processKey,
-    startTime: new Date().toLocaleString('zh-CN'),
-    startUser: userId,
-    deptName: '-'
-  }
-
-  drawerVisible.value = true
-  formLoading.value = true
-
-  try {
-    const pj = typeof processDef.processJson === 'string' ? JSON.parse(processDef.processJson) : processDef.processJson
-    // 填充流程图数据（发起模式所有节点为 pending）
-    flowNodes.value = (pj?.nodes || []).map(n => ({
-      id: n.id || n.nodeId,
-      type: n.type || n.nodeType,
-      name: n.name,
-      x: n.x ?? n.position?.x ?? 100,
-      y: n.y ?? n.position?.y ?? 0,
-      status: 'pending'
-    }))
-    flowEdges.value = pj?.edges || []
-
-    const formKey = extractFormKey(processDef.processJson)
-    if (formKey) {
-      const res = await getForm(formKey)
-      const formDef = res.data || res
-      if (formDef.formJson) {
-        const fj = typeof formDef.formJson === 'string' ? JSON.parse(formDef.formJson) : formDef.formJson
-        const fields = fj.fields || []
-        formFields.value = fields
-        const vals = {}
-        for (const f of fields) {
-          if (f.key) vals[f.key] = f.type === 'checkbox' ? [] : undefined
-        }
-        initialFormValues.value = vals
-      }
-    }
-  } catch { message.warning('加载表单定义失败') }
-
-  formLoading.value = false
-}
-
-async function handleSubmitStart(variables) {
-  try {
-    const userId = userStore.username || localStorage.getItem('username') || ''
-    await startProcessInstance({
-      processKey: selectedProcess.value.processKey,
-      startUser: userId,
-      variables: Object.keys(variables).length > 0 ? variables : undefined
-    })
-    message.success('流程发起成功')
-    drawerVisible.value = false
-    router.push('/task/todo')
-  } catch {
-    // handled by interceptor
-  }
-}
-
-function handleSaveDraft(variables) {
-  message.info('草稿已保存（本地暂存）')
+/** 点击卡片，跳转到发起流程详情页 */
+function handleStart(processDef) {
+  router.push({ path: '/task/start-detail', query: { processKey: processDef.processKey } })
 }
 
 onMounted(loadData)
@@ -196,26 +103,42 @@ onMounted(loadData)
 
 <style scoped>
 .category-group { margin-bottom: 24px; }
-.category-title {
-  font-size: 15px; font-weight: 600; color: #333;
-  margin-bottom: 12px; display: flex; align-items: center;
-  padding-bottom: 8px; border-bottom: 1px solid #f0f0f0;
+.category-header {
+  display: flex; align-items: center; padding: 10px 16px;
+  border: 1px solid; border-radius: 8px 8px 0 0;
+  position: relative; overflow: hidden;
+}
+.category-bar {
+  width: 4px; height: 20px; border-radius: 2px;
+  margin-right: 10px; flex-shrink: 0;
+}
+.category-label {
+  font-size: 15px; font-weight: 600; color: #1a1a1a;
+  margin-right: 10px;
+}
+.category-count {
+  font-size: 12px; color: #999; font-weight: normal;
+}
+.category-body {
+  border: 1px solid; border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 16px;
+  background: #fafbfd;
 }
 .process-card {
   border: 1px solid #e8e8e8; border-radius: 8px; padding: 16px;
   cursor: pointer; display: flex; gap: 12px;
-  transition: all 0.2s; background: #fff; height: 100%;
+  transition: all 0.25s; background: #fff; height: 100%;
 }
 .process-card:hover {
-  border-color: var(--color-primary, #1677ff);
-  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.15);
-  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 .card-icon {
-  font-size: 28px; color: var(--color-primary, #1677ff);
-  flex-shrink: 0; width: 40px; height: 40px;
+  font-size: 28px;
+  flex-shrink: 0; width: 44px; height: 44px;
   display: flex; align-items: center; justify-content: center;
-  background: #e6f4ff; border-radius: 8px;
+  border-radius: 10px; transition: all 0.25s;
 }
 .card-body { flex: 1; min-width: 0; }
 .card-title {

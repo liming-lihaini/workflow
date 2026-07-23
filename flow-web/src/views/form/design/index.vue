@@ -85,6 +85,10 @@
                           <a-radio-group v-if="field.type === 'radio'"><a-radio value="1">选项</a-radio></a-radio-group>
                           <a-checkbox-group v-if="field.type === 'checkbox'"><a-checkbox value="1">选项</a-checkbox></a-checkbox-group>
                           <a-upload v-if="field.type === 'file'" disabled><a-button>上传</a-button></a-upload>
+                          <div v-if="field.type === 'calculation'" class="calc-preview">
+                            <FunctionOutlined style="margin-right: 4px; color: #722ed1" />
+                            <span class="calc-formula">{{ field.formula || '未配置公式' }}</span>
+                          </div>
                         </div>
                         <DeleteOutlined class="field-delete-btn" @click.stop="removeField(cell, fIdx)" />
                       </div>
@@ -132,6 +136,27 @@
                 <a-textarea v-model:value="selectedField.cascaderOptionsJson" :rows="4" placeholder='[{"value":"a","label":"A","children":[{"value":"a1","label":"A1"}]}]' />
               </a-form-item>
             </template>
+            <!-- 计算控件公式配置 -->
+            <template v-if="selectedField.type === 'calculation'">
+              <a-form-item label="计算公式">
+                <a-textarea v-model:value="selectedField.formula" :rows="3"
+                  placeholder="如：${endTime} - ${startTime}&#10;使用 ${字段标识} 引用其他控件值&#10;日期相减结果为天数差" />
+              </a-form-item>
+              <a-form-item label="结果单位">
+                <a-select v-model:value="selectedField.calcUnit" placeholder="选择单位">
+                  <a-select-option value="day">天</a-select-option>
+                  <a-select-option value="hour">小时</a-select-option>
+                  <a-select-option value="minute">分钟</a-select-option>
+                </a-select>
+              </a-form-item>
+              <div class="formula-help">
+                <div class="formula-help-title">公式说明：</div>
+                <div>• 使用 <code>${字段标识}</code> 引用其他控件的值</div>
+                <div>• 日期控件相减自动计算天数差</div>
+                <div>• 数字控件支持加减乘除运算</div>
+                <div>• 示例：<code>${endTime} - ${startTime}</code></div>
+              </div>
+            </template>
           </a-form>
         </div>
         <div v-else class="properties-empty">
@@ -171,6 +196,10 @@
                     style="width:100%" :tree-data="deptTreeData" show-search tree-node-filter-prop="title" allow-clear />
                   <a-cascader v-else-if="field.type==='cascader'" v-model:value="previewData[field.field]" :options="getCascaderOptions(field)" style="width:100%" change-on-select />
                   <a-upload v-else-if="field.type==='file'"><a-button>上传文件</a-button></a-upload>
+                  <div v-else-if="field.type==='calculation'" class="calc-result-preview">
+                    <FunctionOutlined style="margin-right: 4px; color: #722ed1" />
+                    <span>{{ computeFormula(field, previewData) }}</span>
+                  </div>
                   <a-input v-else v-model:value="previewData[field.field]" />
                 </a-form-item>
               </a-col>
@@ -192,7 +221,8 @@ import {
   FontSizeOutlined, AlignLeftOutlined, NumberOutlined,
   DollarOutlined, CalendarOutlined, ClockCircleOutlined,
   CheckCircleOutlined, CheckSquareOutlined,
-  UploadOutlined, SelectOutlined, UserOutlined, TeamOutlined, ApartmentOutlined
+  UploadOutlined, SelectOutlined, UserOutlined, TeamOutlined, ApartmentOutlined,
+  FunctionOutlined
 } from '@ant-design/icons-vue'
 import { getForm, updateForm } from '../../../api/form'
 import { getDataModelList } from '../../../api/model'
@@ -217,7 +247,8 @@ const componentTypes = [
   { type: 'checkbox', label: '复选框', icon: CheckSquareOutlined },
   { type: 'file', label: '文件上传', icon: UploadOutlined },
   { type: 'user', label: '人员选择', icon: UserOutlined },
-  { type: 'dept', label: '部门选择', icon: TeamOutlined }
+  { type: 'dept', label: '部门选择', icon: TeamOutlined },
+  { type: 'calculation', label: '计算控件', icon: FunctionOutlined }
 ]
 
 // Nested structure: sections → children(rows) → cells → fields
@@ -315,7 +346,9 @@ function createField(comp) {
     optionsText: ['select','radio','checkbox'].includes(comp.type) ? '1:选项1\n2:选项2' : '',
     optionsSource: ['select','radio','checkbox','cascader'].includes(comp.type) ? 'manual' : undefined,
     dictCode: null, modelField: null,
-    cascaderOptionsJson: comp.type === 'cascader' ? '[{"value":"1","label":"选项1","children":[{"value":"1-1","label":"子选项1"}]}]' : undefined
+    cascaderOptionsJson: comp.type === 'cascader' ? '[{"value":"1","label":"选项1","children":[{"value":"1-1","label":"子选项1"}]}]' : undefined,
+    formula: comp.type === 'calculation' ? '' : undefined,
+    calcUnit: comp.type === 'calculation' ? 'day' : undefined
   }
 }
 
@@ -339,6 +372,53 @@ function handleOptionsSourceChange() {
 async function handleDictChange(code) {
   if (!code || dictItemsCache[code]) return
   try { const res = await getDictItemsByCode(code); const items = res.data || res; dictItemsCache[code] = (Array.isArray(items) ? items : []).map(it => ({ value: it.itemValue, text: it.itemText })) } catch {}
+}
+
+/** 计算公式：替换 ${fieldKey} 为实际值，支持日期差和数值运算 */
+function computeFormula(field, data) {
+  if (!field.formula) return '未配置公式'
+  try {
+    const unit = field.calcUnit || 'day'
+    // 提取所有 ${xxx} 引用
+    const refs = field.formula.match(/\$\{(\w+)\}/g) || []
+    if (refs.length === 0) return field.formula
+
+    // 检查是否为日期差计算模式（两个日期字段相减）
+    const refKeys = refs.map(r => r.match(/\$\{(\w+)\}/)[1])
+    const values = refKeys.map(k => data[k])
+
+    // 如果所有引用的值都存在且看起来是日期
+    if (values.every(v => v && isDateString(String(v)))) {
+      if (refKeys.length === 2 && field.formula.includes('-')) {
+        const d1 = new Date(values[0])
+        const d2 = new Date(values[1])
+        const diffMs = Math.abs(d2 - d1)
+        if (unit === 'hour') return Math.round(diffMs / 3600000) + ' 小时'
+        if (unit === 'minute') return Math.round(diffMs / 60000) + ' 分钟'
+        return Math.round(diffMs / 86400000) + ' 天'
+      }
+    }
+
+    // 数值运算模式：替换变量为数值
+    let expr = field.formula
+    refs.forEach(ref => {
+      const key = ref.match(/\$\{(\w+)\}/)[1]
+      const val = parseFloat(data[key]) || 0
+      expr = expr.replace(ref, val)
+    })
+    // 简单安全计算：只允许数字和 +-*/()
+    if (/^[\d\s+\-*/().]+$/.test(expr)) {
+      const result = Function('"use strict"; return (' + expr + ')')()
+      return Number.isFinite(result) ? Math.round(result * 100) / 100 : '计算错误'
+    }
+    return expr
+  } catch {
+    return '公式错误'
+  }
+}
+
+function isDateString(str) {
+  return /^\d{4}-\d{2}-\d{2}/.test(str) || /^\d{4}\/\d{2}\/\d{2}/.test(str)
 }
 
 // --- Model ---
@@ -428,9 +508,9 @@ onMounted(() => { loadModelList(); loadDictTypes(); loadForm() })
 </script>
 
 <style scoped>
-.designer-wrap { display: flex; height: calc(100vh - 180px); gap: 0; }
-.designer-sidebar, .designer-properties { width: 220px; background: #fff; border-right: 1px solid var(--border-light, #e8e8e8); display: flex; flex-direction: column; overflow-y: auto; }
-.designer-properties { border-right: none; border-left: 1px solid var(--border-light, #e8e8e8); }
+.designer-wrap { display: flex; flex-direction: row; height: calc(100vh - 180px); gap: 0; }
+.designer-sidebar { width: 200px; min-width: 200px; flex-shrink: 0; background: #fff; border-right: 1px solid var(--border-light, #e8e8e8); display: flex; flex-direction: column; overflow-y: auto; }
+.designer-properties { width: 200px; min-width: 200px; flex-shrink: 0; background: #fff; border-left: 1px solid var(--border-light, #e8e8e8); display: flex; flex-direction: column; overflow-y: auto; }
 .sidebar-title { padding: 10px 14px; font-weight: 600; font-size: 13px; border-bottom: 1px solid var(--border-light, #e8e8e8); background: #fafafa; }
 .component-list { padding: 8px 10px; overflow-y: auto; flex: 1; }
 .layout-list { padding: 8px 10px; flex: none; }
@@ -481,4 +561,10 @@ onMounted(() => { loadModelList(); loadDictTypes(); loadForm() })
 .properties-form { padding: 12px; overflow-y: auto; flex: 1; }
 .properties-empty { display: flex; align-items: center; justify-content: center; height: 150px; color: #999; font-size: 13px; }
 .preview-form { padding: 8px 0; }
+.calc-preview { display: flex; align-items: center; font-size: 12px; color: #722ed1; padding: 4px 8px; background: #f9f0ff; border: 1px dashed #d3adf7; border-radius: 4px; }
+.calc-formula { font-family: monospace; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calc-result-preview { display: flex; align-items: center; padding: 6px 12px; background: #f9f0ff; border: 1px solid #d3adf7; border-radius: 4px; font-size: 14px; color: #722ed1; font-weight: 500; min-height: 32px; }
+.formula-help { padding: 10px; background: #f6f8fa; border-radius: 4px; font-size: 12px; color: #666; line-height: 1.8; }
+.formula-help-title { font-weight: 600; color: #333; margin-bottom: 4px; }
+.formula-help code { background: #e8e8e8; padding: 1px 4px; border-radius: 2px; font-size: 11px; color: #722ed1; }
 </style>

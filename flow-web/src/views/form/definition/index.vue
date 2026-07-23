@@ -18,7 +18,10 @@
         @change="handleTableChange"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'action'">
+          <template v-if="column.key === 'category'">
+            <a-tag color="blue">{{ categoryLabelMap[record.category] || record.category || '-' }}</a-tag>
+          </template>
+          <template v-else-if="column.key === 'action'">
             <span class="action-link" @click="handleEdit(record)">编辑</span>
             <a-divider type="vertical" />
             <span class="action-link" @click="handleDesign(record)">设计</span>
@@ -47,7 +50,9 @@
           <a-input v-model:value="formState.formName" placeholder="请输入表单名称" />
         </a-form-item>
         <a-form-item label="分类">
-          <a-input v-model:value="formState.category" placeholder="如：审批表单" />
+          <a-select v-model:value="formState.category" placeholder="请选择分类" allow-clear>
+            <a-select-option v-for="item in categoryOptions" :key="item.value" :value="item.value">{{ item.label }}</a-select-option>
+          </a-select>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -64,6 +69,8 @@ import {
   updateForm,
   deleteForm
 } from '../../../api/form'
+import { getDictItemsByCode } from '../../../api/dict'
+import { renderDate } from '../../../utils/date'
 
 const router = useRouter()
 const loading = ref(false)
@@ -71,6 +78,8 @@ const submitLoading = ref(false)
 const dataList = ref([])
 const modalVisible = ref(false)
 const editingRecord = ref(null)
+const categoryOptions = ref([])
+const categoryLabelMap = ref({})
 
 const pagination = reactive({
   current: 1,
@@ -85,7 +94,7 @@ const columns = [
   { title: '表单Key', dataIndex: 'formKey', key: 'formKey' },
   { title: '表单名称', dataIndex: 'formName', key: 'formName' },
   { title: '分类', dataIndex: 'category', key: 'category' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
   { title: '操作', key: 'action', width: 200 }
 ]
 
@@ -149,12 +158,13 @@ async function handleSubmit() {
       await createForm(formState)
       message.success('创建成功')
     }
+  } catch {
+    // handled by interceptor
+  } finally {
+    submitLoading.value = false
     modalVisible.value = false
     loadData()
-  } catch {
-    // ignore
   }
-  submitLoading.value = false
 }
 
 async function handleDelete(record) {
@@ -173,5 +183,34 @@ function handleTableChange(pag) {
   loadData()
 }
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  loadCategoryOptions()
+})
+
+async function loadCategoryOptions() {
+  try {
+    const res = await getDictItemsByCode('form_category')
+    const items = res.data || res || []
+    const arr = Array.isArray(items) ? items : (items.list || [])
+    categoryOptions.value = arr.map(item => ({
+      value: item.itemValue || item.value,
+      label: item.itemText || item.label || item.itemValue
+    }))
+    const map = {}
+    categoryOptions.value.forEach(item => { map[item.value] = item.label })
+    categoryLabelMap.value = map
+  } catch {
+    categoryOptions.value = [
+      { value: 'approval', label: '审批表单' },
+      { value: 'apply', label: '申请表单' },
+      { value: 'reimbursement', label: '报销表单' },
+      { value: 'attendance', label: '考勤表单' },
+      { value: 'other', label: '其他' }
+    ]
+    const map = {}
+    categoryOptions.value.forEach(item => { map[item.value] = item.label })
+    categoryLabelMap.value = map
+  }
+}
 </script>

@@ -67,6 +67,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { getTripleAdminUsers, getTripleAdminAuditLogs } from '../../api/admin'
+import { renderDate } from '../../utils/date'
 
 const activeTab = ref('users')
 const adminType = ref(null)
@@ -80,7 +81,7 @@ const userColumns = [
   { title: '姓名', dataIndex: 'realName' },
   { title: '管理员类型', key: 'adminType', width: 140 },
   { title: '状态', dataIndex: 'status', width: 80 },
-  { title: '创建时间', dataIndex: 'createTime', width: 180 }
+  { title: '创建时间', dataIndex: 'createTime', width: 120, customRender: renderDate }
 ]
 
 // 审计日志
@@ -100,7 +101,7 @@ const auditColumns = [
   { title: '模块', dataIndex: 'module', width: 100 },
   { title: '操作', dataIndex: 'operation', width: 120 },
   { title: '结果', dataIndex: 'result', width: 80 },
-  { title: '操作时间', dataIndex: 'operationTime', width: 180 }
+  { title: '操作时间', dataIndex: 'operationTime', width: 120, customRender: renderDate }
 ]
 
 function typeColor(type) {
