@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-21T00:16:47Z"
+exported_at: "2026-07-22T05:46:08Z"
 modules:
     "":
-        dir_name: 可视化工作流引擎全栈项目
-        title: 可视化工作流引擎全栈项目
+        dir_name: 可视化流程引擎全栈项目
+        title: 可视化流程引擎全栈项目
         scope:
             - readme.txt
             - .gitignore
@@ -31,8 +31,8 @@ modules:
         depends_on: []
         related_to: []
     flow_designer:
-        dir_name: 可视化流程设计器前端（ReactFlow）
-        title: 可视化流程设计器前端（ReactFlow）
+        dir_name: 可视化流程定义编辑器（Flow Designer）
+        title: 可视化流程定义编辑器（Flow Designer）
         scope:
             - flow-designer/
         source_files: []
@@ -41,8 +41,8 @@ modules:
         related_to:
             - path: flow_engine_backend
     flow_engine_backend:
-        dir_name: Flow Engine 单体后端（流程引擎 + 管理面）
-        title: Flow Engine 单体后端（流程引擎 + 管理面）
+        dir_name: Flow Engine 后端（流程引擎单应用）
+        title: Flow Engine 后端（流程引擎单应用）
         scope:
             - flow-engine/
         source_files: []
@@ -66,8 +66,8 @@ modules:
         depends_on: []
         related_to: []
     flow_engine_backend/task_center:
-        dir_name: 任务中心（Task Center）
-        title: 任务中心（Task Center）
+        dir_name: 工作流任务中心（Task Center）
+        title: 工作流任务中心（Task Center）
         scope:
             - flow-engine/src/main/java/com/flow/engine/controller/TaskController.java
             - flow-engine/src/main/java/com/flow/engine/service/TaskService.java
@@ -90,8 +90,8 @@ modules:
         related_to:
             - path: flow_engine_backend/task_center
     flow_web_admin:
-        dir_name: 流程引擎 Web 管理前端
-        title: 流程引擎 Web 管理前端
+        dir_name: 流程引擎 Web 管理后台（Vue3 + Ant Design Vue）
+        title: 流程引擎 Web 管理后台（Vue3 + Ant Design Vue）
         scope:
             - flow-web/
         source_files: []

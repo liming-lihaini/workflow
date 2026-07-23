@@ -16,38 +16,34 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'action'">
-            <span class="action-link" @click="handleClaim(record)" v-if="!record.assignee">签收</span>
             <template v-if="record.assignee">
-              <span class="action-link" @click="showCompleteModal(record)">通过</span>
-              <a-divider type="vertical" />
-              <span class="action-link" @click="showRejectModal(record)">驳回</span>
+              <span class="action-link" @click="openApprovalDrawer(record)">处理</span>
               <a-divider type="vertical" />
               <span class="action-link" @click="showTransferModal(record)">转办</span>
               <a-divider type="vertical" />
               <span class="action-link" @click="showDelegateModal(record)">委派</span>
             </template>
+            <span v-else class="action-link" @click="handleClaim(record)">签收</span>
           </template>
         </template>
       </a-table>
     </div>
 
-    <!-- 通过弹窗 -->
-    <a-modal v-model:open="completeVisible" title="审批通过" @ok="handleComplete">
-      <a-form layout="vertical">
-        <a-form-item label="审批意见">
-          <a-textarea v-model:value="completeComment" :rows="3" placeholder="请输入审批意见" />
-        </a-form-item>
-      </a-form>
-    </a-modal>
-
-    <!-- 驳回弹窗 -->
-    <a-modal v-model:open="rejectVisible" title="驳回" @ok="handleReject">
-      <a-form layout="vertical">
-        <a-form-item label="驳回原因" required>
-          <a-textarea v-model:value="rejectReason" :rows="3" placeholder="请输入驳回原因" />
-        </a-form-item>
-      </a-form>
-    </a-modal>
+    <!-- 审批处理抽屉 -->
+    <TaskFormDrawer
+      v-model:open="approvalDrawerVisible"
+      mode="approval"
+      :loading="approvalLoading"
+      :process-info="approvalProcessInfo"
+      :form-fields="approvalFormFields"
+      :initial-values="approvalFormValues"
+      :task-info="currentTask"
+      :flow-nodes="flowNodes"
+      :flow-edges="flowEdges"
+      @approve="handleApprove"
+      @reject="handleReject"
+      @cancel="approvalDrawerVisible = false"
+    />
 
     <!-- 转办弹窗 -->
     <a-modal v-model:open="transferVisible" title="转办" @ok="handleTransfer">
@@ -72,18 +68,21 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { getTodoTasks, claimTask, completeTask, rejectTask, transferTask, delegateTask } from '../../api/task'
+import { getTodoTasks, claimTask, completeTask, rejectTask, transferTask, delegateTask, getTasksByInstance } from '../../api/task'
+import { getProcessInstance, getProcessVariables } from '../../api/process'
+import { getProcessDefinitionByKey } from '../../api/process'
+import { getForm } from '../../api/form'
+import { useUserStore } from '../../stores/user'
+import TaskFormDrawer from '../../components/TaskFormDrawer.vue'
 
+const userStore = useUserStore()
 const loading = ref(false)
 const dataList = ref([])
 const currentTask = ref(null)
 
 const pagination = reactive({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total) => `共 ${total} 条`
+  current: 1, pageSize: 10, total: 0,
+  showSizeChanger: true, showTotal: (total) => `共 ${total} 条`
 })
 
 const columns = [
@@ -93,15 +92,9 @@ const columns = [
   { title: '处理人', dataIndex: 'assignee', key: 'assignee' },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
-  { title: '操作', key: 'action', width: 260 }
+  { title: '操作', key: 'action', width: 200 }
 ]
 
-// 通过
-const completeVisible = ref(false)
-const completeComment = ref('')
-// 驳回
-const rejectVisible = ref(false)
-const rejectReason = ref('')
 // 转办
 const transferVisible = ref(false)
 const transferUserId = ref(null)
@@ -109,16 +102,16 @@ const transferUserId = ref(null)
 const delegateVisible = ref(false)
 const delegateUserId = ref(null)
 
-function showCompleteModal(record) {
-  currentTask.value = record
-  completeComment.value = ''
-  completeVisible.value = true
-}
-function showRejectModal(record) {
-  currentTask.value = record
-  rejectReason.value = ''
-  rejectVisible.value = true
-}
+// 审批抽屉
+const approvalDrawerVisible = ref(false)
+const approvalLoading = ref(false)
+const approvalProcessInfo = ref({})
+const approvalFormFields = ref([])
+const approvalFormValues = ref({})
+// 流程图数据
+const flowNodes = ref([])
+const flowEdges = ref([])
+
 function showTransferModal(record) {
   currentTask.value = record
   transferUserId.value = null
@@ -133,14 +126,134 @@ function showDelegateModal(record) {
 async function loadData() {
   loading.value = true
   try {
-    const res = await getTodoTasks({ page: pagination.current, size: pagination.pageSize })
+    const userId = userStore.username || localStorage.getItem('username') || ''
+    const res = await getTodoTasks({ userId, page: pagination.current, size: pagination.pageSize })
     const data = res.data || res
     dataList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     pagination.total = data.total || dataList.value.length
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   loading.value = false
+}
+
+/** 打开审批抽屉，加载流程实例 + 表单定义 + 当前变量 + 流程图 */
+async function openApprovalDrawer(record) {
+  currentTask.value = record
+  approvalFormFields.value = []
+  approvalFormValues.value = {}
+  flowNodes.value = []
+  flowEdges.value = []
+  approvalDrawerVisible.value = true
+  approvalLoading.value = true
+
+  try {
+    // 1. 获取流程实例信息
+    const instRes = await getProcessInstance(record.processInstanceId)
+    const inst = instRes.data || instRes
+
+    approvalProcessInfo.value = {
+      processName: inst.processName || record.processKey,
+      processKey: inst.processKey || record.processKey,
+      startTime: inst.startTime || inst.createTime || '-',
+      startUser: inst.startUser || '-',
+      deptName: '-'
+    }
+
+    // 2. 获取流程变量（作为表单初始值）
+    try {
+      const varRes = await getProcessVariables(record.processInstanceId)
+      const vars = varRes.data || varRes || {}
+      approvalFormValues.value = vars
+    } catch { approvalFormValues.value = {} }
+
+    // 3. 获取流程定义 → 提取 formKey + 流程图数据
+    try {
+      const defRes = await getProcessDefinitionByKey(record.processKey || inst.processKey)
+      const def = defRes.data || defRes
+      if (def?.processJson) {
+        const pj = typeof def.processJson === 'string' ? JSON.parse(def.processJson) : def.processJson
+
+        // 3a. 流程图数据：节点和边
+        flowNodes.value = pj.nodes || []
+        flowEdges.value = pj.edges || []
+
+        // 3b. 提取 formKey
+        let formKey = null
+        for (const node of (pj.nodes || [])) {
+          if (node.id === record.nodeId && node.properties?.formKey) {
+            formKey = node.properties.formKey
+            break
+          }
+        }
+        if (!formKey) {
+          for (const node of (pj.nodes || [])) {
+            if (node.type === 'userTask' && node.properties?.formKey) {
+              formKey = node.properties.formKey
+              break
+            }
+          }
+        }
+
+        if (formKey) {
+          const formRes = await getForm(formKey)
+          const formDef = formRes.data || formRes
+          if (formDef.formJson) {
+            const fj = typeof formDef.formJson === 'string' ? JSON.parse(formDef.formJson) : formDef.formJson
+            approvalFormFields.value = fj.fields || []
+          }
+        }
+      }
+    } catch { /* formKey not found */ }
+
+    // 4. 获取流程实例的任务历史（用于节点状态着色）
+    try {
+      const tasksRes = await getTasksByInstance(record.processInstanceId)
+      const tasks = tasksRes.data || tasksRes || []
+      // 已完成节点ID列表
+      const completedNodeIds = tasks
+        .filter(t => t.status === 'completed' || t.status === 'COMPLETED')
+        .map(t => t.nodeId)
+      // 当前节点 = 实例的 currentNodeId
+      const currentNodeId = inst.currentNodeId || record.nodeId
+      // 把状态信息附加到节点数据上
+      flowNodes.value = (pj?.nodes || []).map(node => {
+        let nodeStatus = 'pending' // 未执行
+        if (completedNodeIds.includes(node.id)) nodeStatus = 'completed' // 已办结
+        if (node.id === currentNodeId) nodeStatus = 'current' // 当前节点
+        return { ...node, status: nodeStatus }
+      })
+    } catch { /* ignore */ }
+
+  } catch {
+    message.error('加载任务详情失败')
+  }
+
+  approvalLoading.value = false
+}
+
+async function handleApprove(data) {
+  const userId = userStore.username || localStorage.getItem('username') || ''
+  try {
+    await completeTask(currentTask.value.id, {
+      userId: userId,
+      variables: { ...data }
+    })
+    message.success('审批通过')
+    approvalDrawerVisible.value = false
+    loadData()
+  } catch { /* ignore */ }
+}
+
+async function handleReject(data) {
+  const userId = userStore.username || localStorage.getItem('username') || ''
+  try {
+    await rejectTask(currentTask.value.id, {
+      userId: userId,
+      comment: data.comment
+    })
+    message.success('已驳回')
+    approvalDrawerVisible.value = false
+    loadData()
+  } catch { /* ignore */ }
 }
 
 async function handleClaim(record) {
@@ -148,42 +261,11 @@ async function handleClaim(record) {
     await claimTask(record.id, { userId: record.assignee || 'current-user' })
     message.success('签收成功')
     loadData()
-  } catch {
-    // ignore
-  }
-}
-
-async function handleComplete() {
-  try {
-    await completeTask(currentTask.value.id, { opinion: completeComment.value })
-    message.success('审批通过')
-    completeVisible.value = false
-    loadData()
-  } catch {
-    // ignore
-  }
-}
-
-async function handleReject() {
-  if (!rejectReason.value) {
-    message.warning('请输入驳回原因')
-    return
-  }
-  try {
-    await rejectTask(currentTask.value.id, { comment: rejectReason.value })
-    message.success('已驳回')
-    rejectVisible.value = false
-    loadData()
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
 }
 
 async function handleTransfer() {
-  if (!transferUserId.value) {
-    message.warning('请输入转办人ID')
-    return
-  }
+  if (!transferUserId.value) { message.warning('请输入转办人ID'); return }
   try {
     await transferTask(currentTask.value.id, {
       operatorId: currentTask.value.assignee,
@@ -192,16 +274,11 @@ async function handleTransfer() {
     message.success('转办成功')
     transferVisible.value = false
     loadData()
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
 }
 
 async function handleDelegate() {
-  if (!delegateUserId.value) {
-    message.warning('请输入委派人ID')
-    return
-  }
+  if (!delegateUserId.value) { message.warning('请输入委派人ID'); return }
   try {
     await delegateTask(currentTask.value.id, {
       operatorId: currentTask.value.assignee,
@@ -210,9 +287,7 @@ async function handleDelegate() {
     message.success('委派成功')
     delegateVisible.value = false
     loadData()
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
 }
 
 function handleTableChange(pag) {

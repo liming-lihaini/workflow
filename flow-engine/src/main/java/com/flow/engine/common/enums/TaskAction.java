@@ -13,7 +13,8 @@ public enum TaskAction {
     APPROVED(1, "通过"),
     REJECTED(2, "驳回"),
     TRANSFERRED(3, "转办"),
-    DELEGATED(4, "委派");
+    DELEGATED(4, "委派"),
+    CANCELLED(5, "取消");
 
     private final int value;
     private final String desc;

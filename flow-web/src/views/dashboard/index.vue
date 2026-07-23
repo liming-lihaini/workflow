@@ -108,7 +108,9 @@ import {
 } from '@ant-design/icons-vue'
 import { getTodoTasks } from '../../api/task'
 import { getProcessDefinitions } from '../../api/process'
+import { useUserStore } from '../../stores/user'
 
+const userStore = useUserStore()
 const loading = ref(false)
 const todoList = ref([])
 
@@ -129,7 +131,8 @@ const todoColumns = [
 onMounted(async () => {
   loading.value = true
   try {
-    const res = await getTodoTasks({ page: 1, size: 5 })
+    const userId = userStore.username || localStorage.getItem('username') || ''
+    const res = await getTodoTasks({ userId, page: 1, size: 5 })
     const data = res.data || res
     todoList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     stats.todoCount = data.total || todoList.value.length

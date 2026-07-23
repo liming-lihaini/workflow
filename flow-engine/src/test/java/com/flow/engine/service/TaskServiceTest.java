@@ -232,7 +232,7 @@ class TaskServiceTest {
         List<TaskResponse> todos = taskService.getTodoList("user1");
         Long taskId = todos.get(0).getId();
 
-        TaskResponse rejected = taskService.reject(taskId, "user1", null);
+        TaskResponse rejected = taskService.reject(taskId, "user1", null, null);
         assertEquals(TaskStatus.COMPLETED.getValue(), rejected.getStatus());
         assertEquals(TaskAction.REJECTED.getValue(), rejected.getTaskAction());
     }

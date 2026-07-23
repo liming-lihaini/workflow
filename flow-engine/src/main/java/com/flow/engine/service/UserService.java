@@ -32,7 +32,7 @@ public class UserService {
     private final DeptMapper deptMapper;
 
     /**
-     * 创建用户
+     * 创建用户（密码加密存储）
      */
     public User createUser(User user) {
         // 校验用户名唯一
@@ -42,6 +42,10 @@ public class UserService {
             throw new BusinessException(ErrorCode.USERNAME_DUPLICATE);
         }
         user.setStatus(1);
+        // 密码加密
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPassword(AuthService.hashPassword(user.getPassword()));
+        }
         if (user.getSecurityLevel() == null) {
             user.setSecurityLevel(1); // 默认公开
         }
@@ -181,11 +185,11 @@ public class UserService {
     }
 
     /**
-     * 重置密码
+     * 重置密码（加密存储）
      */
     public void resetPassword(Long id, String newPassword) {
         User user = getUser(id);
-        user.setPassword(newPassword);
+        user.setPassword(AuthService.hashPassword(newPassword));
         user.setUpdateTime(LocalDateTime.now());
         userMapper.updateById(user);
         log.info("重置密码: id={}", id);

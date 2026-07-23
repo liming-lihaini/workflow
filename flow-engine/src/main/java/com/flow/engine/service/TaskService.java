@@ -78,6 +78,18 @@ public class TaskService {
     }
 
     /**
+     * 获取指定流程实例的所有任务（用于流程图节点状态展示）
+     */
+    public List<TaskResponse> getTasksByInstance(Long processInstanceId) {
+        LambdaQueryWrapper<Task> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Task::getProcessInstanceId, processInstanceId)
+                .orderByAsc(Task::getCreateTime);
+        return taskMapper.selectList(wrapper).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 获取待办任务列表
      */
     public List<TaskResponse> getTodoList(String userId) {
@@ -223,7 +235,7 @@ public class TaskService {
      * 驳回任务
      */
     @Transactional
-    public TaskResponse reject(Long taskId, String userId, Map<String, Object> variables) {
+    public TaskResponse reject(Long taskId, String userId, String targetNodeId, Map<String, Object> variables) {
         Task task = getTaskOrThrow(taskId);
         validateOperator(task, userId);
 
@@ -235,10 +247,10 @@ public class TaskService {
 
         evictTodoCache(userId);
 
-        // 回退流程到上一节点
-        flowEngine.rollback(task.getProcessInstanceId(), null);
+        // 回退流程到目标节点（默认回退到申请人提交节点）
+        flowEngine.rollback(task.getProcessInstanceId(), targetNodeId);
 
-        log.info("[TaskService] 任务 {} 被 {} 驳回", taskId, userId);
+        log.info("[TaskService] 任务 {} 被 {} 驳回，回退到节点 {}", taskId, userId, targetNodeId);
         return toResponse(task);
     }
 
@@ -323,6 +335,26 @@ public class TaskService {
                 .orderByDesc(Task::getCreateTime)
                 .last("LIMIT 1");
         return taskMapper.selectOne(wrapper);
+    }
+
+    /**
+     * 取消流程实例的所有待办任务（流程终止时调用）
+     */
+    @Transactional
+    public void cancelPendingTasks(Long processInstanceId) {
+        LambdaQueryWrapper<Task> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Task::getProcessInstanceId, processInstanceId)
+                .ne(Task::getStatus, TaskStatus.COMPLETED.getValue());
+        List<Task> pendingTasks = taskMapper.selectList(wrapper);
+        for (Task task : pendingTasks) {
+            task.setStatus(TaskStatus.COMPLETED.getValue());
+            task.setTaskAction(TaskAction.CANCELLED.getValue());
+            task.setCompleteTime(LocalDateTime.now());
+            task.setUpdateTime(LocalDateTime.now());
+            taskMapper.updateById(task);
+            evictTodoCache(task.getAssignee());
+            log.info("[TaskService] 取消任务: id={}, processInstanceId={}", task.getId(), processInstanceId);
+        }
     }
 
     // ==================== 私有方法 ====================

@@ -77,6 +77,8 @@
               <template v-if="column.key === 'action'">
                 <span class="action-link" @click="showModal(record)">编辑</span>
                 <a-divider type="vertical" />
+                <span class="action-link" @click="showRoleModal(record)">授权角色</span>
+                <a-divider type="vertical" />
                 <span class="action-link" @click="handleResetPwd(record)">重置密码</span>
                 <a-divider type="vertical" />
                 <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
@@ -122,13 +124,37 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 授权角色弹窗 -->
+    <a-modal
+      v-model:open="roleModalVisible"
+      title="授权角色"
+      @ok="handleRoleSubmit"
+      :confirm-loading="roleSubmitLoading"
+    >
+      <div class="role-user-info">
+        <span>用户：</span>
+        <strong>{{ roleUserRecord?.realName }}</strong>
+        <span style="margin-left: 8px; color: #888">({{ roleUserRecord?.username }})</span>
+      </div>
+      <a-divider style="margin: 12px 0" />
+      <a-checkbox-group v-model:value="selectedRoleIds" style="width: 100%">
+        <div v-for="role in allRoles" :key="role.id" class="role-option">
+          <a-checkbox :value="role.id">
+            {{ role.roleName }}
+            <span class="role-key">({{ role.roleKey }})</span>
+          </a-checkbox>
+        </div>
+        <a-empty v-if="allRoles.length === 0" description="暂无角色" :image="simpleEmptyImage" />
+      </a-checkbox-group>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { message, Empty } from 'ant-design-vue'
-import { getUsersPage, createUser, updateUser, deleteUser, resetPassword, getDeptTree } from '../../api/system'
+import { getUsersPage, createUser, updateUser, deleteUser, resetPassword, getDeptTree, getRoles, getUserRoles, setUserRoles } from '../../api/system'
 
 const simpleEmptyImage = Empty.PRESENTED_IMAGE_SIMPLE
 
@@ -221,7 +247,7 @@ const columns = [
   { title: '部门', dataIndex: 'deptName', key: 'deptName' },
   { title: '状态', key: 'status', width: 80 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
-  { title: '操作', key: 'action', width: 220 }
+  { title: '操作', key: 'action', width: 300 }
 ]
 
 const formState = reactive({
@@ -337,8 +363,62 @@ function handleTableChange(pag) {
   loadData()
 }
 
+// ========== 授权角色 ==========
+const roleModalVisible = ref(false)
+const roleSubmitLoading = ref(false)
+const roleUserRecord = ref(null)
+const allRoles = ref([])
+const selectedRoleIds = ref([])
+
+async function showRoleModal(record) {
+  roleUserRecord.value = record
+  selectedRoleIds.value = []
+  roleModalVisible.value = true
+  // 加载全部角色
+  try {
+    const res = await getRoles()
+    allRoles.value = res.data || res || []
+  } catch { allRoles.value = [] }
+  // 加载用户当前角色
+  try {
+    const res = await getUserRoles(record.id)
+    const roles = res.data || res || []
+    selectedRoleIds.value = roles.map(r => r.id)
+  } catch { selectedRoleIds.value = [] }
+}
+
+async function handleRoleSubmit() {
+  roleSubmitLoading.value = true
+  try {
+    await setUserRoles(roleUserRecord.value.id, selectedRoleIds.value)
+    message.success('角色授权成功')
+    roleModalVisible.value = false
+  } catch {
+    // ignore
+  }
+  roleSubmitLoading.value = false
+}
+
 onMounted(() => {
   loadDepts()
   loadData()
 })
 </script>
+
+<style scoped>
+.role-option {
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.role-option:last-child {
+  border-bottom: none;
+}
+.role-key {
+  color: #999;
+  font-size: 12px;
+  margin-left: 4px;
+}
+.role-user-info {
+  margin-bottom: 4px;
+}
+</style>

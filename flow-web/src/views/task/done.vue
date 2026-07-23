@@ -27,7 +27,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { getDoneTasks } from '../../api/task'
+import { useUserStore } from '../../stores/user'
 
+const userStore = useUserStore()
 const loading = ref(false)
 const dataList = ref([])
 
@@ -52,7 +54,8 @@ const columns = [
 async function loadData() {
   loading.value = true
   try {
-    const res = await getDoneTasks({ page: pagination.current, size: pagination.pageSize })
+    const userId = userStore.username || localStorage.getItem('username') || ''
+    const res = await getDoneTasks({ userId, page: pagination.current, size: pagination.pageSize })
     const data = res.data || res
     dataList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     pagination.total = data.total || dataList.value.length

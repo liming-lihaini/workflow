@@ -29,6 +29,7 @@ public class ProcessInstanceService {
     private final ProcessInstanceMapper instanceMapper;
     private final FlowEngine flowEngine;
     private final VariableService variableService;
+    private final TaskService taskService;
 
     /**
      * 发起流程实例
@@ -120,6 +121,10 @@ public class ProcessInstanceService {
         }
         instance.setUpdateTime(LocalDateTime.now());
         instanceMapper.updateById(instance);
+
+        // 取消所有待办任务
+        taskService.cancelPendingTasks(id);
+
         return toResponse(instance);
     }
 

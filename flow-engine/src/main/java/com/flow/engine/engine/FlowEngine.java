@@ -138,7 +138,8 @@ public class FlowEngine {
     }
 
     /**
-     * 回退到指定节点
+     * 回退到指定节点（驳回场景）
+     * 回退后从目标节点重新执行，触发 userTask 等等待节点的任务创建。
      */
     @Transactional
     public void rollback(Long instanceId, String targetNodeId) {
@@ -150,11 +151,49 @@ public class FlowEngine {
             throw new BusinessException(ErrorCode.STATUS_TRANSITION_INVALID, "只有运行中的实例可以回退");
         }
 
+        // 如果未指定目标节点，尝试从流程定义中查找"提交申请"节点（第一个 userTask）
+        if (targetNodeId == null || targetNodeId.isBlank()) {
+            targetNodeId = findSubmitNodeId(instance.getProcessKey());
+        }
+        if (targetNodeId == null) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "无法确定回退目标节点");
+        }
+
         instance.setCurrentNodeId(targetNodeId);
         instance.setUpdateTime(LocalDateTime.now());
         instanceMapper.updateById(instance);
 
         log.info("[FlowEngine] 流程实例 {} 回退到节点 {}", instanceId, targetNodeId);
+
+        // 从目标节点重新执行（触发 userTask 任务创建等）
+        ProcessDefinitionResponse defResp = definitionService.getByKey(instance.getProcessKey());
+        ProcessModel model = jsonParser.parse(defResp.getProcessJson());
+        NodeModel targetNode = findNode(model, targetNodeId);
+        if (targetNode != null) {
+            Map<String, Object> vars = variableService.getVariables(instanceId);
+            ExecutionContext context = buildContext(instance, vars);
+            executeFromNode(context, model, targetNode);
+        }
+    }
+
+    /**
+     * 查找流程定义中第一个 userTask 节点（作为"提交"节点的默认回退目标）
+     */
+    private String findSubmitNodeId(String processKey) {
+        try {
+            ProcessDefinitionResponse defResp = definitionService.getByKey(processKey);
+            ProcessModel model = jsonParser.parse(defResp.getProcessJson());
+            if (model.getNodes() != null) {
+                return model.getNodes().stream()
+                        .filter(n -> "userTask".equals(n.getType()))
+                        .map(NodeModel::getId)
+                        .findFirst()
+                        .orElse(null);
+            }
+        } catch (Exception e) {
+            log.warn("[FlowEngine] 查找提交节点失败: {}", e.getMessage());
+        }
+        return null;
     }
 
     /**

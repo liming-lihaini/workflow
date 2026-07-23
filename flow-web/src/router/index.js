@@ -62,6 +62,12 @@ const routes = [
         meta: { title: '数据模型' }
       },
       {
+        path: 'task/start',
+        name: 'TaskStart',
+        component: () => import('../views/task/start.vue'),
+        meta: { title: '发起流程' }
+      },
+      {
         path: 'task/todo',
         name: 'TaskTodo',
         component: () => import('../views/task/todo.vue'),

@@ -1,8 +1,10 @@
 package com.flow.engine.controllers;
 
 import com.flow.engine.common.Result;
+import com.flow.engine.entity.Role;
 import com.flow.engine.entity.User;
 import com.flow.engine.entity.UserPost;
+import com.flow.engine.service.RolePermissionService;
 import com.flow.engine.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final RolePermissionService rolePermissionService;
 
     @GetMapping
     public Result<List<User>> list(@RequestParam(required = false) Long deptId) {
@@ -80,6 +83,19 @@ public class UserController {
     @DeleteMapping("/{id}/posts/{postId}")
     public Result<Void> deletePost(@PathVariable Long id, @PathVariable Long postId) {
         userService.deleteUserPost(id, postId);
+        return Result.ok();
+    }
+
+    // ========== 用户角色授权 ==========
+
+    @GetMapping("/{id}/roles")
+    public Result<List<Role>> getUserRoles(@PathVariable Long id) {
+        return Result.ok(rolePermissionService.getUserRoles(id));
+    }
+
+    @PostMapping("/{id}/roles")
+    public Result<Void> setUserRoles(@PathVariable Long id, @RequestBody List<Long> roleIds) {
+        rolePermissionService.setUserRoles(id, roleIds);
         return Result.ok();
     }
 }

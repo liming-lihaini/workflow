@@ -50,6 +50,15 @@ public class TaskController {
     }
 
     /**
+     * 获取指定流程实例的所有任务（用于流程图节点状态）
+     * GET /api/v1/tasks/instance/{instanceId}
+     */
+    @GetMapping("/instance/{instanceId}")
+    public Result<List<TaskResponse>> getByInstance(@PathVariable Long instanceId) {
+        return Result.ok(taskService.getTasksByInstance(instanceId));
+    }
+
+    /**
      * 签收任务
      * POST /api/v1/tasks/{id}/claim
      */
@@ -86,7 +95,7 @@ public class TaskController {
      */
     @PostMapping("/{id}/reject")
     public Result<TaskResponse> reject(@PathVariable Long id, @RequestBody RejectTaskRequest request) {
-        return Result.ok(taskService.reject(id, request.getUserId(), request.getVariables()));
+        return Result.ok(taskService.reject(id, request.getUserId(), request.getTargetNodeId(), request.getVariables()));
     }
 
     /**

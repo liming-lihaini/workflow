@@ -38,6 +38,7 @@
         <a-sub-menu key="task">
           <template #icon><ScheduleOutlined /></template>
           <template #title>任务中心</template>
+          <a-menu-item key="task-start" @click="$router.push('/task/start')">发起流程</a-menu-item>
           <a-menu-item key="task-todo" @click="$router.push('/task/todo')">待办任务</a-menu-item>
           <a-menu-item key="task-done" @click="$router.push('/task/done')">已办任务</a-menu-item>
         </a-sub-menu>
@@ -120,6 +121,7 @@ watch(() => route.path, (path) => {
     '/form/definition': ['form-definition'],
     '/form/design': ['form-design'],
     '/data-model': ['data-model'],
+    '/task/start': ['task-start'],
     '/task/todo': ['task-todo'],
     '/task/done': ['task-done'],
     '/system/dept': ['system-dept'],

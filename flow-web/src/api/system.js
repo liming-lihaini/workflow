@@ -57,6 +57,12 @@ export function addUserPost(id, data) {
 export function deleteUserPost(id, postId) {
   return request.delete(`/system/users/${id}/posts/${postId}`)
 }
+export function getUserRoles(id) {
+  return request.get(`/system/users/${id}/roles`)
+}
+export function setUserRoles(id, roleIds) {
+  return request.post(`/system/users/${id}/roles`, roleIds)
+}
 
 // 角色管理
 export function getRoles(params) {

@@ -101,6 +101,29 @@ public class RolePermissionService {
         return roleMapper.selectBatchIds(roleIds);
     }
 
+    public void removeUserFromRole(Long roleId, Long userId) {
+        userRoleMapper.delete(new LambdaQueryWrapper<UserRole>()
+                .eq(UserRole::getRoleId, roleId)
+                .eq(UserRole::getUserId, userId));
+    }
+
+    /**
+     * 批量设置用户角色（先清除旧关联，再建立新关联）
+     */
+    public void setUserRoles(Long userId, List<Long> roleIds) {
+        // 清除用户现有角色
+        userRoleMapper.delete(new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, userId));
+        // 批量添加新角色
+        if (roleIds != null && !roleIds.isEmpty()) {
+            for (Long roleId : roleIds) {
+                UserRole userRole = new UserRole();
+                userRole.setUserId(userId);
+                userRole.setRoleId(roleId);
+                userRoleMapper.insert(userRole);
+            }
+        }
+    }
+
     // ========== 权限管理 ==========
 
     public Permission createPermission(Permission perm) {

@@ -9,6 +9,9 @@ export function getDoneTasks(params) {
 export function getTaskDetail(id) {
   return request.get(`/tasks/${id}`)
 }
+export function getTasksByInstance(instanceId) {
+  return request.get(`/tasks/instance/${instanceId}`)
+}
 export function claimTask(id, data) {
   return request.post(`/tasks/${id}/claim`, data)
 }
