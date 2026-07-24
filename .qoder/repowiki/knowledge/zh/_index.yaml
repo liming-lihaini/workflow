@@ -3,22 +3,14 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-23T08:50:35Z"
+exported_at: "2026-07-24T02:51:23Z"
 modules:
     "":
-        dir_name: 可视化工作流引擎（前后端多子应用聚合）
-        title: 可视化工作流引擎（前后端多子应用聚合）
-        scope:
-            - readme.txt
-            - .gitignore
-            - login_page_full.png
-            - package-lock.json
+        dir_name: 自定义流程引擎前后端工程
+        title: 自定义流程引擎前后端工程
+        scope: []
         source_files: []
-        children:
-            - docs
-            - flow_designer
-            - flow_engine_backend
-            - flow_web_admin
+        children: []
         depends_on: []
         related_to: []
     docs:

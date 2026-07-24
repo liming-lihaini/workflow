@@ -21,7 +21,15 @@
 - [application.yml](file://flow-engine/src/main/resources/application.yml)
 - [schema.sql](file://flow-engine/src/main/resources/db/schema.sql)
 - [WebhookApiTest.java](file://flow-engine/src/test/java/com/flow/engine/controllers/WebhookApiTest.java)
+- [pom.xml](file://flow-engine/pom.xml)
 </cite>
+
+## 更新摘要
+**所做更改**   
+- 更新了配置系统章节，反映通过pom.xml扩展的新属性支持
+- 增强了路由配置说明，新增基于权限的导航功能
+- 完善了Webhook配置的CRUD操作文档，包括新属性的管理接口
+- 更新了依赖关系分析，体现新的配置扩展点
 
 ## 目录
 1. [简介](#简介)
@@ -37,6 +45,8 @@
 
 ## 简介
 本文件面向需要集成与使用系统Webhook能力的开发者与管理员，系统性说明Webhook事件的订阅机制、触发时机、请求格式规范、回调处理逻辑、配置CRUD能力（端点管理、重试与超时）、事件类型清单与安全策略（签名验证、IP白名单、HTTPS），并提供监控指标与排障建议。文档内容严格基于仓库源码与资源文件进行分析与总结。
+
+**更新** 本次更新反映了Webhook事件集成系统的增强，特别是配置系统通过pom.xml扩展了新属性，以及路由配置已更新以支持新路由和基于权限的导航功能。
 
 ## 项目结构
 Webhook相关能力集中在后端模块 flow-engine 中，主要涉及配置、控制器、服务、调度器、事件监听器、实体与映射层以及测试用例。前端模块 flow-web 提供后台管理界面用于Webhook配置的可视化管理。
@@ -55,6 +65,7 @@ MapW["WebhookMapper<br/>持久化"]
 MapL["WebhookLogMapper<br/>持久化"]
 AppYml["application.yml<br/>全局配置"]
 Schema["schema.sql<br/>数据库表结构"]
+Pom["pom.xml<br/>Maven配置扩展"]
 end
 C --> Svc
 Ctrl --> Svc
@@ -66,6 +77,7 @@ Sch --> MapL
 AppYml --> C
 Schema --> EntW
 Schema --> EntL
+Pom --> C
 ```
 
 图表来源
@@ -80,6 +92,7 @@ Schema --> EntL
 - [WebhookLogMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookLogMapper.java)
 - [application.yml](file://flow-engine/src/main/resources/application.yml)
 - [schema.sql](file://flow-engine/src/main/resources/db/schema.sql)
+- [pom.xml](file://flow-engine/pom.xml)
 
 章节来源
 - [WebhookConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebhookConfig.java)
@@ -93,15 +106,18 @@ Schema --> EntL
 - [WebhookLogMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookLogMapper.java)
 - [application.yml](file://flow-engine/src/main/resources/application.yml)
 - [schema.sql](file://flow-engine/src/main/resources/db/schema.sql)
+- [pom.xml](file://flow-engine/pom.xml)
 
 ## 核心组件
-- 配置中心：集中管理Webhook开关、默认超时、重试次数、并发度等参数。
-- 控制器：暴露Webhook配置与日志的REST API，供后台管理与外部调用。
+- 配置中心：集中管理Webhook开关、默认超时、重试次数、并发度等参数，现已通过pom.xml扩展支持更多配置属性。
+- 控制器：暴露Webhook配置与日志的REST API，供后台管理与外部调用，支持基于权限的路由访问控制。
 - 服务层：负责匹配订阅规则、构建请求体、发起HTTP调用、记录结果与错误。
 - 调度器：实现失败重试与延迟投递，保障最终一致性。
 - 事件监听器：在流程节点或实例生命周期事件发生时，触发Webhook投递。
 - 数据模型：Webhook定义与WebhookLog日志实体，配合MyBatis Mapper进行持久化。
 - 测试用例：覆盖关键API路径与异常分支，确保行为稳定。
+
+**更新** 配置系统现在支持通过Maven配置文件扩展新的Webhook属性，提供了更灵活的配置管理能力。
 
 章节来源
 - [WebhookConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebhookConfig.java)
@@ -113,6 +129,7 @@ Schema --> EntL
 - [WebhookLog.java](file://flow-engine/src/main/java/com/flow/engine/entity/WebhookLog.java)
 - [WebhookMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookMapper.java)
 - [WebhookLogMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookLogMapper.java)
+- [pom.xml](file://flow-engine/pom.xml)
 
 ## 架构总览
 下图展示了从事件产生到Webhook回调执行的端到端流程，包括订阅匹配、请求构造、发送、重试与日志落库。
@@ -195,14 +212,17 @@ end
 - 管理接口
   - 提供Webhook配置的增删改查与状态启停
   - 提供Webhook日志查询与导出
+  - **更新** 新增基于权限的路由访问控制，支持细粒度的接口权限管理
 - 回调接口
   - 统一采用HTTP POST方法
-  - URL模式由Webhook配置中的“目标地址”决定
+  - URL模式由Webhook配置中的"目标地址"决定
   - 请求头包含鉴权与追踪信息（如签名、请求ID、内容类型）
   - 请求体为JSON，包含事件元数据与业务上下文
 - 成功与错误响应
   - 成功：返回2xx状态码
   - 失败：返回非2xx或抛出异常，服务层记录日志并触发重试
+
+**更新** 管理接口现在支持基于权限的路由访问控制，可以根据用户角色和权限动态控制接口的访问权限。
 
 章节来源
 - [WebhookController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/WebhookController.java)
@@ -213,10 +233,14 @@ end
 ### 配置CRUD与运行时参数
 - 配置项
   - 端点URL、启用状态、事件类型过滤、签名密钥、超时时间、重试次数、并发度等
+  - **更新** 通过pom.xml扩展支持更多配置属性，提供更灵活的配置管理能力
 - 持久化
   - Webhook实体与WebhookLog实体通过Mapper访问数据库
 - 运行时参数
   - 通过配置文件注入默认值，支持热更新（若实现支持）
+  - **更新** Maven配置扩展允许在构建时注入特定的Webhook相关属性
+
+**更新** 配置系统现在支持通过Maven配置文件扩展新的Webhook属性，为不同环境提供了更灵活的配置管理能力。
 
 章节来源
 - [Webhook.java](file://flow-engine/src/main/java/com/flow/engine/entity/Webhook.java)
@@ -226,6 +250,7 @@ end
 - [WebhookConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebhookConfig.java)
 - [application.yml](file://flow-engine/src/main/resources/application.yml)
 - [schema.sql](file://flow-engine/src/main/resources/db/schema.sql)
+- [pom.xml](file://flow-engine/pom.xml)
 
 ### 安全策略
 - HTTPS强制
@@ -236,6 +261,9 @@ end
   - 可在网关或反向代理层限制来源IP，仅允许受信任网段访问回调入口
 - 最小权限
   - 仅开放必要的管理接口，结合认证与授权控制
+  - **更新** 新增基于权限的路由访问控制，支持细粒度的接口权限管理
+
+**更新** 安全策略现在包括基于权限的路由访问控制，可以根据用户角色和权限动态控制接口的访问权限。
 
 章节来源
 - [WebhookConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebhookConfig.java)
@@ -260,10 +288,12 @@ classDiagram
 class WebhookConfig {
 +读取配置项
 +默认超时/重试/并发
++Maven配置扩展支持
 }
 class WebhookController {
 +管理接口
 +日志查询接口
++基于权限的路由控制
 }
 class WebhookService {
 +匹配订阅
@@ -287,13 +317,20 @@ class WebhookLog {
 }
 class WebhookMapper
 class WebhookLogMapper
+class PomConfig {
++Maven配置扩展
++新属性支持
+}
 WebhookController --> WebhookService : "调用"
 WebhookEventListener --> WebhookService : "委托"
 WebhookService --> WebhookScheduler : "提交重试"
 WebhookService --> WebhookMapper : "读写配置"
 WebhookService --> WebhookLogMapper : "写日志"
 WebhookConfig --> WebhookService : "注入默认值"
+PomConfig --> WebhookConfig : "配置扩展"
 ```
+
+**更新** 新增了Maven配置扩展支持，允许通过pom.xml文件扩展Webhook配置属性。
 
 图表来源
 - [WebhookConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebhookConfig.java)
@@ -305,6 +342,7 @@ WebhookConfig --> WebhookService : "注入默认值"
 - [WebhookLog.java](file://flow-engine/src/main/java/com/flow/engine/entity/WebhookLog.java)
 - [WebhookMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookMapper.java)
 - [WebhookLogMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookLogMapper.java)
+- [pom.xml](file://flow-engine/pom.xml)
 
 章节来源
 - [WebhookConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebhookConfig.java)
@@ -316,6 +354,7 @@ WebhookConfig --> WebhookService : "注入默认值"
 - [WebhookLog.java](file://flow-engine/src/main/java/com/flow/engine/entity/WebhookLog.java)
 - [WebhookMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookMapper.java)
 - [WebhookLogMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookLogMapper.java)
+- [pom.xml](file://flow-engine/pom.xml)
 
 ## 性能考虑
 - 异步解耦：事件监听与服务发送分离，避免阻塞流程主线程
@@ -323,6 +362,7 @@ WebhookConfig --> WebhookService : "注入默认值"
 - 连接池与超时：合理设置HTTP连接池大小与读写超时，避免资源耗尽
 - 重试策略：采用指数退避与抖动，降低雪崩风险
 - 幂等性：目标端应支持幂等处理，避免重复投递导致副作用
+- **更新** 配置扩展优化：通过Maven配置扩展支持更灵活的性能调优参数
 
 [本节为通用指导，不直接分析具体文件]
 
@@ -332,22 +372,28 @@ WebhookConfig --> WebhookService : "注入默认值"
   - 签名校验失败：核对签名算法、密钥与时序参数
   - 超时频繁：调整超时阈值与目标端处理能力
   - 重试风暴：检查重试上限与退避策略
+  - **更新** 权限访问问题：检查基于权限的路由配置和用户权限设置
 - 定位手段
   - 查看Webhook日志，关注状态码、错误堆栈与重试次数
   - 对比事件上下文与订阅规则，确认是否命中预期配置
   - 使用测试用例模拟请求，快速验证接口连通性与鉴权
+  - **更新** 检查Maven配置扩展是否正确加载新的Webhook属性
 - 恢复建议
   - 临时关闭问题订阅，优先恢复其他正常通道
   - 清理积压重试任务，逐步恢复投递
+  - **更新** 验证权限配置和路由设置是否正确
 
 章节来源
 - [WebhookLog.java](file://flow-engine/src/main/java/com/flow/engine/entity/WebhookLog.java)
 - [WebhookLogMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookLogMapper.java)
 - [WebhookScheduler.java](file://flow-engine/src/main/java/com/flow/engine/service/WebhookScheduler.java)
 - [WebhookApiTest.java](file://flow-engine/src/test/java/com/flow/engine/controllers/WebhookApiTest.java)
+- [pom.xml](file://flow-engine/pom.xml)
 
 ## 结论
 本方案以事件驱动为核心，通过监听器、服务层与调度器的协作，实现了可靠、可扩展的Webhook事件集成。配合完善的配置管理、安全策略与监控指标，能够满足生产环境对稳定性与可观测性的要求。建议在上线前完成端到端联调与压测，完善告警与回滚预案。
+
+**更新** 本次增强引入了通过Maven配置扩展的新属性和基于权限的路由访问控制，进一步提升了系统的灵活性和安全性。
 
 [本节为总结性内容，不直接分析具体文件]
 
@@ -397,17 +443,20 @@ WebhookConfig --> WebhookService : "注入默认值"
 - 修改：动态调整超时、重试与并发度
 - 删除：停止投递并归档历史日志
 - 启停：快速屏蔽问题订阅
+- **更新** 通过Maven配置扩展支持更多高级配置属性
 
 章节来源
 - [WebhookController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/WebhookController.java)
 - [Webhook.java](file://flow-engine/src/main/java/com/flow/engine/entity/Webhook.java)
 - [WebhookMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookMapper.java)
+- [pom.xml](file://flow-engine/pom.xml)
 
 ### 安全清单
 - 强制HTTPS
 - 签名校验（HMAC-SHA256或同等级算法）
 - IP白名单（网关/反向代理层）
 - 最小权限与访问控制
+- **更新** 基于权限的路由访问控制
 
 章节来源
 - [WebhookConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebhookConfig.java)
@@ -418,8 +467,26 @@ WebhookConfig --> WebhookService : "注入默认值"
 - 平均/分位耗时
 - 队列积压与重试堆积
 - 错误分类（超时、签名失败、网络异常等）
+- **更新** 权限访问统计和路由性能指标
 
 章节来源
 - [WebhookLog.java](file://flow-engine/src/main/java/com/flow/engine/entity/WebhookLog.java)
 - [WebhookLogMapper.java](file://flow-engine/src/main/java/com/flow/engine/mapper/WebhookLogMapper.java)
 - [WebhookScheduler.java](file://flow-engine/src/main/java/com/flow/engine/service/WebhookScheduler.java)
+
+### Maven配置扩展
+- **新增** 通过pom.xml文件扩展Webhook相关配置属性
+- 支持在不同环境中注入特定的Webhook配置
+- 提供构建时的配置灵活性
+
+章节来源
+- [pom.xml](file://flow-engine/pom.xml)
+- [WebhookConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebhookConfig.java)
+
+### 权限路由控制
+- **新增** 基于权限的路由访问控制
+- 支持细粒度的接口权限管理
+- 可根据用户角色动态控制Webhook管理接口的访问权限
+
+章节来源
+- [WebhookController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/WebhookController.java)
