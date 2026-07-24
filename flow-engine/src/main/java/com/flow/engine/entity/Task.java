@@ -44,6 +44,12 @@ public class Task {
     /** 状态：0-待处理，1-处理中，2-已完成 */
     private Integer status;
 
+    /** 父任务ID（加签时记录原任务ID） */
+    private Long parentTaskId;
+
+    /** 加签类型：before/after/parallel */
+    private String signType;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

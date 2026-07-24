@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-23T00:49:51Z"
+exported_at: "2026-07-23T08:50:35Z"
 modules:
     "":
-        dir_name: 可视化流程引擎全栈项目
-        title: 可视化流程引擎全栈项目
+        dir_name: 可视化工作流引擎（前后端多子应用聚合）
+        title: 可视化工作流引擎（前后端多子应用聚合）
         scope:
             - readme.txt
             - .gitignore
@@ -31,8 +31,8 @@ modules:
         depends_on: []
         related_to: []
     flow_designer:
-        dir_name: 可视化流程定义编辑器（Flow Designer）
-        title: 可视化流程定义编辑器（Flow Designer）
+        dir_name: 流程定义可视化设计器（ReactFlow）
+        title: 流程定义可视化设计器（ReactFlow）
         scope:
             - flow-designer/
         source_files: []
@@ -41,8 +41,8 @@ modules:
         related_to:
             - path: flow_engine_backend
     flow_engine_backend:
-        dir_name: Flow Engine 后端（流程引擎单应用）
-        title: Flow Engine 后端（流程引擎单应用）
+        dir_name: Flow Engine 单应用后端（流程引擎 + 任务中心 + 数据模型 + Webhook）
+        title: Flow Engine 单应用后端（流程引擎 + 任务中心 + 数据模型 + Webhook）
         scope:
             - flow-engine/
         source_files: []
@@ -90,8 +90,8 @@ modules:
         related_to:
             - path: flow_engine_backend/task_center
     flow_web_admin:
-        dir_name: 流程引擎 Web 管理后台（Vue3 + Ant Design Vue）
-        title: 流程引擎 Web 管理后台（Vue3 + Ant Design Vue）
+        dir_name: 流程引擎管理前端（Vue3 + Ant Design Vue）
+        title: 流程引擎管理前端（Vue3 + Ant Design Vue）
         scope:
             - flow-web/
         source_files: []

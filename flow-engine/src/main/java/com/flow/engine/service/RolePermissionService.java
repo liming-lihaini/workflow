@@ -201,10 +201,19 @@ public class RolePermissionService {
 
     /**
      * 获取用户所有权限Key
+     * system_admin 角色返回 ["*"] 表示拥有全部权限
      */
     public List<String> getUserPermissionKeys(Long userId) {
         List<Role> roles = getUserRoles(userId);
         if (roles.isEmpty()) return List.of();
+
+        // system_admin 拥有全部权限
+        boolean isSystemAdmin = roles.stream()
+                .anyMatch(r -> "system_admin".equals(r.getRoleKey()));
+        if (isSystemAdmin) {
+            return List.of("*");
+        }
+
         List<Long> roleIds = roles.stream().map(Role::getId).collect(Collectors.toList());
 
         List<RolePermission> rps = rolePermissionMapper.selectList(
@@ -214,5 +223,13 @@ public class RolePermissionService {
 
         List<Permission> perms = permissionMapper.selectBatchIds(permIds);
         return perms.stream().map(Permission::getPermKey).collect(Collectors.toList());
+    }
+
+    /**
+     * 判断用户是否为系统管理员
+     */
+    public boolean isSystemAdmin(Long userId) {
+        List<Role> roles = getUserRoles(userId);
+        return roles.stream().anyMatch(r -> "system_admin".equals(r.getRoleKey()));
     }
 }

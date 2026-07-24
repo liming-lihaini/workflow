@@ -56,7 +56,7 @@
                 style="width: 200px"
                 @search="loadData"
               />
-              <a-button type="primary" @click="showModal()">新建用户</a-button>
+              <a-button v-if="hasPerm('system:user:create')" type="primary" @click="showModal()">新建用户</a-button>
             </a-space>
           </div>
 
@@ -156,8 +156,10 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { message, Empty } from 'ant-design-vue'
 import { getUsersPage, createUser, updateUser, deleteUser, resetPassword, getDeptTree, getRoles, getUserRoles, setUserRoles } from '../../api/system'
 import { renderDate } from '../../utils/date'
+import { usePermission } from '../../composables/usePermission'
 
 const simpleEmptyImage = Empty.PRESENTED_IMAGE_SIMPLE
+const { hasPerm } = usePermission()
 
 const loading = ref(false)
 const dataList = ref([])

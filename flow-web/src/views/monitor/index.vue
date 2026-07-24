@@ -34,8 +34,8 @@
           <div class="page-header">
             <span class="page-title">实例 #{{ selectedInstance.id }} 监控</span>
             <a-space>
-              <a-button @click="showInterveneModal">管理员干预</a-button>
-              <a-button @click="handleExport">导出</a-button>
+              <a-button v-if="hasPerm('monitor:intervene')" @click="showInterveneModal">管理员干预</a-button>
+              <a-button v-if="hasPerm('monitor:export')" @click="handleExport">导出</a-button>
             </a-space>
           </div>
 
@@ -131,7 +131,9 @@ import {
   interveneProcess
 } from '../../api/monitor'
 import { formatDate } from '../../utils/date'
+import { usePermission } from '../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const runningLoading = ref(false)
 const runningList = ref([])
 const selectedInstance = ref(null)

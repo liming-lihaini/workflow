@@ -2,6 +2,7 @@ package com.flow.engine.model;
 
 import lombok.Data;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,6 +34,9 @@ public class NodeModel {
 
     /** 节点扩展属性 */
     private Map<String, Object> properties;
+
+    /** 节点事件定义（beforeEnter/afterEnter/afterComplete/afterReject） */
+    private List<Map<String, Object>> events;
 
     /** 位置 X（前端设计器用） */
     private Integer x;

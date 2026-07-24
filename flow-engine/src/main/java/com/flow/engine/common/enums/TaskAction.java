@@ -14,7 +14,8 @@ public enum TaskAction {
     REJECTED(2, "驳回"),
     TRANSFERRED(3, "转办"),
     DELEGATED(4, "委派"),
-    CANCELLED(5, "取消");
+    CANCELLED(5, "取消"),
+    ADD_SIGNED(6, "加签");
 
     private final int value;
     private final String desc;

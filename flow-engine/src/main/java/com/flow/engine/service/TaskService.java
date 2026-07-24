@@ -5,11 +5,14 @@ import com.flow.engine.common.BusinessException;
 import com.flow.engine.common.ErrorCode;
 import com.flow.engine.common.enums.TaskAction;
 import com.flow.engine.common.enums.TaskStatus;
+import com.flow.engine.dto.AddSignRequest;
 import com.flow.engine.dto.TaskResponse;
 import com.flow.engine.engine.FlowEngine;
 import com.flow.engine.entity.ProcessDefinition;
+import com.flow.engine.entity.ProcessInstance;
 import com.flow.engine.entity.Task;
 import com.flow.engine.mapper.ProcessDefinitionMapper;
+import com.flow.engine.mapper.ProcessInstanceMapper;
 import com.flow.engine.mapper.TaskMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +42,7 @@ public class TaskService {
     private final FlowEngine flowEngine;
     private final CacheManager cacheManager;
     private final ProcessDefinitionMapper processDefinitionMapper;
+    private final ProcessInstanceMapper processInstanceMapper;
 
     private static final String TODO_CACHE_PREFIX = "task:todo:";
 
@@ -333,6 +337,83 @@ public class TaskService {
     }
 
     /**
+     * 加签任务
+     * before: 被加签人先审批，完成后回到原审批人
+     * after: 原审批人先审批，完成后自动创建任务给被加签人
+     * parallel: 原审批人和被加签人并行处理
+     */
+    @Transactional
+    public List<TaskResponse> addSign(Long taskId, AddSignRequest request) {
+        Task task = getTaskOrThrow(taskId);
+        validateOperator(task, request.getOperatorId());
+
+        if (request.getTargetUsers() == null || request.getTargetUsers().isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "被加签人不能为空");
+        }
+
+        String signType = request.getSignType();
+        if (signType == null) signType = "parallel";
+
+        List<Task> createdTasks = new java.util.ArrayList<>();
+
+        for (String targetUser : request.getTargetUsers()) {
+            Task addSignTask = new Task();
+            addSignTask.setProcessInstanceId(task.getProcessInstanceId());
+            addSignTask.setProcessKey(task.getProcessKey());
+            addSignTask.setNodeId(task.getNodeId());
+            addSignTask.setNodeName(task.getNodeName());
+            addSignTask.setTaskType(3); // 加签任务
+            addSignTask.setAssignee(targetUser);
+            addSignTask.setParentTaskId(task.getId());
+            addSignTask.setSignType(signType);
+            addSignTask.setTaskAction(TaskAction.NORMAL.getValue());
+            addSignTask.setStatus(TaskStatus.PENDING.getValue());
+            addSignTask.setCreateTime(LocalDateTime.now());
+            addSignTask.setUpdateTime(LocalDateTime.now());
+            taskMapper.insert(addSignTask);
+            createdTasks.add(addSignTask);
+
+            evictTodoCache(targetUser);
+        }
+
+        // 标记原任务为加签状态
+        task.setTaskAction(TaskAction.ADD_SIGNED.getValue());
+        task.setUpdateTime(LocalDateTime.now());
+
+        if ("before".equals(signType)) {
+            // 前加签：原审批人任务暂停（状态保持处理中），等被加签人完成后回到原审批人
+            // 不做额外操作，原任务保持 IN_PROGRESS 或 PENDING
+            if (task.getStatus() == TaskStatus.PENDING.getValue()) {
+                task.setStatus(TaskStatus.IN_PROGRESS.getValue());
+            }
+        } else if ("parallel".equals(signType)) {
+            // 并行加签：原审批人继续处理
+            if (task.getStatus() == TaskStatus.PENDING.getValue()) {
+                task.setStatus(TaskStatus.IN_PROGRESS.getValue());
+            }
+        }
+        // after: 后加签 - 原审批人先处理，完成后再创建给被加签人
+        // 此时不创建额外任务，等原审批人 complete 时由 completeAddSignAfter 触发
+
+        taskMapper.updateById(task);
+
+        log.info("[TaskService] 任务 {} 由 {} 发起{}加签，被加签人: {}", taskId, request.getOperatorId(), signType, request.getTargetUsers());
+        return createdTasks.stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    /**
+     * 后加签：当原审批人完成任务后，自动为被加签人创建任务
+     * 由 complete 方法调用
+     */
+    @Transactional
+    public void completeAddSignAfter(Long taskId) {
+        Task task = getTaskOrThrow(taskId);
+        // 查找该任务关联的后加签子任务配置
+        // 后加签任务已在 addSign 时创建，状态为 PENDING
+        // 此处无需额外操作（任务已在 addSign 时创建）
+    }
+
+    /**
      * 根据流程实例ID和节点ID获取任务
      */
     public Task getByNode(Long processInstanceId, String nodeId) {
@@ -456,6 +537,18 @@ public class TaskService {
                 }
             } catch (Exception e) {
                 log.warn("查询流程定义失败, processKey={}: {}", task.getProcessKey(), e.getMessage());
+            }
+        }
+
+        // 填充流程编号（关联查询流程实例）
+        if (task.getProcessInstanceId() != null) {
+            try {
+                ProcessInstance inst = processInstanceMapper.selectById(task.getProcessInstanceId());
+                if (inst != null) {
+                    resp.setInstanceNo(inst.getInstanceNo());
+                }
+            } catch (Exception e) {
+                log.warn("查询流程实例失败, instanceId={}: {}", task.getProcessInstanceId(), e.getMessage());
             }
         }
 

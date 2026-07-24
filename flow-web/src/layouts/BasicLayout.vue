@@ -19,44 +19,25 @@
         mode="inline"
         theme="dark"
       >
-        <a-menu-item key="dashboard" @click="$router.push('/dashboard')">
-          <template #icon><DashboardOutlined /></template>
-          <span>工作台</span>
-        </a-menu-item>
-
-        <a-sub-menu key="process">
-          <template #icon><ApartmentOutlined /></template>
-          <template #title>流程管理</template>
-          <a-menu-item key="process-definition" @click="$router.push('/process/definition')">流程定义</a-menu-item>
-          <a-menu-item key="process-instance" @click="$router.push('/process/instance')">流程实例</a-menu-item>
-          <a-menu-item key="form-definition" @click="$router.push('/form/definition')">表单定义</a-menu-item>
-          <a-menu-item key="data-model" @click="$router.push('/data-model')">数据模型</a-menu-item>
-        </a-sub-menu>
-
-        <a-sub-menu key="task">
-          <template #icon><ScheduleOutlined /></template>
-          <template #title>任务中心</template>
-          <a-menu-item key="task-start" @click="$router.push('/task/start')">发起流程</a-menu-item>
-          <a-menu-item key="task-todo" @click="$router.push('/task/todo')">待办任务</a-menu-item>
-          <a-menu-item key="task-done" @click="$router.push('/task/done')">已办任务</a-menu-item>
-          <a-menu-item key="task-my-request" @click="$router.push('/task/my-request')">我的申请</a-menu-item>
-        </a-sub-menu>
-
-        <a-sub-menu key="system">
-          <template #icon><SettingOutlined /></template>
-          <template #title>后台管理</template>
-          <a-menu-item key="system-dept" @click="$router.push('/system/dept')">部门管理</a-menu-item>
-          <a-menu-item key="system-user" @click="$router.push('/system/user')">用户管理</a-menu-item>
-          <a-menu-item key="system-role" @click="$router.push('/system/role')">角色管理</a-menu-item>
-          <a-menu-item key="system-log" @click="$router.push('/system/log')">日志管理</a-menu-item>
-          <a-menu-item key="system-dict" @click="$router.push('/system/dict')">数据字典</a-menu-item>
-          <a-menu-item key="system-admin" @click="$router.push('/system/admin')">三员管理</a-menu-item>
-        </a-sub-menu>
-
-        <a-menu-item key="monitor" @click="$router.push('/monitor')">
-          <template #icon><MonitorOutlined /></template>
-          <span>流程监控</span>
-        </a-menu-item>
+        <template v-for="item in visibleMenuItems" :key="item.key">
+          <!-- 无子菜单的菜单项 -->
+          <a-menu-item v-if="!item.children" @click="$router.push(item.path)">
+            <template #icon><component :is="item.icon" /></template>
+            <span>{{ item.title }}</span>
+          </a-menu-item>
+          <!-- 有子菜单的子菜单 -->
+          <a-sub-menu v-else>
+            <template #icon><component :is="item.icon" /></template>
+            <template #title>{{ item.title }}</template>
+            <a-menu-item
+              v-for="child in item.children"
+              :key="child.key"
+              @click="$router.push(child.path)"
+            >
+              {{ child.title }}
+            </a-menu-item>
+          </a-sub-menu>
+        </template>
       </a-menu>
     </a-layout-sider>
 
@@ -89,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch, h, markRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import {
@@ -110,17 +91,88 @@ const collapsed = ref(false)
 const selectedKeys = ref([])
 const openKeys = ref([])
 
+// 菜单配置（数据驱动）
+const menuConfig = [
+  {
+    key: 'dashboard',
+    title: '工作台',
+    path: '/dashboard',
+    permKey: 'dashboard',
+    icon: markRaw(DashboardOutlined)
+  },
+  {
+    key: 'process',
+    title: '流程管理',
+    permKey: 'process',
+    icon: markRaw(ApartmentOutlined),
+    children: [
+      { key: 'process-definition', title: '流程定义', path: '/process/definition', permKey: 'process:definition' },
+      { key: 'process-instance', title: '流程实例', path: '/process/instance', permKey: 'process:instance' },
+      { key: 'form-definition', title: '表单定义', path: '/form/definition', permKey: 'form:definition' },
+      { key: 'data-model', title: '数据模型', path: '/data-model', permKey: 'data-model' }
+    ]
+  },
+  {
+    key: 'task',
+    title: '任务中心',
+    permKey: 'task',
+    icon: markRaw(ScheduleOutlined),
+    children: [
+      { key: 'task-start', title: '发起流程', path: '/task/start', permKey: 'task:start' },
+      { key: 'task-todo', title: '待办任务', path: '/task/todo', permKey: 'task:todo' },
+      { key: 'task-done', title: '已办任务', path: '/task/done', permKey: 'task:done' },
+      { key: 'task-my-request', title: '我的申请', path: '/task/my-request', permKey: 'task:my-request' }
+    ]
+  },
+  {
+    key: 'system',
+    title: '后台管理',
+    permKey: 'system',
+    icon: markRaw(SettingOutlined),
+    children: [
+      { key: 'system-dept', title: '部门管理', path: '/system/dept', permKey: 'system:dept' },
+      { key: 'system-user', title: '用户管理', path: '/system/user', permKey: 'system:user' },
+      { key: 'system-role', title: '角色管理', path: '/system/role', permKey: 'system:role' },
+      { key: 'system-log', title: '日志管理', path: '/system/log', permKey: 'system:log' },
+      { key: 'system-dict', title: '数据字典', path: '/system/dict', permKey: 'system:dict' },
+      { key: 'system-admin', title: '三员管理', path: '/system/admin', permKey: 'system:admin' }
+    ]
+  },
+  {
+    key: 'monitor',
+    title: '流程监控',
+    path: '/monitor',
+    permKey: 'monitor',
+    icon: markRaw(MonitorOutlined)
+  }
+]
+
+// 按权限过滤菜单
+const visibleMenuItems = computed(() => {
+  return menuConfig
+    .filter(item => userStore.hasPermission(item.permKey))
+    .map(item => {
+      if (!item.children) return item
+      const visibleChildren = item.children.filter(child => userStore.hasPermission(child.permKey))
+      if (visibleChildren.length === 0) return null
+      return { ...item, children: visibleChildren }
+    })
+    .filter(Boolean)
+})
+
 // 根据路由同步菜单选中状态
 watch(() => route.path, (path) => {
   const pathMap = {
     '/dashboard': ['dashboard'],
     '/process/definition': ['process-definition'],
     '/process/designer': ['process-definition'],
+    '/process/config': ['process-definition'],
     '/process/instance': ['process-instance'],
     '/form/definition': ['form-definition'],
     '/form/design': ['form-definition'],
     '/data-model': ['data-model'],
     '/task/start': ['task-start'],
+    '/task/start-detail': ['task-start'],
     '/task/todo': ['task-todo'],
     '/task/handle': ['task-todo'],
     '/task/done': ['task-done'],
@@ -137,6 +189,8 @@ watch(() => route.path, (path) => {
 
   // 自动展开父菜单
   if (path.startsWith('/process')) openKeys.value = ['process']
+  else if (path.startsWith('/form')) openKeys.value = ['process']
+  else if (path.startsWith('/data-model')) openKeys.value = ['process']
   else if (path.startsWith('/task')) openKeys.value = ['task']
   else if (path.startsWith('/system')) openKeys.value = ['system']
 }, { immediate: true })

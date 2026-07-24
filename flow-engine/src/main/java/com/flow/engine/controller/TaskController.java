@@ -117,6 +117,15 @@ public class TaskController {
     }
 
     /**
+     * 加签任务
+     * POST /api/v1/tasks/{id}/add-sign
+     */
+    @PostMapping("/{id}/add-sign")
+    public Result<List<TaskResponse>> addSign(@PathVariable Long id, @RequestBody AddSignRequest request) {
+        return Result.ok(taskService.addSign(id, request));
+    }
+
+    /**
      * 获取任务表单权限（ISSUE-009，TRD §3.4）
      * GET /api/v1/tasks/{taskId}/form-permissions
      */

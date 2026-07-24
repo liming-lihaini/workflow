@@ -6,16 +6,29 @@
         <a-button @click="loadData">刷新</a-button>
       </div>
 
+      <!-- 条件查询 -->
+      <div class="search-bar">
+        <a-input v-model:value="search.processName" placeholder="流程名称" allow-clear style="width: 160px" />
+        <a-input v-model:value="search.processType" placeholder="流程类型" allow-clear style="width: 140px" />
+        <a-range-picker v-model:value="search.dateRange" :placeholder="['办理开始', '办理结束']" style="width: 240px" />
+        <a-button type="primary" @click="handleSearch">查询</a-button>
+        <a-button @click="handleReset">重置</a-button>
+      </div>
+
       <a-table
         :columns="columns"
-        :data-source="dataList"
+        :data-source="filteredData"
         :loading="loading"
         :pagination="pagination"
+        :scroll="{ y: tableScrollY }"
         row-key="id"
         @change="handleTableChange"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'processName'">
+          <template v-if="column.key === 'instanceNo'">
+            <a @click="openDetail(record)" style="font-family: monospace">{{ record.instanceNo || '-' }}</a>
+          </template>
+          <template v-else-if="column.key === 'processName'">
             <a @click="openDetail(record)" style="font-weight: 500">{{ record.processName || '-' }}</a>
           </template>
           <template v-else-if="column.key === 'processType'">
@@ -33,8 +46,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import dayjs from 'dayjs'
 import { getDoneTasks } from '../../api/task'
 import { getDictItemsByCode } from '../../api/dict'
 import { renderDate } from '../../utils/date'
@@ -62,15 +76,19 @@ async function loadProcessTypeDict() {
   }
 }
 
+const search = reactive({
+  processName: '',
+  processType: '',
+  dateRange: null
+})
+
 const pagination = reactive({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total) => `共 ${total} 条`
+  current: 1, pageSize: 10, total: 0,
+  showSizeChanger: true, showTotal: (total) => `共 ${total} 条`
 })
 
 const columns = [
+  { title: '流程编号', key: 'instanceNo', width: 220 },
   { title: '流程名称', dataIndex: 'processName', key: 'processName', width: 160 },
   { title: '流程类型', key: 'processType', width: 110 },
   { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName', width: 140 },
@@ -79,6 +97,45 @@ const columns = [
   { title: '节点耗时', key: 'duration', width: 120 },
   { title: '办理时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate }
 ]
+
+// 前端过滤
+const filteredData = computed(() => {
+  let list = dataList.value
+  if (search.processName) {
+    const kw = search.processName.toLowerCase()
+    list = list.filter(r => (r.processName || '').toLowerCase().includes(kw))
+  }
+  if (search.processType) {
+    const kw = search.processType.toLowerCase()
+    list = list.filter(r => {
+      const label = typeLabelMap.value[r.processType] || r.processType || ''
+      return label.toLowerCase().includes(kw)
+    })
+  }
+  if (search.dateRange && search.dateRange.length === 2) {
+    const start = search.dateRange[0].startOf('day')
+    const end = search.dateRange[1].endOf('day')
+    list = list.filter(r => {
+      if (!r.completeTime && !r.createTime) return false
+      const t = dayjs(r.completeTime || r.createTime)
+      return t.isAfter(start) && t.isBefore(end)
+    })
+  }
+  pagination.total = list.length
+  return list
+})
+
+// 表格固定高度
+const tableScrollY = ref(400)
+function calcTableHeight() {
+  nextTick(() => {
+    const tableWrap = document.querySelector('.card-wrap .ant-table-wrapper')
+    if (tableWrap) {
+      const rect = tableWrap.getBoundingClientRect()
+      tableScrollY.value = Math.max(window.innerHeight - rect.top - 56 - 16, 200)
+    }
+  })
+}
 
 /** 格式化耗时（秒 -> 可读格式） */
 function formatDuration(seconds) {
@@ -108,10 +165,19 @@ async function loadData() {
     const data = res.data || res
     dataList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     pagination.total = data.total || dataList.value.length
-  } catch {
-    // ignore
-  }
+  } catch {}
   loading.value = false
+}
+
+function handleSearch() {
+  pagination.current = 1
+}
+
+function handleReset() {
+  search.processName = ''
+  search.processType = ''
+  search.dateRange = null
+  pagination.current = 1
 }
 
 function handleTableChange(pag) {
@@ -123,5 +189,20 @@ function handleTableChange(pag) {
 onMounted(() => {
   loadProcessTypeDict()
   loadData()
+  calcTableHeight()
+  window.addEventListener('resize', calcTableHeight)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', calcTableHeight)
 })
 </script>
+
+<style scoped>
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+</style>

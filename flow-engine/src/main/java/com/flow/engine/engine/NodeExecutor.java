@@ -8,6 +8,7 @@ import com.flow.engine.node.ExecutionContext;
 import com.flow.engine.node.NodeHandler;
 import com.flow.engine.node.NodeHandlerRegistry;
 import com.flow.engine.parser.ProcessJsonParser;
+import com.flow.engine.service.NodeEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -21,6 +22,7 @@ import java.util.Set;
  * 节点执行器（ISSUE-004）
  * <p>
  * 负责调用 NodeHandler 三阶段生命周期，并根据节点类型决定流转策略。
+ * 在生命周期关键节点触发用户定义的事件脚本（beforeEnter/afterEnter/afterComplete/afterReject）。
  */
 @Slf4j
 @Component
@@ -30,6 +32,7 @@ public class NodeExecutor {
     private final NodeHandlerRegistry registry;
     private final ProcessJsonParser jsonParser;
     private final ApplicationEventPublisher eventPublisher;
+    private final NodeEventService nodeEventService;
 
     /** 自动通过的节点类型（ISSUE-011 全量内置节点） */
     private static final Set<String> AUTO_PASS_TYPES = Set.of(
@@ -53,6 +56,9 @@ public class NodeExecutor {
         String nodeType = node.getType();
         log.info("[NodeExecutor] 执行节点: id={}, type={}, name={}", node.getId(), nodeType, node.getName());
 
+        // === 触发 beforeEnter 事件脚本 ===
+        nodeEventService.fireEvent("beforeEnter", node, context);
+
         // 发布节点进入事件（携带 assignee/candidateUsers/processKey 供任务创建使用）
         Long instanceId = null;
         try {
@@ -75,6 +81,9 @@ public class NodeExecutor {
             handler.onEnter(context);
         }
 
+        // === 触发 afterEnter 事件脚本 ===
+        nodeEventService.fireEvent("afterEnter", node, context);
+
         // 2. execute
         if (handler != null) {
             handler.execute(context);
@@ -86,27 +95,32 @@ public class NodeExecutor {
         }
 
         // 根据节点类型决定流转策略
+
         if ("end".equals(nodeType)) {
+            // === 触发 afterComplete（end 节点自动通过） ===
+            nodeEventService.fireEvent("afterComplete", node, context);
             return ExecutionResult.completed();
         }
 
         if (WAIT_TYPES.contains(nodeType)) {
-            // userTask 等需要等待外部触发
+            // userTask 等需要等待外部触发，afterComplete 在任务完成时触发
             return ExecutionResult.waiting(node.getId());
         }
 
+        // === 自动通过节点：触发 afterComplete ===
+        if (AUTO_PASS_TYPES.contains(nodeType)) {
+            nodeEventService.fireEvent("afterComplete", node, context);
+        }
+
         if ("exclusiveGateway".equals(nodeType)) {
-            // 排他网关：根据条件选择一条分支
             return handleExclusiveGateway(context, node, model);
         }
 
         if ("parallelGateway".equals(nodeType)) {
-            // 并行网关：简化处理，取第一条出边
             return handleParallelGateway(context, node, model);
         }
 
         if ("inclusiveGateway".equals(nodeType)) {
-            // 包容网关：选择满足条件的分支（简化为取第一条匹配分支）
             return handleInclusiveGateway(context, node, model);
         }
 
@@ -119,6 +133,20 @@ public class NodeExecutor {
     }
 
     /**
+     * 触发节点的 afterComplete 事件（供 FlowEngine 在 userTask 完成时调用）
+     */
+    public void fireAfterComplete(NodeModel node, ExecutionContext context) {
+        nodeEventService.fireEvent("afterComplete", node, context);
+    }
+
+    /**
+     * 触发节点的 afterReject 事件（供 FlowEngine 在驳回时调用）
+     */
+    public void fireAfterReject(NodeModel node, ExecutionContext context) {
+        nodeEventService.fireEvent("afterReject", node, context);
+    }
+
+    /**
      * 处理排他网关
      */
     private ExecutionResult handleExclusiveGateway(ExecutionContext context, NodeModel node, ProcessModel model) {
@@ -127,7 +155,6 @@ public class NodeExecutor {
 
         Map<String, Object> variables = context.getAllVariables();
 
-        // 找条件匹配的边
         for (EdgeModel edge : edges) {
             if (node.getId().equals(edge.getSource()) && edge.getCondition() != null && !edge.getCondition().isBlank()) {
                 if (jsonParser.evaluateCondition(edge.getCondition(), variables)) {
@@ -140,7 +167,6 @@ public class NodeExecutor {
             }
         }
 
-        // 没有条件匹配，取默认边（无条件）
         for (EdgeModel edge : edges) {
             if (node.getId().equals(edge.getSource()) && (edge.getCondition() == null || edge.getCondition().isBlank())) {
                 return ExecutionResult.moveTo(edge.getTarget());
@@ -157,7 +183,6 @@ public class NodeExecutor {
         List<EdgeModel> edges = model.getEdges();
         if (edges == null) return ExecutionResult.completed();
 
-        // 找出所有出边
         List<EdgeModel> outgoing = edges.stream()
                 .filter(e -> node.getId().equals(e.getSource()))
                 .toList();
@@ -166,16 +191,12 @@ public class NodeExecutor {
             return ExecutionResult.completed();
         }
 
-        // 简化处理：记录并行分支数到变量，取第一条边推进
-        // 完整实现需要 fork/join 机制
         context.setVariable("_parallelBranches_" + node.getId(), outgoing.size());
         return ExecutionResult.moveTo(outgoing.get(0).getTarget());
     }
 
     /**
      * 处理包容网关（ISSUE-011）
-     * 简化实现：选择第一条满足条件的分支，与排他网关类似。
-     * 完整实现应支持多分支同时激活。
      */
     private ExecutionResult handleInclusiveGateway(ExecutionContext context, NodeModel node, ProcessModel model) {
         List<EdgeModel> edges = model.getEdges();
@@ -183,7 +204,6 @@ public class NodeExecutor {
 
         Map<String, Object> variables = context.getAllVariables();
 
-        // 找条件匹配的边
         for (EdgeModel edge : edges) {
             if (node.getId().equals(edge.getSource()) && edge.getCondition() != null && !edge.getCondition().isBlank()) {
                 if (jsonParser.evaluateCondition(edge.getCondition(), variables)) {
@@ -196,7 +216,6 @@ public class NodeExecutor {
             }
         }
 
-        // 没有条件匹配，取默认边（无条件）
         for (EdgeModel edge : edges) {
             if (node.getId().equals(edge.getSource()) && (edge.getCondition() == null || edge.getCondition().isBlank())) {
                 return ExecutionResult.moveTo(edge.getTarget());

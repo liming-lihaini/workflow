@@ -16,6 +16,9 @@ public class TaskResponse {
 
     private String processKey;
 
+    /** 流程编号（关联查询） */
+    private String instanceNo;
+
     /** 流程名称（关联查询） */
     private String processName;
 

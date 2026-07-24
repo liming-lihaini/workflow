@@ -166,7 +166,49 @@ const NT_LABELS = {
 
 const flowSequence = computed(() => {
   if (!flowNodesRaw.value.length) return []
-  return flowNodesRaw.value
+  const nodes = flowNodesRaw.value
+  const edges = flowEdgesRaw.value || []
+
+  // 构建邻接表和入度表
+  const adj = {}
+  const inDeg = {}
+  const nodeMap = {}
+  nodes.forEach(n => {
+    const id = n.id || n.nodeId
+    adj[id] = []
+    inDeg[id] = 0
+    nodeMap[id] = n
+  })
+  edges.forEach(e => {
+    const src = e.source || e.from
+    const tgt = e.target || e.to
+    if (src && tgt && adj[src]) {
+      adj[src].push(tgt)
+      inDeg[tgt] = (inDeg[tgt] || 0) + 1
+    }
+  })
+
+  // BFS 拓扑排序
+  const queue = []
+  Object.keys(inDeg).forEach(id => { if (inDeg[id] === 0) queue.push(id) })
+  const sorted = []
+  while (queue.length) {
+    const id = queue.shift()
+    sorted.push(id)
+    (adj[id] || []).forEach(next => {
+      inDeg[next]--
+      if (inDeg[next] === 0) queue.push(next)
+    })
+  }
+  // 未连线的节点补充到末尾
+  nodes.forEach(n => {
+    const id = n.id || n.nodeId
+    if (!sorted.includes(id)) sorted.push(id)
+  })
+
+  // 过滤网关并映射
+  return sorted
+    .map(id => nodeMap[id])
     .filter(n => {
       const t = n.type || n.nodeType
       return t !== 'exclusiveGateway' && t !== 'parallelGateway' && t !== 'inclusiveGateway'

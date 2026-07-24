@@ -89,6 +89,13 @@
                             <FunctionOutlined style="margin-right: 4px; color: #722ed1" />
                             <span class="calc-formula">{{ field.formula || '未配置公式' }}</span>
                           </div>
+                          <div v-if="field.type === 'subTable'" class="subtable-preview">
+                            <TableOutlined style="margin-right: 4px; color: #1677ff" />
+                            <span>{{ field.label || '子表' }}</span>
+                            <span style="color: #999; font-size: 11px; margin-left: 6px">
+                              ({{ (field.columns || []).length }} 列)
+                            </span>
+                          </div>
                         </div>
                         <DeleteOutlined class="field-delete-btn" @click.stop="removeField(cell, fIdx)" />
                       </div>
@@ -157,6 +164,37 @@
                 <div>• 示例：<code>${endTime} - ${startTime}</code></div>
               </div>
             </template>
+            <!-- 子表表格配置 -->
+            <template v-if="selectedField.type === 'subTable'">
+              <a-form-item v-if="modelSubTables.length > 0" label="绑定子表">
+                <a-select v-model:value="selectedField.subTableKey" placeholder="选择子表" allow-clear
+                  @change="(val) => handleSubTableBindChange(val, selectedField)">
+                  <a-select-option v-for="st in modelSubTables" :key="st.tableName" :value="st.tableName">
+                    {{ st.label }} ({{ st.tableName }})
+                  </a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item label="列定义">
+                <div v-for="(col, cIdx) in (selectedField.columns || [])" :key="cIdx"
+                  style="display: flex; gap: 4px; margin-bottom: 4px; align-items: center;">
+                  <a-input v-model:value="col.fieldKey" placeholder="标识" style="width: 30%" size="small" />
+                  <a-input v-model:value="col.label" placeholder="标签" style="width: 30%" size="small" />
+                  <a-select v-model:value="col.type" placeholder="类型" style="width: 25%" size="small">
+                    <a-select-option value="text">文本</a-select-option>
+                    <a-select-option value="number">数字</a-select-option>
+                    <a-select-option value="amount">金额</a-select-option>
+                    <a-select-option value="date">日期</a-select-option>
+                    <a-select-option value="select">下拉</a-select-option>
+                  </a-select>
+                  <a-button type="text" size="small" danger @click="removeSubTableColumn(selectedField, cIdx)">
+                    <DeleteOutlined />
+                  </a-button>
+                </div>
+                <a-button type="dashed" size="small" block @click="addSubTableColumn(selectedField)">
+                  + 添加列
+                </a-button>
+              </a-form-item>
+            </template>
           </a-form>
         </div>
         <div v-else class="properties-empty">
@@ -222,7 +260,7 @@ import {
   DollarOutlined, CalendarOutlined, ClockCircleOutlined,
   CheckCircleOutlined, CheckSquareOutlined,
   UploadOutlined, SelectOutlined, UserOutlined, TeamOutlined, ApartmentOutlined,
-  FunctionOutlined
+  FunctionOutlined, TableOutlined
 } from '@ant-design/icons-vue'
 import { getForm, updateForm } from '../../../api/form'
 import { getDataModelList } from '../../../api/model'
@@ -248,7 +286,8 @@ const componentTypes = [
   { type: 'file', label: '文件上传', icon: UploadOutlined },
   { type: 'user', label: '人员选择', icon: UserOutlined },
   { type: 'dept', label: '部门选择', icon: TeamOutlined },
-  { type: 'calculation', label: '计算控件', icon: FunctionOutlined }
+  { type: 'calculation', label: '计算控件', icon: FunctionOutlined },
+  { type: 'subTable', label: '子表表格', icon: TableOutlined }
 ]
 
 // Nested structure: sections → children(rows) → cells → fields
@@ -257,6 +296,7 @@ const modelList = ref([])
 const dictTypeList = ref([])
 const dictItemsCache = reactive({})
 const modelFields = ref([])
+const modelSubTables = ref([])
 const bindModelKey = ref(null)
 const selectedField = ref(null)
 const selectedSection = ref(null)
@@ -295,6 +335,24 @@ async function handleUserSearch(keyword) {
 async function loadDeptTree() { try { const res = await getDeptTree(); const d = res.data || res; deptTreeData.value = convertTree(Array.isArray(d) ? d : []) } catch {} }
 function convertTree(nodes) { return nodes.map(n => ({ title: n.deptName || n.name, value: String(n.id), key: String(n.id), children: n.children ? convertTree(n.children) : [] })) }
 function onPreviewOpen() { if (showPreview.value) loadDeptTree() }
+
+// --- SubTable helpers ---
+function handleSubTableBindChange(tableName, field) {
+  if (!tableName) { field.columns = []; return }
+  const subTable = modelSubTables.value.find(st => st.tableName === tableName)
+  if (subTable && subTable.fields) {
+    field.columns = subTable.fields.filter(f => f.fieldKey).map(f => ({
+      fieldKey: f.fieldKey, label: f.label || f.fieldKey, type: fieldTypeMap[f.type] || 'text'
+    }))
+  }
+}
+function addSubTableColumn(field) {
+  if (!field.columns) field.columns = []
+  field.columns.push({ fieldKey: '', label: '', type: 'text' })
+}
+function removeSubTableColumn(field, idx) {
+  if (field.columns) field.columns.splice(idx, 1)
+}
 
 // --- Drag & Drop ---
 function handleDragLayout(event, type) { event.dataTransfer.setData('dragType', 'layout'); event.dataTransfer.setData('layoutType', type) }
@@ -426,13 +484,14 @@ async function loadModelList() { try { const res = await getDataModelList({ page
 async function loadDictTypes() { try { const res = await getDictTypes({ page: 1, size: 100 }); const d = res.data || res; dictTypeList.value = d.records || d.list || d || [] } catch {} }
 
 async function handleModelChange(modelKey) {
-  if (!modelKey) { modelFields.value = []; return }
+  if (!modelKey) { modelFields.value = []; modelSubTables.value = []; return }
   try {
     const res = await getDataModelList({}); const d = res.data || res; const allList = Array.isArray(d) ? d : (d.records || d.list || [])
     const model = allList.find(m => m.modelKey === modelKey)
     if (!model) { message.warning('未找到数据模型'); return }
     let mj; try { mj = JSON.parse(model.modelJson || '{}') } catch { return }
     modelFields.value = mj.mainTable?.fields || []
+    modelSubTables.value = mj.subTables || []
     // Auto-generate: create one section with rows for model fields
     if (sections.value.length === 0 && modelFields.value.length > 0) {
       const sec = { id: genId('section'), title: model.modelName || '基本信息', children: [] }
@@ -567,4 +626,5 @@ onMounted(() => { loadModelList(); loadDictTypes(); loadForm() })
 .formula-help { padding: 10px; background: #f6f8fa; border-radius: 4px; font-size: 12px; color: #666; line-height: 1.8; }
 .formula-help-title { font-weight: 600; color: #333; margin-bottom: 4px; }
 .formula-help code { background: #e8e8e8; padding: 1px 4px; border-radius: 2px; font-size: 11px; color: #722ed1; }
+.subtable-preview { display: flex; align-items: center; font-size: 12px; color: #1677ff; padding: 6px 8px; background: #e6f4ff; border: 1px dashed #91caff; border-radius: 4px; }
 </style>

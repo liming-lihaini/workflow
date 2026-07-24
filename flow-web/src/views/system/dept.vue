@@ -8,7 +8,7 @@
             <a-radio-button value="table">表格视图</a-radio-button>
             <a-radio-button value="tree">树形视图</a-radio-button>
           </a-radio-group>
-          <a-button type="primary" @click="showModal()">新建部门</a-button>
+          <a-button v-if="hasPerm('system:dept:create')" type="primary" @click="showModal()">新建部门</a-button>
         </div>
       </div>
 
@@ -203,8 +203,10 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { getDeptsPage, getDeptTree, getDept, createDept, updateDept, deleteDept, setDeptLeader, getUsersPage } from '../../api/system'
 import { formatDate, renderDate } from '../../utils/date'
+import { usePermission } from '../../composables/usePermission'
 
 // ====== 通用 ======
+const { hasPerm } = usePermission()
 const viewMode = ref('table')
 const loading = ref(false)
 const dataList = ref([])

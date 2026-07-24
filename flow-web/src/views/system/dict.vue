@@ -6,7 +6,7 @@
         <div class="card-wrap">
           <div class="page-header">
             <span class="page-title">字典类型</span>
-            <a-button type="primary" size="small" @click="showTypeModal()">新建</a-button>
+            <a-button v-if="hasPerm('system:dict:create-type')" type="primary" size="small" @click="showTypeModal()">新建</a-button>
           </div>
           <a-list
             :data-source="typeList"
@@ -38,7 +38,7 @@
             <span class="page-title">
               字典项 {{ selectedType ? `（${selectedType.dictName}）` : '' }}
             </span>
-            <a-button type="primary" size="small" @click="showItemModal()" :disabled="!selectedType">
+            <a-button v-if="hasPerm('system:dict:create-item')" type="primary" size="small" @click="showItemModal()" :disabled="!selectedType">
               新建
             </a-button>
           </div>
@@ -116,7 +116,9 @@ import {
   getDictTypes, createDictType, updateDictType, deleteDictType,
   getDictItemsByTypeId, createDictItem, updateDictItem, deleteDictItem
 } from '../../api/dict'
+import { usePermission } from '../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const typeLoading = ref(false)
 const typeList = ref([])
 const selectedType = ref(null)

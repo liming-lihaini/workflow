@@ -15,6 +15,9 @@ public class ProcessInstance {
     @TableId(type = IdType.AUTO)
     private Long id;
 
+    /** 流程编号：{processKey}-{yyyyMMdd}-{4位流水号} */
+    private String instanceNo;
+
     private String processKey;
 
     private String processName;

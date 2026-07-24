@@ -20,14 +20,15 @@
           </template>
           <template v-if="column.key === 'action'">
             <span class="action-link" @click="handleView(record)">详情</span>
-            <a-divider type="vertical" v-if="record.status === 0" />
-            <a-popconfirm
-              v-if="record.status === 0"
-              title="确定终止该流程？"
-              @confirm="handleTerminate(record)"
-            >
-              <span class="action-link danger">终止</span>
-            </a-popconfirm>
+            <template v-if="record.status === 0 && hasPerm('process:instance:terminate')">
+              <a-divider type="vertical" />
+              <a-popconfirm
+                title="确定终止该流程？"
+                @confirm="handleTerminate(record)"
+              >
+                <span class="action-link danger">终止</span>
+              </a-popconfirm>
+            </template>
           </template>
         </template>
       </a-table>
@@ -53,6 +54,9 @@ import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { getProcessInstances, terminateProcessInstance } from '../../../api/process'
 import { formatDate } from '../../../utils/date'
+import { usePermission } from '../../../composables/usePermission'
+
+const { hasPerm } = usePermission()
 
 const loading = ref(false)
 const dataList = ref([])

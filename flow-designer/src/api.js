@@ -84,4 +84,18 @@ export function getRoles(params) {
   return request.get('/system/roles', { params })
 }
 
+// Webhook API
+export function getWebhooks(params) {
+  return request.get('/webhooks', { params })
+}
+export function createWebhook(data) {
+  return request.post('/webhooks', data)
+}
+export function updateWebhook(webhookKey, data) {
+  return request.put(`/webhooks/${webhookKey}`, data)
+}
+export function deleteWebhook(webhookKey) {
+  return request.delete(`/webhooks/${webhookKey}`)
+}
+
 export default request

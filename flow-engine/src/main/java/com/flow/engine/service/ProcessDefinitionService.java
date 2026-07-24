@@ -10,6 +10,7 @@ import com.flow.engine.mapper.ProcessDefinitionMapper;
 import com.flow.engine.model.ProcessModel;
 import com.flow.engine.parser.ProcessJsonParser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,6 +80,7 @@ public class ProcessDefinitionService {
      * 更新流程定义（同名 process_key 二次保存生成 version+1）
      */
     @Transactional
+    @CacheEvict(value = "processDef", allEntries = true)
     public ProcessDefinitionResponse update(Long id, ProcessDefinitionUpdateRequest request) {
         ProcessDefinition entity = definitionMapper.selectById(id);
         if (entity == null) {
@@ -184,6 +186,7 @@ public class ProcessDefinitionService {
      * 删除流程定义
      */
     @Transactional
+    @CacheEvict(value = "processDef", allEntries = true)
     public void delete(Long id) {
         ProcessDefinition entity = definitionMapper.selectById(id);
         if (entity == null) {
@@ -196,6 +199,7 @@ public class ProcessDefinitionService {
      * 部署流程定义
      */
     @Transactional
+    @CacheEvict(value = "processDef", allEntries = true)
     public ProcessDefinitionResponse deploy(Long id) {
         ProcessDefinition entity = definitionMapper.selectById(id);
         if (entity == null) {
@@ -220,6 +224,7 @@ public class ProcessDefinitionService {
      * 取消部署（已部署 → 草稿）
      */
     @Transactional
+    @CacheEvict(value = "processDef", allEntries = true)
     public ProcessDefinitionResponse undeploy(Long id) {
         ProcessDefinition entity = definitionMapper.selectById(id);
         if (entity == null) {

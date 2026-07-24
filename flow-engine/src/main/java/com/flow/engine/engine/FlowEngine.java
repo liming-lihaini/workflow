@@ -1,5 +1,6 @@
 package com.flow.engine.engine;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.flow.engine.common.BusinessException;
 import com.flow.engine.common.ErrorCode;
 import com.flow.engine.common.enums.ProcessStatus;
@@ -21,7 +22,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 /**
@@ -72,6 +75,7 @@ public class FlowEngine {
         instance.setStartUser(startUser);
         instance.setStartTime(LocalDateTime.now());
         instance.setVersion(0);
+        instance.setInstanceNo(generateInstanceNo(processKey));
         instance.setCreateTime(LocalDateTime.now());
         instance.setUpdateTime(LocalDateTime.now());
 
@@ -125,6 +129,13 @@ public class FlowEngine {
 
         // 从当前节点的下一节点继续执行
         String currentNodeId = instance.getCurrentNodeId();
+
+        // === 触发当前节点的 afterComplete 事件（userTask 完成时） ===
+        NodeModel currentNode = findNode(model, currentNodeId);
+        if (currentNode != null) {
+            nodeExecutor.fireAfterComplete(currentNode, context);
+        }
+
         NodeModel nextNode = jsonParser.getNextNode(model, currentNodeId, allVars);
 
         if (nextNode == null) {
@@ -159,6 +170,9 @@ public class FlowEngine {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "无法确定回退目标节点");
         }
 
+        // 保存驳回前的节点ID，用于触发 afterReject 事件
+        String rejectNodeId = instance.getCurrentNodeId();
+
         instance.setCurrentNodeId(targetNodeId);
         instance.setUpdateTime(LocalDateTime.now());
         instanceMapper.updateById(instance);
@@ -172,6 +186,13 @@ public class FlowEngine {
         if (targetNode != null) {
             Map<String, Object> vars = variableService.getVariables(instanceId);
             ExecutionContext context = buildContext(instance, vars);
+
+            // === 触发被驳回节点的 afterReject 事件 ===
+            NodeModel rejectNode = findNode(model, rejectNodeId);
+            if (rejectNode != null) {
+                nodeExecutor.fireAfterReject(rejectNode, context);
+            }
+
             executeFromNode(context, model, targetNode);
         }
     }
@@ -295,6 +316,32 @@ public class FlowEngine {
             variables.forEach(context::setVariable);
         }
         return context;
+    }
+
+    /**
+     * 生成流程编号：{processKey}-{yyyyMMdd}-{4位流水号}
+     */
+    private String generateInstanceNo(String processKey) {
+        String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String prefix = processKey + "-" + dateStr + "-";
+
+        // 查询当天该流程的最大编号
+        ProcessInstance maxInst = instanceMapper.selectOne(
+                new LambdaQueryWrapper<ProcessInstance>()
+                        .likeRight(ProcessInstance::getInstanceNo, prefix)
+                        .orderByDesc(ProcessInstance::getInstanceNo)
+                        .last("LIMIT 1")
+        );
+
+        int seq = 1;
+        if (maxInst != null && maxInst.getInstanceNo() != null) {
+            String lastNo = maxInst.getInstanceNo();
+            String seqStr = lastNo.substring(prefix.length());
+            try {
+                seq = Integer.parseInt(seqStr) + 1;
+            } catch (NumberFormatException ignored) {}
+        }
+        return prefix + String.format("%04d", seq);
     }
 
     private NodeModel findNode(ProcessModel model, String nodeId) {

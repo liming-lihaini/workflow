@@ -4,17 +4,22 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.flow.engine.common.BusinessException;
 import com.flow.engine.common.ErrorCode;
 import com.flow.engine.common.enums.ProcessStatus;
+import com.flow.engine.dto.ProcessDefinitionResponse;
 import com.flow.engine.dto.ProcessInstanceResponse;
 import com.flow.engine.dto.StartProcessRequest;
 import com.flow.engine.engine.FlowEngine;
 import com.flow.engine.entity.ProcessInstance;
 import com.flow.engine.mapper.ProcessInstanceMapper;
+import com.flow.engine.model.NodeModel;
+import com.flow.engine.model.ProcessModel;
+import com.flow.engine.parser.ProcessJsonParser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,6 +35,8 @@ public class ProcessInstanceService {
     private final FlowEngine flowEngine;
     private final VariableService variableService;
     private final TaskService taskService;
+    private final ProcessDefinitionService definitionService;
+    private final ProcessJsonParser jsonParser;
 
     /**
      * 发起流程实例
@@ -88,9 +95,48 @@ public class ProcessInstanceService {
         LambdaQueryWrapper<ProcessInstance> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProcessInstance::getStartUser, startUser)
                .orderByDesc(ProcessInstance::getCreateTime);
-        return instanceMapper.selectList(wrapper).stream()
-                .map(this::toResponse)
+        List<ProcessInstance> instances = instanceMapper.selectList(wrapper);
+
+        // 批量解析节点名称：按 processKey 分组，避免重复解析
+        Map<String, Map<String, String>> nodeNamesCache = new HashMap<>();
+        for (ProcessInstance inst : instances) {
+            if (inst.getProcessKey() != null && !nodeNamesCache.containsKey(inst.getProcessKey())) {
+                nodeNamesCache.put(inst.getProcessKey(), resolveNodeNames(inst.getProcessKey()));
+            }
+        }
+
+        return instances.stream()
+                .map(inst -> {
+                    ProcessInstanceResponse resp = toResponse(inst);
+                    Map<String, String> nameMap = nodeNamesCache.getOrDefault(inst.getProcessKey(), Map.of());
+                    if (inst.getCurrentNodeId() != null) {
+                        resp.setCurrentNodeName(nameMap.getOrDefault(inst.getCurrentNodeId(), inst.getCurrentNodeId()));
+                    }
+                    return resp;
+                })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据流程定义 processKey 解析所有节点的 id→name 映射
+     */
+    private Map<String, String> resolveNodeNames(String processKey) {
+        try {
+            ProcessDefinitionResponse def = definitionService.getByKey(processKey);
+            if (def != null && def.getProcessJson() != null) {
+                ProcessModel model = jsonParser.parse(def.getProcessJson());
+                if (model.getNodes() != null) {
+                    Map<String, String> map = new HashMap<>();
+                    for (NodeModel n : model.getNodes()) {
+                        map.put(n.getId(), n.getName() != null ? n.getName() : n.getId());
+                    }
+                    return map;
+                }
+            }
+        } catch (Exception e) {
+            // 解析失败时返回空映射，前端回退显示 nodeId
+        }
+        return Map.of();
     }
 
     /**
@@ -187,6 +233,7 @@ public class ProcessInstanceService {
     private ProcessInstanceResponse toResponse(ProcessInstance instance) {
         ProcessInstanceResponse response = new ProcessInstanceResponse();
         response.setId(instance.getId());
+        response.setInstanceNo(instance.getInstanceNo());
         response.setProcessKey(instance.getProcessKey());
         response.setProcessName(instance.getProcessName());
         response.setProcessVersion(instance.getProcessVersion());
@@ -202,6 +249,15 @@ public class ProcessInstanceService {
         response.setVersion(instance.getVersion());
         response.setCreateTime(instance.getCreateTime());
         response.setUpdateTime(instance.getUpdateTime());
+
+        // 解析 processType
+        try {
+            ProcessDefinitionResponse def = definitionService.getByKey(instance.getProcessKey());
+            if (def != null) {
+                response.setProcessType(def.getProcessType());
+            }
+        } catch (Exception ignored) {}
+
         return response;
     }
 }

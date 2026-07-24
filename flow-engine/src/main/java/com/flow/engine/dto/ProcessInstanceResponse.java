@@ -12,13 +12,19 @@ import java.util.Map;
 public class ProcessInstanceResponse {
 
     private Long id;
+    /** 流程编号 */
+    private String instanceNo;
     private String processKey;
     private String processName;
+    /** 流程类型 */
+    private String processType;
     private Integer processVersion;
     private String businessKey;
     private Integer status;
     private String statusDesc;
     private String currentNodeId;
+    /** 当前节点中文名称 */
+    private String currentNodeName;
     private String startUser;
     private LocalDateTime startTime;
     private LocalDateTime endTime;

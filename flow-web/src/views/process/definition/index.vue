@@ -4,7 +4,7 @@
       <div class="page-header">
         <span class="page-title">流程定义</span>
         <a-space>
-          <a-button type="primary" @click="showModal()">新建</a-button>
+          <a-button v-if="hasPerm('process:definition:create')" type="primary" @click="showModal()">新建</a-button>
           <a-button @click="loadData">刷新</a-button>
         </a-space>
       </div>
@@ -30,17 +30,25 @@
           </template>
           <template v-if="column.key === 'action'">
             <span class="action-link" @click="handleConfig(record)">配置</span>
-            <a-divider type="vertical" />
-            <span class="action-link" @click="showModal(record)">编辑</span>
-            <a-divider type="vertical" />
-            <span v-if="record.status !== 1" class="action-link" @click="handleDeploy(record)">部署</span>
-            <span v-else class="action-link" style="color: #fa8c16" @click="handleUndeploy(record)">取消部署</span>
-            <a-divider type="vertical" />
-            <span class="action-link" @click="handleExport(record)">导出</span>
-            <a-divider type="vertical" />
-            <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
-              <span class="action-link danger">删除</span>
-            </a-popconfirm>
+            <template v-if="hasPerm('process:definition:update')">
+              <a-divider type="vertical" />
+              <span class="action-link" @click="showModal(record)">编辑</span>
+            </template>
+            <template v-if="hasPerm('process:definition:deploy')">
+              <a-divider type="vertical" />
+              <span v-if="record.status !== 1" class="action-link" @click="handleDeploy(record)">部署</span>
+              <span v-else class="action-link" style="color: #fa8c16" @click="handleUndeploy(record)">取消部署</span>
+            </template>
+            <template v-if="hasPerm('process:definition:export')">
+              <a-divider type="vertical" />
+              <span class="action-link" @click="handleExport(record)">导出</span>
+            </template>
+            <template v-if="hasPerm('process:definition:delete')">
+              <a-divider type="vertical" />
+              <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
+                <span class="action-link danger">删除</span>
+              </a-popconfirm>
+            </template>
           </template>
         </template>
       </a-table>
@@ -110,8 +118,10 @@ import {
 } from '../../../api/process'
 import { getDictItemsByCode } from '../../../api/dict'
 import { renderDate } from '../../../utils/date'
+import { usePermission } from '../../../composables/usePermission'
 
 const router = useRouter()
+const { hasPerm } = usePermission()
 const loading = ref(false)
 const submitLoading = ref(false)
 const dataList = ref([])

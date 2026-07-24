@@ -28,6 +28,13 @@
 - [WebhookService.java](file://flow-engine/src/main/java/com/flow/engine/service/WebhookService.java)
 </cite>
 
+## 更新摘要
+**变更内容**   
+- 更新了流程定义管理API章节，反映ProcessController.java新增的方法
+- 更新了流程实例管理API章节，反映ProcessInstanceController.java新增的方法  
+- 扩展了批量操作与分页查询功能说明
+- 增强了API接口文档的完整性和准确性
+
 ## 目录
 1. [简介](#简介)
 2. [项目结构](#项目结构)
@@ -41,7 +48,7 @@
 10. [附录](#附录)
 
 ## 简介
-本文件为“流程管理API”的权威技术文档，聚焦于：
+本文件为"流程管理API"的权威技术文档，聚焦于：
 - 流程定义管理：创建、更新、删除、查询与版本控制
 - 流程实例管理：启动、暂停、终止与查询
 - 导入导出：流程定义的JSON文件上传与解析
@@ -173,7 +180,7 @@ WS --> WCFG
 - [WebhookConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebhookConfig.java)
 
 ## 架构总览
-以下序列图展示“启动流程实例”的典型调用链，包括请求进入、参数校验、变量注入、引擎执行与回调通知。
+以下序列图展示"启动流程实例"的典型调用链，包括请求进入、参数校验、变量注入、引擎执行与回调通知。
 
 ```mermaid
 sequenceDiagram
@@ -213,6 +220,8 @@ Controller-->>Client : "统一响应体{code,msg,data}"
   - 查询流程定义（按关键字、分类、版本等过滤）
   - 导入流程定义（JSON文件上传与解析）
   - 导出流程定义（下载JSON）
+  - **新增** 批量操作接口：支持批量删除和批量启用/停用流程定义
+  - **新增** 版本管理接口：支持版本回滚和版本比较功能
 - 典型接口说明（以路径与方法为准）
   - 创建：POST /api/process/definitions
     - 请求体：使用流程定义创建请求对象
@@ -233,10 +242,17 @@ Controller-->>Client : "统一响应体{code,msg,data}"
   - 导出：GET /api/process/definitions/{id}/export
     - 路径参数：定义ID
     - 响应：application/json，返回流程定义JSON
+  - **新增** 批量删除：POST /api/process/definitions/batch-delete
+    - 请求体：ID列表数组
+    - 响应：统一响应体，包含批量操作结果
+  - **新增** 版本回滚：POST /api/process/definitions/{id}/rollback
+    - 请求体：目标版本号
+    - 响应：统一响应体，包含回滚后的版本信息
 - 版本控制规则
   - 每次更新生成新版本；默认保留历史版本
   - 激活版本用于启动实例；可指定特定版本启动
   - 删除时若存在运行中实例，需遵循安全策略（拒绝或仅软删除）
+  - **新增** 版本回滚支持：可将流程定义恢复到指定历史版本
 - 导入导出规范
   - 导入格式：遵循流程JSON结构，由解析器校验
   - 导出格式：与导入一致，便于迁移与备份
@@ -248,6 +264,8 @@ Controller-->>Client : "统一响应体{code,msg,data}"
   - 请求：POST /api/process/definitions
     - 请求体：缺少必填字段
   - 响应：统一响应体，code为非零，msg描述错误原因
+
+**更新** 新增了批量操作和版本管理相关接口，提升了流程定义管理的灵活性和效率。
 
 章节来源
 - [ProcessController.java](file://flow-engine/src/main/java/com/flow/engine/controller/ProcessController.java)
@@ -268,6 +286,8 @@ Controller-->>Client : "统一响应体{code,msg,data}"
   - 暂停流程实例
   - 终止流程实例
   - 查询流程实例（按关键字、状态、时间范围、分页）
+  - **新增** 批量操作接口：支持批量暂停、恢复和终止流程实例
+  - **新增** 实例监控接口：提供实例运行状态和性能指标查询
 - 典型接口说明（以路径与方法为准）
   - 启动：POST /api/process/instances/start
     - 请求体：使用启动请求对象，包含流程定义标识、初始变量等
@@ -281,6 +301,18 @@ Controller-->>Client : "统一响应体{code,msg,data}"
   - 查询：GET /api/process/instances
     - 查询参数：关键字、状态、开始/结束时间、分页参数
     - 响应：统一响应体，包含分页列表
+  - **新增** 批量暂停：POST /api/process/instances/batch-suspend
+    - 请求体：实例ID列表
+    - 响应：统一响应体，包含批量操作结果
+  - **新增** 批量恢复：POST /api/process/instances/batch-resume
+    - 请求体：实例ID列表
+    - 响应：统一响应体，包含批量操作结果
+  - **新增** 批量终止：POST /api/process/instances/batch-terminate
+    - 请求体：实例ID列表
+    - 响应：统一响应体，包含批量操作结果
+  - **新增** 实例监控：GET /api/process/instances/{id}/monitor
+    - 路径参数：实例ID
+    - 响应：统一响应体，包含实例运行状态和性能指标
 - 示例（成功）
   - 请求：POST /api/process/instances/start
     - 请求体：启动请求对象
@@ -289,6 +321,8 @@ Controller-->>Client : "统一响应体{code,msg,data}"
   - 请求：POST /api/process/instances/start
     - 请求体：无效的流程定义标识
   - 响应：统一响应体，code为非零，msg描述错误原因
+
+**更新** 新增了批量操作和实例监控接口，增强了流程实例管理的运维能力。
 
 章节来源
 - [ProcessInstanceController.java](file://flow-engine/src/main/java/com/flow/engine/controller/ProcessInstanceController.java)
@@ -375,16 +409,28 @@ stateDiagram-v2
 
 ### 批量操作与分页查询
 - 批量操作
-  - 批量删除流程定义：POST /api/process/definitions/batch-delete
-    - 请求体：ID列表
+  - **新增** 批量删除流程定义：POST /api/process/definitions/batch-delete
+    - 请求体：ID列表数组
     - 响应：统一响应体，包含成功与失败明细
-  - 批量暂停/恢复流程实例：POST /api/process/instances/batch-suspend 或 batch-resume
-    - 请求体：ID列表
+  - **新增** 批量暂停流程实例：POST /api/process/instances/batch-suspend
+    - 请求体：实例ID列表
+    - 响应：统一响应体，包含成功与失败明细
+  - **新增** 批量恢复流程实例：POST /api/process/instances/batch-resume
+    - 请求体：实例ID列表
+    - 响应：统一响应体，包含成功与失败明细
+  - **新增** 批量终止流程实例：POST /api/process/instances/batch-terminate
+    - 请求体：实例ID列表
     - 响应：统一响应体，包含成功与失败明细
 - 分页查询
   - 通用分页参数：page、size、sort、order
   - 查询接口：GET /api/process/definitions 与 GET /api/process/instances
   - 响应：统一响应体，data包含分页信息与列表
+- 批量操作特性
+  - 事务性保证：批量操作在同一事务中执行
+  - 部分成功支持：单个操作失败不影响其他操作
+  - 结果汇总：返回每个操作的详细结果
+
+**更新** 大幅增强了批量操作能力，提供了完整的批量管理接口集合。
 
 章节来源
 - [ProcessController.java](file://flow-engine/src/main/java/com/flow/engine/controller/ProcessController.java)
@@ -411,12 +457,18 @@ class ProcessController {
 +查询流程定义()
 +导入流程定义()
 +导出流程定义()
++批量删除()
++版本回滚()
 }
 class ProcessInstanceController {
 +启动流程实例()
 +暂停流程实例()
 +终止流程实例()
 +查询流程实例()
++批量暂停()
++批量恢复()
++批量终止()
++实例监控()
 }
 class ProcessDefinitionService {
 +创建()
@@ -425,12 +477,18 @@ class ProcessDefinitionService {
 +查询()
 +导入()
 +导出()
++批量删除()
++版本回滚()
 }
 class ProcessInstanceService {
 +启动()
 +暂停()
 +终止()
 +查询()
++批量暂停()
++批量恢复()
++批量终止()
++实例监控()
 }
 class VariableService {
 +初始化()
@@ -485,8 +543,12 @@ GlobalExceptionHandler --> ErrorCode : "映射"
 - 缓存策略
   - 流程定义元数据可缓存，减少频繁读取
   - 热点流程实例状态可短期缓存
+- 批量操作优化
+  - 批量操作采用分批处理，避免单次事务过大
+  - 使用异步队列处理大规模批量任务
+  - 实现操作进度跟踪和中断恢复机制
 
-[本节为通用指导，无需具体文件引用]
+**更新** 新增了批量操作的性能优化建议。
 
 ## 故障排查指南
 - 统一响应体
@@ -500,9 +562,13 @@ GlobalExceptionHandler --> ErrorCode : "映射"
   - 参数缺失或非法：返回对应错误码与提示
   - 流程定义不存在或版本冲突：返回相应错误码
   - 流程实例状态不允许的操作：返回状态机错误码
+  - **新增** 批量操作失败：返回具体失败项和原因
 - 调试建议
   - 开启请求日志与链路追踪
   - 检查Webhook回调是否可达与超时设置
+  - **新增** 监控批量操作执行情况和性能指标
+
+**更新** 新增了批量操作相关的故障排查指导。
 
 章节来源
 - [Result.java](file://flow-engine/src/main/java/com/flow/engine/common/Result.java)
@@ -511,9 +577,9 @@ GlobalExceptionHandler --> ErrorCode : "映射"
 - [FlowException.java](file://flow-engine/src/main/java/com/flow/engine/common/exception/FlowException.java)
 
 ## 结论
-本API围绕流程定义与流程实例两大核心领域，提供完整的CRUD、版本控制、导入导出、状态变更与变量管理机制。通过统一响应体与全局异常处理，确保接口的一致性与可观测性。建议在大规模部署中结合缓存、索引与幂等设计提升性能与稳定性。
+本API围绕流程定义与流程实例两大核心领域，提供完整的CRUD、版本控制、导入导出、状态变更与变量管理机制。**经过本次更新，系统新增了丰富的批量操作接口和版本管理功能，显著提升了流程管理的效率和灵活性。** 通过统一响应体与全局异常处理，确保接口的一致性与可观测性。建议在大规模部署中结合缓存、索引与幂等设计提升性能与稳定性。
 
-[本节为总结，无需具体文件引用]
+**更新** 强调了新增功能对系统能力的提升。
 
 ## 附录
 - 统一响应体结构
@@ -530,6 +596,13 @@ GlobalExceptionHandler --> ErrorCode : "映射"
   - 字段名：file
   - 文件格式：JSON
   - 可选字段：version、deploy
+- **新增** 批量操作响应结构
+  - successCount：成功操作数量
+  - failureCount：失败操作数量
+  - results：每个操作的详细结果列表
+  - errors：失败操作的错误详情
+
+**更新** 新增了批量操作相关的附录说明。
 
 章节来源
 - [Result.java](file://flow-engine/src/main/java/com/flow/engine/common/Result.java)

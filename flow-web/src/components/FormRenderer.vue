@@ -15,7 +15,18 @@
                 :span="24 / (row.columns || 1)"
               >
                 <template v-for="(field, fIdx) in (cell.fields || [])" :key="field.id || fIdx">
+                  <!-- 子表表格：占满整行 -->
+                  <template v-if="field.type === 'subTable'">
+                    <a-divider orientation="left" style="margin: 4px 0 8px">{{ field.label || '子表' }}</a-divider>
+                    <SubTableRenderer
+                      :field="field"
+                      :model-value="localValues[field.field || field.key] || []"
+                      :mode="mode"
+                      @update:model-value="(val) => { localValues[field.field || field.key] = val; emit('update:modelValue', { ...localValues }) }"
+                    />
+                  </template>
                   <a-form-item
+                    v-else
                     :label="field.label || field.field"
                     :required="field.required"
                     style="margin-bottom: 12px"
@@ -83,6 +94,7 @@ import {
   Input, Textarea, InputNumber, DatePicker, TimePicker,
   Select, Radio, Checkbox, TreeSelect, Cascader, Upload, Button, Tag
 } from 'ant-design-vue'
+import SubTableRenderer from './SubTableRenderer.vue'
 
 const props = defineProps({
   /** formJson 字符串或对象（sections 嵌套结构或旧 fields 结构） */
@@ -239,6 +251,10 @@ function getFieldOptions(field) {
 
 // 只读模式显示值
 function getDisplayValue(field) {
+  if (field.type === 'subTable') {
+    const arr = localValues.value[field.field || field.key]
+    return Array.isArray(arr) ? `${arr.length} 行数据` : '-'
+  }
   if (field.type === 'calculation') return computeCalcValue(field)
   const key = field.field || field.key
   const val = localValues.value[key]

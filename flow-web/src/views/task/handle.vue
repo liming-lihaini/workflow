@@ -86,21 +86,24 @@
               <!-- 底部操作按钮 -->
               <div class="opt-bottom">
                 <div class="btn-group">
-                  <template v-if="nodeActions.includes('approve')">
+                  <template v-if="nodeActions.includes('approve') && hasPerm('task:todo:complete')">
                     <a-button class="btn-agree" type="primary" @click="handleApprove" :loading="submitLoading">
-                      同意提交下一节点
+                      提交
                     </a-button>
                   </template>
-                  <template v-if="nodeActions.includes('reject')">
+                  <template v-if="nodeActions.includes('reject') && hasPerm('task:todo:reject')">
                     <a-button class="btn-refuse" danger @click="handleReject" :loading="submitLoading">
-                      驳回至申请人
+                      驳回
                     </a-button>
                   </template>
-                  <template v-if="nodeActions.includes('transfer')">
+                  <template v-if="nodeActions.includes('transfer') && hasPerm('task:todo:transfer')">
                     <a-button class="btn-transfer" @click="showTransferModal">转发他人处理</a-button>
                   </template>
-                  <template v-if="nodeActions.includes('delegate')">
+                  <template v-if="nodeActions.includes('delegate') && hasPerm('task:todo:delegate')">
                     <a-button class="btn-addsign" @click="showDelegateModal">委派协同审批</a-button>
+                  </template>
+                  <template v-if="nodeActions.includes('addSign')">
+                    <a-button class="btn-addsign" @click="showAddSignModal">加签</a-button>
                   </template>
                   <a-button class="btn-back" @click="goBack">返回列表</a-button>
                 </div>
@@ -165,23 +168,44 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 加签弹窗 -->
+    <a-modal v-model:open="addSignVisible" title="加签" @ok="doAddSign" :width="520">
+      <a-form layout="vertical">
+        <a-form-item label="加签类型" required>
+          <a-radio-group v-model:value="addSignForm.signType">
+            <a-radio value="before">前加签（被加签人先审批）</a-radio>
+            <a-radio value="after">后加签（原审批人先审批）</a-radio>
+            <a-radio value="parallel">并行加签（同时审批）</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item label="被加签人" required>
+          <a-input v-model:value="addSignForm.targetUsers" placeholder="输入用户ID，多个用逗号分隔" />
+        </a-form-item>
+        <a-form-item label="加签原因">
+          <a-textarea v-model:value="addSignForm.reason" :rows="3" placeholder="请输入加签原因" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { getTaskDetail, getTasksByInstance, completeTask, rejectTask, transferTask, delegateTask } from '../../api/task'
+import { getTaskDetail, getTasksByInstance, completeTask, rejectTask, transferTask, delegateTask, addSign } from '../../api/task'
 import { getProcessInstance, getProcessVariables, getProcessDefinitionByKey } from '../../api/process'
 import { getForm } from '../../api/form'
 import { formatDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
+import { usePermission } from '../../composables/usePermission'
 import FormRenderer from '../../components/FormRenderer.vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const { hasPerm } = usePermission()
 
 const taskId = computed(() => route.query.id)
 const instanceId = computed(() => route.query.instanceId)
@@ -219,6 +243,14 @@ const transferVisible = ref(false)
 const transferUserId = ref('')
 const delegateVisible = ref(false)
 const delegateUserId = ref('')
+
+// 加签
+const addSignVisible = ref(false)
+const addSignForm = reactive({
+  signType: 'parallel',
+  targetUsers: '',
+  reason: ''
+})
 
 const ACTION_MAP = { 0: '操作', 1: '审批操作：同意', 2: '操作：驳回', 3: '操作：转办', 4: '操作：委派', 5: '操作：取消' }
 
@@ -449,6 +481,12 @@ async function handleReject() {
 
 function showTransferModal() { transferUserId.value = ''; transferVisible.value = true }
 function showDelegateModal() { delegateUserId.value = ''; delegateVisible.value = true }
+function showAddSignModal() {
+  addSignForm.signType = 'parallel'
+  addSignForm.targetUsers = ''
+  addSignForm.reason = ''
+  addSignVisible.value = true
+}
 
 async function doTransfer() {
   if (!transferUserId.value.trim()) { message.warning('请输入转办目标用户ID'); return }
@@ -469,6 +507,23 @@ async function doDelegate() {
       delegateUserId: delegateUserId.value.trim()
     })
     message.success('委派成功'); delegateVisible.value = false; goBack()
+  } catch {}
+}
+
+async function doAddSign() {
+  if (!addSignForm.targetUsers.trim()) { message.warning('请输入被加签人'); return }
+  const targetUsers = addSignForm.targetUsers.split(',').map(u => u.trim()).filter(Boolean)
+  if (targetUsers.length === 0) { message.warning('请输入有效的被加签人'); return }
+  try {
+    await addSign(currentTask.value.id, {
+      operatorId: userStore.username || currentTask.value.assignee,
+      signType: addSignForm.signType,
+      targetUsers,
+      reason: addSignForm.reason
+    })
+    message.success('加签成功')
+    addSignVisible.value = false
+    loadAll() // 刷新任务详情
   } catch {}
 }
 

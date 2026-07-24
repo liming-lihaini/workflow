@@ -3,7 +3,7 @@
     <div class="card-wrap">
       <div class="page-header">
         <span class="page-title">角色管理</span>
-        <a-button type="primary" @click="showModal()">新建角色</a-button>
+        <a-button v-if="hasPerm('system:role:create')" type="primary" @click="showModal()">新建角色</a-button>
       </div>
 
       <a-table
@@ -64,7 +64,9 @@ import { message } from 'ant-design-vue'
 import { getRoles, createRole, updateRole, deleteRole, getRolePermissions, assignRolePermissions } from '../../api/system'
 import { getPermissionsGrouped } from '../../api/system'
 import { renderDate } from '../../utils/date'
+import { usePermission } from '../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const loading = ref(false)
 const dataList = ref([])
 const modalVisible = ref(false)

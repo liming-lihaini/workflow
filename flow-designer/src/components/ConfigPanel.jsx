@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { NODE_TYPES_CONFIG, EDGE_SCHEMA } from '../nodeTypes'
-import { getFormAll, getForm, getUsersPage, getRoles } from '../api'
+import { getFormAll, getForm, getUsersPage, getRoles, getWebhooks, createWebhook, updateWebhook, deleteWebhook } from '../api'
 
 function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigChange, onEdgeConfigChange }) {
   const [formList, setFormList] = useState([])
@@ -10,6 +10,9 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
   const [userSearchLoading, setUserSearchLoading] = useState(false)
   const [processFormName, setProcessFormName] = useState('')
   const [roleList, setRoleList] = useState([])
+  const [webhookList, setWebhookList] = useState([])
+  const [webhookFormVisible, setWebhookFormVisible] = useState(false)
+  const [webhookForm, setWebhookForm] = useState({ webhookKey: '', name: '', url: '', method: 'POST', triggerEvents: [], timeout: 5000, retryCount: 3, processKey: '', nodeId: '' })
   const searchTimer = useRef(null)
 
   useEffect(() => {
@@ -165,6 +168,8 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
       tabs.push({ key: 'formPerm', label: '表单权限' })
       tabs.push({ key: 'opPerm', label: '操作权限' })
     }
+    tabs.push({ key: 'event', label: '事件定义' })
+    tabs.push({ key: 'webhook', label: 'Webhook' })
 
     return (
       <div className="config-panel">
@@ -443,6 +448,146 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
                   })}
                 </>
               )}
+            </div>
+          )}
+
+          {/* ===== 事件定义 ===== */}
+          {activeSection === 'event' && selectedNode && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div className="config-label" style={{ fontWeight: 500, margin: 0 }}>节点事件处理器</div>
+                <button onClick={() => {
+                  const events = selectedNode.data.events || []
+                  onNodeConfigChange(selectedNode.id, 'events', [...events, {
+                    id: 'evt_' + Date.now(), eventType: 'beforeEnter', language: 'groovy', script: ''
+                  }])
+                }} style={{ fontSize: 11, padding: '2px 10px', border: '1px solid #1677ff', background: '#fff', color: '#1677ff', borderRadius: 3, cursor: 'pointer' }}>
+                  + 添加事件
+                </button>
+              </div>
+              {(selectedNode.data.events || []).length === 0 && (
+                <div style={{ color: '#999', fontSize: 12, padding: 16, textAlign: 'center' }}>暂无事件处理器</div>
+              )}
+              {(selectedNode.data.events || []).map((evt, idx) => (
+                <div key={evt.id || idx} style={{ border: '1px solid #e8e8e8', borderRadius: 4, padding: 8, marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <select value={evt.eventType} onChange={(e) => {
+                      const events = [...(selectedNode.data.events || [])]
+                      events[idx] = { ...events[idx], eventType: e.target.value }
+                      onNodeConfigChange(selectedNode.id, 'events', events)
+                    }} style={{ fontSize: 12, padding: '2px 6px', border: '1px solid #d9d9d9', borderRadius: 3 }}>
+                      <option value="beforeEnter">节点进入前</option>
+                      <option value="afterEnter">节点进入后</option>
+                      <option value="afterComplete">节点通过后</option>
+                      <option value="afterReject">节点驳回后</option>
+                    </select>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <select value={evt.language} onChange={(e) => {
+                        const events = [...(selectedNode.data.events || [])]
+                        events[idx] = { ...events[idx], language: e.target.value }
+                        onNodeConfigChange(selectedNode.id, 'events', events)
+                      }} style={{ fontSize: 12, padding: '2px 6px', border: '1px solid #d9d9d9', borderRadius: 3 }}>
+                        <option value="groovy">Groovy</option>
+                        <option value="python">Python</option>
+                      </select>
+                      <button onClick={() => {
+                        const events = [...(selectedNode.data.events || [])]
+                        events.splice(idx, 1)
+                        onNodeConfigChange(selectedNode.id, 'events', events)
+                      }} style={{ fontSize: 11, color: '#f53f3f', background: 'none', border: 'none', cursor: 'pointer' }}>删除</button>
+                    </div>
+                  </div>
+                  <textarea value={evt.script || ''} onChange={(e) => {
+                    const events = [...(selectedNode.data.events || [])]
+                    events[idx] = { ...events[idx], script: e.target.value }
+                    onNodeConfigChange(selectedNode.id, 'events', events)
+                  }} placeholder="输入脚本代码..." rows={4}
+                    style={{ width: '100%', fontSize: 11, fontFamily: 'monospace', padding: 6, border: '1px solid #d9d9d9', borderRadius: 3, resize: 'vertical', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+              <div style={{ fontSize: 11, color: '#999', lineHeight: 1.6, padding: '8px 0' }}>
+                <div>可用变量：processInstanceId, nodeId, variables</div>
+                <div>事件触发顺序：beforeEnter → afterEnter → afterComplete/afterReject</div>
+              </div>
+            </div>
+          )}
+
+          {/* ===== Webhook ===== */}
+          {activeSection === 'webhook' && selectedNode && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div className="config-label" style={{ fontWeight: 500, margin: 0 }}>Webhook 配置</div>
+                <button onClick={() => {
+                  setWebhookForm({ webhookKey: '', name: '', url: '', method: 'POST', triggerEvents: ['NODE_ENTERED'], timeout: 5000, retryCount: 3, processKey: '', nodeId: selectedNode.data.nodeId || '' })
+                  setWebhookFormVisible(true)
+                }} style={{ fontSize: 11, padding: '2px 10px', border: '1px solid #1677ff', background: '#fff', color: '#1677ff', borderRadius: 3, cursor: 'pointer' }}>
+                  + 新建
+                </button>
+              </div>
+              {webhookFormVisible && (
+                <div style={{ border: '1px solid #1677ff', borderRadius: 4, padding: 8, marginBottom: 8 }}>
+                  <div className="config-form-item">
+                    <label className="config-label">Webhook Key</label>
+                    <input className="config-input" value={webhookForm.webhookKey}
+                      onChange={(e) => setWebhookForm({ ...webhookForm, webhookKey: e.target.value })}
+                      placeholder="唯一标识" />
+                  </div>
+                  <div className="config-form-item">
+                    <label className="config-label">名称</label>
+                    <input className="config-input" value={webhookForm.name}
+                      onChange={(e) => setWebhookForm({ ...webhookForm, name: e.target.value })}
+                      placeholder="Webhook名称" />
+                  </div>
+                  <div className="config-form-item">
+                    <label className="config-label">回调URL</label>
+                    <input className="config-input" value={webhookForm.url}
+                      onChange={(e) => setWebhookForm({ ...webhookForm, url: e.target.value })}
+                      placeholder="https://example.com/callback" />
+                  </div>
+                  <div className="config-form-item">
+                    <label className="config-label">HTTP方法</label>
+                    <select className="config-select" value={webhookForm.method}
+                      onChange={(e) => setWebhookForm({ ...webhookForm, method: e.target.value })}>
+                      <option value="POST">POST</option>
+                      <option value="PUT">PUT</option>
+                      <option value="GET">GET</option>
+                    </select>
+                  </div>
+                  <div className="config-form-item">
+                    <label className="config-label">触发事件</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {['PROCESS_STARTED', 'NODE_ENTERED', 'NODE_COMPLETED', 'PROCESS_COMPLETED'].map(ev => (
+                        <label key={ev} style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <input type="checkbox" checked={webhookForm.triggerEvents.includes(ev)}
+                            onChange={(e) => {
+                              const events = e.target.checked
+                                ? [...webhookForm.triggerEvents, ev]
+                                : webhookForm.triggerEvents.filter(x => x !== ev)
+                              setWebhookForm({ ...webhookForm, triggerEvents: events })
+                            }} />
+                          {ev.replace('PROCESS_', '').replace('NODE_', '')}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+                    <button onClick={async () => {
+                      try {
+                        if (webhookForm.webhookKey) {
+                          await createWebhook(webhookForm)
+                        }
+                        setWebhookFormVisible(false)
+                      } catch (e) { alert(e.message) }
+                    }} style={{ fontSize: 11, padding: '4px 12px', background: '#1677ff', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>保存</button>
+                    <button onClick={() => setWebhookFormVisible(false)}
+                      style={{ fontSize: 11, padding: '4px 12px', background: '#fff', border: '1px solid #d9d9d9', borderRadius: 3, cursor: 'pointer' }}>取消</button>
+                  </div>
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: '#999', padding: '8px 0' }}>
+                <div>Webhook 在流程事件发生时自动触发回调。</div>
+                <div>绑定节点ID：{selectedNode.data.nodeId || selectedNode.id}</div>
+              </div>
             </div>
           )}
         </div>
