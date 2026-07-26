@@ -96,6 +96,11 @@
                               ({{ (field.columns || []).length }} 列)
                             </span>
                           </div>
+                          <div v-if="field.type === 'data-ref'" class="dataref-preview">
+                            <ApiOutlined style="margin-right: 4px; color: #13c2c2" />
+                            <span>{{ field.label || '接口引用' }}</span>
+                            <a-tag v-if="field.display?.mode" size="small" color="cyan" style="margin-left: 6px">{{ field.display.mode }}</a-tag>
+                          </div>
                         </div>
                         <DeleteOutlined class="field-delete-btn" @click.stop="removeField(cell, fIdx)" />
                       </div>
@@ -195,6 +200,92 @@
                 </a-button>
               </a-form-item>
             </template>
+            <!-- DataRef 接口引用配置 -->
+            <template v-if="selectedField.type === 'data-ref'">
+              <a-divider orientation="left" style="margin: 8px 0; font-size: 12px">数据源</a-divider>
+              <a-form-item label="接口地址">
+                <a-input v-model:value="selectedField.dataSource.url" placeholder="/api/v1/xxx" />
+              </a-form-item>
+              <a-form-item label="请求方法">
+                <a-select v-model:value="selectedField.dataSource.method" size="small">
+                  <a-select-option value="GET">GET</a-select-option>
+                  <a-select-option value="POST">POST</a-select-option>
+                </a-select>
+              </a-form-item>
+              <a-form-item label="请求头 (JSON)">
+                <a-textarea v-model:value="dataRefHeadersText" :rows="2" placeholder='{"X-Token":"abc"}' @change="parseDataRefHeaders" />
+              </a-form-item>
+              <a-form-item label="请求参数">
+                <div v-for="(entry, pIdx) in dataRefParamEntries" :key="pIdx"
+                  style="display: flex; gap: 4px; margin-bottom: 4px; align-items: center;">
+                  <a-input v-model:value="entry.key" placeholder="参数名" style="width: 35%" size="small" />
+                  <a-input v-model:value="entry.value" placeholder="值 (支持${字段名})" style="width: 45%" size="small" />
+                  <a-button type="text" size="small" danger @click="removeDataRefParam(pIdx)"><DeleteOutlined /></a-button>
+                </div>
+                <a-button type="dashed" size="small" block @click="addDataRefParam">+ 添加参数</a-button>
+              </a-form-item>
+              <a-form-item label="数据路径 (dataPath)">
+                <a-input v-model:value="selectedField.dataSource.dataPath" placeholder="data" size="small" />
+                <div class="formula-help" style="margin-top: 4px">响应体中数据所在的点路径，如 <code>data</code> 或 <code>data.list</code></div>
+              </a-form-item>
+              <a-form-item label="Watch 联动字段">
+                <a-input v-model:value="dataRefWatchText" placeholder="字段1,字段2 (逗号分隔)"
+                  @change="(e) => { selectedField.dataSource.watch = (e.target.value || '').split(',').map(s => s.trim()).filter(Boolean) }" />
+                <div class="formula-help" style="margin-top: 4px">这些表单字段变化时自动重新拉取数据</div>
+              </a-form-item>
+
+              <a-divider orientation="left" style="margin: 8px 0; font-size: 12px">显示模式</a-divider>
+              <a-form-item label="模式">
+                <a-radio-group v-model:value="selectedField.display.mode" size="small">
+                  <a-radio-button value="text">单文本</a-radio-button>
+                  <a-radio-button value="texts">多文本</a-radio-button>
+                  <a-radio-button value="table">表格</a-radio-button>
+                </a-radio-group>
+              </a-form-item>
+              <!-- text 模式 -->
+              <a-form-item v-if="selectedField.display.mode === 'text'" label="取值路径 (valuePath)">
+                <a-input v-model:value="selectedField.display.valuePath" placeholder="如 name" size="small" />
+                <div class="formula-help" style="margin-top: 4px">从数据中取的单个字段路径</div>
+              </a-form-item>
+              <!-- texts 模式 -->
+              <template v-if="selectedField.display.mode === 'texts'">
+                <a-form-item label="字段列表">
+                  <div v-for="(f, fIdx) in (selectedField.display.fields || [])" :key="fIdx"
+                    style="display: flex; gap: 4px; margin-bottom: 4px; align-items: center;">
+                    <a-input v-model:value="f.path" placeholder="路径" style="width: 40%" size="small" />
+                    <a-input v-model:value="f.label" placeholder="标签" style="width: 40%" size="small" />
+                    <a-button type="text" size="small" danger @click="removeDataRefField(fIdx)"><DeleteOutlined /></a-button>
+                  </div>
+                  <a-button type="dashed" size="small" block @click="addDataRefField">+ 添加字段</a-button>
+                </a-form-item>
+              </template>
+              <!-- table 模式 -->
+              <template v-if="selectedField.display.mode === 'table'">
+                <a-form-item label="列定义">
+                  <div v-for="(col, cIdx) in (selectedField.display.columns || [])" :key="cIdx"
+                    style="display: flex; gap: 4px; margin-bottom: 4px; align-items: center; flex-wrap: wrap;">
+                    <a-input v-model:value="col.path" placeholder="路径" style="width: 25%" size="small" />
+                    <a-input v-model:value="col.label" placeholder="标签" style="width: 25%" size="small" />
+                    <a-select v-model:value="col.type" placeholder="类型" style="width: 22%" size="small" allow-clear>
+                      <a-select-option value="tag">标签转译</a-select-option>
+                    </a-select>
+                    <a-button type="text" size="small" danger @click="removeDataRefColumn(cIdx)"><DeleteOutlined /></a-button>
+                    <a-input v-if="col.type === 'tag'" v-model:value="col.optionsJson" placeholder='{"1":"启用","0":"停用"}' style="width: 100%; margin-top: 2px" size="small" />
+                  </div>
+                  <a-button type="dashed" size="small" block @click="addDataRefColumn">+ 添加列</a-button>
+                </a-form-item>
+              </template>
+
+              <a-divider orientation="left" style="margin: 8px 0; font-size: 12px">回写</a-divider>
+              <a-form-item label="回写表单值">
+                <a-switch v-model:checked="selectedField.bindToForm" />
+                <div class="formula-help" style="margin-top: 4px">
+                  <template v-if="selectedField.display.mode === 'text'">回写: form[{{ selectedField.field }}] = 单个值</template>
+                  <template v-else-if="selectedField.display.mode === 'texts'">回写: form[{{ selectedField.field }}] = { path: 值, ... }</template>
+                  <template v-else>回写: form[{{ selectedField.field }}] = 整个数组</template>
+                </div>
+              </a-form-item>
+            </template>
           </a-form>
         </div>
         <div v-else class="properties-empty">
@@ -238,6 +329,14 @@
                     <FunctionOutlined style="margin-right: 4px; color: #722ed1" />
                     <span>{{ computeFormula(field, previewData) }}</span>
                   </div>
+                  <!-- DataRef 接口引用预览 -->
+                  <div v-else-if="field.type==='data-ref'" class="dataref-render-area">
+                    <DataRefRenderer
+                      :field="field"
+                      :form-values="previewData"
+                      @update-value="(val) => { if (field.bindToForm) previewData[field.field] = val }"
+                    />
+                  </div>
                   <a-input v-else v-model:value="previewData[field.field]" />
                 </a-form-item>
               </a-col>
@@ -250,7 +349,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch as vueWatch } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -260,12 +359,13 @@ import {
   DollarOutlined, CalendarOutlined, ClockCircleOutlined,
   CheckCircleOutlined, CheckSquareOutlined,
   UploadOutlined, SelectOutlined, UserOutlined, TeamOutlined, ApartmentOutlined,
-  FunctionOutlined, TableOutlined
+  FunctionOutlined, TableOutlined, ApiOutlined
 } from '@ant-design/icons-vue'
 import { getForm, updateForm } from '../../../api/form'
 import { getDataModelList } from '../../../api/model'
 import { getDictTypes, getDictItemsByCode } from '../../../api/dict'
 import { getUsersPage, getDeptTree } from '../../../api/system'
+import DataRefRenderer from '../../../components/DataRefRenderer.vue'
 
 const route = useRoute()
 const formKey = ref(route.query.formKey || '')
@@ -287,7 +387,8 @@ const componentTypes = [
   { type: 'user', label: '人员选择', icon: UserOutlined },
   { type: 'dept', label: '部门选择', icon: TeamOutlined },
   { type: 'calculation', label: '计算控件', icon: FunctionOutlined },
-  { type: 'subTable', label: '子表表格', icon: TableOutlined }
+  { type: 'subTable', label: '子表表格', icon: TableOutlined },
+  { type: 'data-ref', label: '接口引用', icon: ApiOutlined }
 ]
 
 // Nested structure: sections → children(rows) → cells → fields
@@ -354,6 +455,54 @@ function removeSubTableColumn(field, idx) {
   if (field.columns) field.columns.splice(idx, 1)
 }
 
+// --- DataRef helpers ---
+const dataRefHeadersText = ref('')
+const dataRefParamEntries = ref([])
+const dataRefWatchText = ref('')
+
+// Sync reactive helpers when selectedField changes to a data-ref field
+vueWatch(selectedField, (field) => {
+  if (field && field.type === 'data-ref') {
+    // Sync headers text
+    dataRefHeadersText.value = (field.dataSource.headers && Object.keys(field.dataSource.headers).length > 0)
+      ? JSON.stringify(field.dataSource.headers, null, 2) : ''
+    // Sync params entries
+    const params = field.dataSource.params || {}
+    dataRefParamEntries.value = Object.entries(params).map(([key, value]) => ({ key, value: String(value) }))
+    // Sync watch text
+    dataRefWatchText.value = (field.dataSource.watch || []).join(',')
+  }
+}, { immediate: true })
+
+// Also sync params back to field when entries change
+vueWatch(dataRefParamEntries, (entries) => {
+  if (selectedField.value && selectedField.value.type === 'data-ref') {
+    const params = {}
+    entries.forEach(e => { if (e.key) params[e.key] = e.value })
+    selectedField.value.dataSource.params = params
+  }
+}, { deep: true })
+
+function parseDataRefHeaders() {
+  try {
+    if (selectedField.value && selectedField.value.type === 'data-ref') {
+      selectedField.value.dataSource.headers = dataRefHeadersText.value ? JSON.parse(dataRefHeadersText.value) : {}
+    }
+  } catch { message.warning('请求头 JSON 格式错误') }
+}
+function addDataRefParam() { dataRefParamEntries.value.push({ key: '', value: '' }) }
+function removeDataRefParam(idx) { dataRefParamEntries.value.splice(idx, 1) }
+function addDataRefField() {
+  if (!selectedField.value.display.fields) selectedField.value.display.fields = []
+  selectedField.value.display.fields.push({ path: '', label: '' })
+}
+function removeDataRefField(idx) { selectedField.value.display.fields.splice(idx, 1) }
+function addDataRefColumn() {
+  if (!selectedField.value.display.columns) selectedField.value.display.columns = []
+  selectedField.value.display.columns.push({ path: '', label: '', type: undefined, optionsJson: '' })
+}
+function removeDataRefColumn(idx) { selectedField.value.display.columns.splice(idx, 1) }
+
 // --- Drag & Drop ---
 function handleDragLayout(event, type) { event.dataTransfer.setData('dragType', 'layout'); event.dataTransfer.setData('layoutType', type) }
 function handleDragField(event, comp) { event.dataTransfer.setData('dragType', 'newField'); event.dataTransfer.setData('compType', JSON.stringify(comp)) }
@@ -398,7 +547,7 @@ function handleDragExistingField(event, section, row, cell, field) {
 }
 
 function createField(comp) {
-  return {
+  const base = {
     id: genId('field'), type: comp.type, field: `${comp.type}_${idCounter}`,
     label: comp.label, placeholder: `请输入${comp.label}`, required: false, defaultValue: '',
     optionsText: ['select','radio','checkbox'].includes(comp.type) ? '1:选项1\n2:选项2' : '',
@@ -408,6 +557,14 @@ function createField(comp) {
     formula: comp.type === 'calculation' ? '' : undefined,
     calcUnit: comp.type === 'calculation' ? 'day' : undefined
   }
+  // data-ref 专用默认值
+  if (comp.type === 'data-ref') {
+    base.dataSource = { url: '', method: 'GET', headers: {}, params: {}, dataPath: 'data', watch: [] }
+    base.display = { mode: 'text', valuePath: '', fields: [], columns: [] }
+    base.bindToForm = true
+    base.placeholder = undefined
+  }
+  return base
 }
 
 // --- Selection ---
@@ -569,7 +726,7 @@ onMounted(() => { loadModelList(); loadDictTypes(); loadForm() })
 <style scoped>
 .designer-wrap { display: flex; flex-direction: row; height: calc(100vh - 180px); gap: 0; }
 .designer-sidebar { width: 200px; min-width: 200px; flex-shrink: 0; background: #fff; border-right: 1px solid var(--border-light, #e8e8e8); display: flex; flex-direction: column; overflow-y: auto; }
-.designer-properties { width: 200px; min-width: 200px; flex-shrink: 0; background: #fff; border-left: 1px solid var(--border-light, #e8e8e8); display: flex; flex-direction: column; overflow-y: auto; }
+.designer-properties { width: 400px; min-width: 400px; flex-shrink: 0; background: #fff; border-left: 1px solid var(--border-light, #e8e8e8); display: flex; flex-direction: column; overflow-y: auto; }
 .sidebar-title { padding: 10px 14px; font-weight: 600; font-size: 13px; border-bottom: 1px solid var(--border-light, #e8e8e8); background: #fafafa; }
 .component-list { padding: 8px 10px; overflow-y: auto; flex: 1; }
 .layout-list { padding: 8px 10px; flex: none; }
@@ -627,4 +784,6 @@ onMounted(() => { loadModelList(); loadDictTypes(); loadForm() })
 .formula-help-title { font-weight: 600; color: #333; margin-bottom: 4px; }
 .formula-help code { background: #e8e8e8; padding: 1px 4px; border-radius: 2px; font-size: 11px; color: #722ed1; }
 .subtable-preview { display: flex; align-items: center; font-size: 12px; color: #1677ff; padding: 6px 8px; background: #e6f4ff; border: 1px dashed #91caff; border-radius: 4px; }
+.dataref-preview { display: flex; align-items: center; font-size: 12px; color: #13c2c2; padding: 6px 8px; background: #e6fffb; border: 1px dashed #87e8de; border-radius: 4px; }
+.dataref-render-area { padding: 4px 0; }
 </style>

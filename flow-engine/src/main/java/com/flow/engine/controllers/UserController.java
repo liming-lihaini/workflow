@@ -98,4 +98,11 @@ public class UserController {
         rolePermissionService.setUserRoles(id, roleIds);
         return Result.ok();
     }
+
+    // ========== 用户详情（含部门/角色/兼职） ==========
+
+    @GetMapping("/{id}/detail")
+    public Result<Map<String, Object>> getUserDetail(@PathVariable Long id) {
+        return Result.ok(userService.getUserDetail(id));
+    }
 }

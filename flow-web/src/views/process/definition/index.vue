@@ -145,7 +145,7 @@ const columns = [
   { title: '版本', dataIndex: 'version', key: 'version', width: 80 },
   { title: '状态', key: 'status', width: 100 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
-  { title: '操作', key: 'action', width: 300 }
+  { title: '操作', key: 'action', width: 340 }
 ]
 
 const formState = reactive({

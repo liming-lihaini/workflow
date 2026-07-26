@@ -182,7 +182,7 @@ function handleProcess(record) {
 
 async function handleClaim(record) {
   try {
-    await claimTask(record.id, { userId: record.assignee || 'current-user' })
+    await claimTask(record.id, { userId: userId })
     message.success('签收成功')
     loadData()
   } catch {}

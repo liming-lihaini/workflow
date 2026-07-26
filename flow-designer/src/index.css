@@ -165,7 +165,7 @@ body {
 
 /* 右侧配置面板 */
 .config-panel {
-  width: 320px;
+  width: 500px;
   background: var(--bg-card);
   border-left: 1px solid var(--border-light);
   overflow-y: auto;

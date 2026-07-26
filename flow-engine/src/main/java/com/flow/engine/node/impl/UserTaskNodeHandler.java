@@ -2,10 +2,14 @@ package com.flow.engine.node.impl;
 
 import com.flow.engine.entity.Dept;
 import com.flow.engine.entity.ProcessInstance;
+import com.flow.engine.entity.Role;
 import com.flow.engine.entity.User;
+import com.flow.engine.entity.UserRole;
 import com.flow.engine.event.NodeEnteredEvent;
 import com.flow.engine.mapper.ProcessInstanceMapper;
+import com.flow.engine.mapper.RoleMapper;
 import com.flow.engine.mapper.UserMapper;
+import com.flow.engine.mapper.UserRoleMapper;
 import com.flow.engine.node.ExecutionContext;
 import com.flow.engine.node.NodeHandler;
 import com.flow.engine.service.DeptService;
@@ -16,6 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 用户任务节点处理器（ISSUE-005）
@@ -36,6 +43,8 @@ public class UserTaskNodeHandler implements NodeHandler {
     private final DeptService deptService;
     private final UserMapper userMapper;
     private final ProcessInstanceMapper processInstanceMapper;
+    private final RoleMapper roleMapper;
+    private final UserRoleMapper userRoleMapper;
 
     @Override
     public String getNodeType() {
@@ -103,6 +112,26 @@ public class UserTaskNodeHandler implements NodeHandler {
             } else {
                 log.warn("[UserTaskNodeHandler] 无法确定部门ID, instanceId={}, assignee={}",
                         event.getProcessInstanceId(), assignee);
+            }
+        }
+
+        // === 角色分配：assigneeType=role，将角色Key解析为实际用户 ===
+        if ("role".equals(assigneeType) && StringUtils.hasText(assignee)) {
+            String roleKey = assignee;
+            List<String> roleUsernames = resolveRoleToUsers(roleKey);
+            if (roleUsernames.isEmpty()) {
+                log.warn("[UserTaskNodeHandler] 角色 {} 下没有用户，任务将无人可办", roleKey);
+            } else if (roleUsernames.size() == 1) {
+                // 单个用户：直接指派
+                assignee = roleUsernames.get(0);
+                candidateUsers = null;
+                log.info("[UserTaskNodeHandler] 角色 {} 解析为单用户: {}", roleKey, assignee);
+            } else {
+                // 多个用户：设为候选人，assignee 置空（任意一人签收即可）
+                assignee = null;
+                candidateUsers = String.join(",", roleUsernames);
+                log.info("[UserTaskNodeHandler] 角色 {} 解析为 {} 个候选人: {}",
+                        roleKey, roleUsernames.size(), candidateUsers);
             }
         }
 
@@ -203,6 +232,53 @@ public class UserTaskNodeHandler implements NodeHandler {
         } catch (Exception e) {
             log.warn("[UserTaskNodeHandler] 查询部门领导失败, deptId={}: {}", deptId, e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * 根据角色Key解析拥有该角色的所有用户username列表
+     * 查询链路：roleKey → sys_role.id → sys_user_role → sys_user.username
+     */
+    private List<String> resolveRoleToUsers(String roleKey) {
+        try {
+            // 1. 按 roleKey 查找角色
+            Role role = roleMapper.selectOne(
+                    new LambdaQueryWrapper<Role>()
+                            .eq(Role::getRoleKey, roleKey)
+                            .last("LIMIT 1"));
+            if (role == null) {
+                log.warn("[UserTaskNodeHandler] 角色 roleKey={} 不存在", roleKey);
+                return List.of();
+            }
+
+            // 2. 查找拥有该角色的用户关联记录
+            List<UserRole> userRoles = userRoleMapper.selectList(
+                    new LambdaQueryWrapper<UserRole>()
+                            .eq(UserRole::getRoleId, role.getId()));
+            if (userRoles.isEmpty()) {
+                log.warn("[UserTaskNodeHandler] 角色 {} 下没有关联用户", roleKey);
+                return List.of();
+            }
+
+            // 3. 查询用户username
+            List<Long> userIds = userRoles.stream()
+                    .map(UserRole::getUserId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            List<User> users = userMapper.selectBatchIds(userIds);
+
+            List<String> usernames = users.stream()
+                    .filter(u -> u.getStatus() != null && u.getStatus() == 1) // 仅启用用户
+                    .map(User::getUsername)
+                    .filter(StringUtils::hasText)
+                    .collect(Collectors.toList());
+
+            log.info("[UserTaskNodeHandler] 角色 {} (id={}) 解析到 {} 个用户: {}",
+                    roleKey, role.getId(), usernames.size(), usernames);
+            return usernames;
+        } catch (Exception e) {
+            log.warn("[UserTaskNodeHandler] 角色解析失败, roleKey={}: {}", roleKey, e.getMessage());
+            return List.of();
         }
     }
 }

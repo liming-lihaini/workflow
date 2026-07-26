@@ -25,6 +25,17 @@
                       @update:model-value="(val) => { localValues[field.field || field.key] = val; emit('update:modelValue', { ...localValues }) }"
                     />
                   </template>
+                  <!-- 接口引用 DataRef -->
+                  <template v-else-if="field.type === 'data-ref'">
+                    <a-form-item :label="field.label || field.field" style="margin-bottom: 12px">
+                      <DataRefRenderer
+                        :field="field"
+                        :form-values="localValues"
+                        :readonly="mode === 'readonly'"
+                        @update-value="(val) => { if (field.bindToForm) { localValues[field.field || field.key] = val; emit('update:modelValue', { ...localValues }) } }"
+                      />
+                    </a-form-item>
+                  </template>
                   <a-form-item
                     v-else
                     :label="field.label || field.field"
@@ -65,7 +76,15 @@
             :label="field.label"
             :required="field.required"
           >
-            <template v-if="mode === 'readonly'">
+            <template v-if="field.type === 'data-ref'">
+              <DataRefRenderer
+                :field="field"
+                :form-values="localValues"
+                :readonly="mode === 'readonly'"
+                @update-value="(val) => { if (field.bindToForm) { localValues[field.field || field.key] = val; emit('update:modelValue', { ...localValues }) } }"
+              />
+            </template>
+            <template v-else-if="mode === 'readonly'">
               <span class="readonly-value">{{ getDisplayValue(field) }}</span>
             </template>
             <template v-else>
@@ -95,6 +114,7 @@ import {
   Select, Radio, Checkbox, TreeSelect, Cascader, Upload, Button, Tag
 } from 'ant-design-vue'
 import SubTableRenderer from './SubTableRenderer.vue'
+import DataRefRenderer from './DataRefRenderer.vue'
 
 const props = defineProps({
   /** formJson 字符串或对象（sections 嵌套结构或旧 fields 结构） */
@@ -254,6 +274,13 @@ function getDisplayValue(field) {
   if (field.type === 'subTable') {
     const arr = localValues.value[field.field || field.key]
     return Array.isArray(arr) ? `${arr.length} 行数据` : '-'
+  }
+  if (field.type === 'data-ref') {
+    const val = localValues.value[field.field || field.key]
+    if (val === undefined || val === null || val === '') return '-'
+    if (typeof val === 'object' && !Array.isArray(val)) return Object.entries(val).map(([k, v]) => `${k}: ${v}`).join(', ')
+    if (Array.isArray(val)) return `${val.length} 行数据`
+    return String(val)
   }
   if (field.type === 'calculation') return computeCalcValue(field)
   const key = field.field || field.key

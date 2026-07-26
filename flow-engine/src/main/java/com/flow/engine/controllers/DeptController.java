@@ -76,4 +76,12 @@ public class DeptController {
         String leaderName = body.get("leaderName").toString();
         return Result.ok(deptService.setLeader(id, leaderId, leaderName));
     }
+
+    /**
+     * 部门详情（含父部门名称、子部门列表、成员统计）
+     */
+    @GetMapping("/{id}/detail")
+    public Result<Map<String, Object>> getDeptDetail(@PathVariable Long id) {
+        return Result.ok(deptService.getDeptDetail(id));
+    }
 }

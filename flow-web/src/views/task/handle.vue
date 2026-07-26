@@ -254,6 +254,60 @@ const addSignForm = reactive({
 
 const ACTION_MAP = { 0: '操作', 1: '审批操作：同意', 2: '操作：驳回', 3: '操作：转办', 4: '操作：委派', 5: '操作：取消' }
 
+/**
+ * 容错解析子表字符串（兼容 Java toString 格式和标准 JSON）
+ * Java toString: [{key=value, key2=value2}, ...]
+ * 标准 JSON:     [{"key":"value"}, ...]
+ */
+function tryParseSubTableStr(str) {
+  if (!str || typeof str !== 'string') return null
+  // 1. 尝试标准 JSON 解析
+  try {
+    const parsed = JSON.parse(str)
+    if (Array.isArray(parsed)) return parsed
+  } catch { /* 不是标准 JSON */ }
+
+  // 2. 解析 Java toString 格式: [{k1=v1, k2=v2}, {k1=v1, k2=v2}]
+  try {
+    const inner = str.slice(1, -1) // 去掉外层 [ ]
+    const rows = []
+    let depth = 0, current = ''
+    for (const ch of inner) {
+      if (ch === '{') depth++
+      if (ch === '}') depth--
+      if (ch === ',' && depth === 0) {
+        rows.push(current.trim())
+        current = ''
+      } else {
+        current += ch
+      }
+    }
+    if (current.trim()) rows.push(current.trim())
+
+    return rows.map(row => {
+      const obj = {}
+      const content = row.replace(/^\{|\}$/g, '')
+      let d = 0, seg = ''
+      for (const ch of content) {
+        if (ch === '{' || ch === '[') d++
+        if (ch === '}' || ch === ']') d--
+        if (ch === ',' && d === 0) {
+          const eqIdx = seg.indexOf('=')
+          if (eqIdx > 0) obj[seg.slice(0, eqIdx).trim()] = seg.slice(eqIdx + 1).trim()
+          seg = ''
+        } else {
+          seg += ch
+        }
+      }
+      if (seg.trim()) {
+        const eqIdx = seg.indexOf('=')
+        if (eqIdx > 0) obj[seg.slice(0, eqIdx).trim()] = seg.slice(eqIdx + 1).trim()
+      }
+      return obj
+    })
+  } catch { return null }
+}
+
 function goBack() {
   const from = route.query.from
   if (from === 'done') {
@@ -422,6 +476,16 @@ async function loadAll() {
         }
       }
     } catch { /* ignore */ }
+
+    // 4.5 容错：解析子表字段中可能残留的 Java toString 格式字符串
+    const rawVals = formValues.value
+    for (const [key, val] of Object.entries(rawVals)) {
+      if (typeof val === 'string' && val.startsWith('[{') && val.endsWith('}]')) {
+        const parsed = tryParseSubTableStr(val)
+        if (parsed) rawVals[key] = parsed
+      }
+    }
+    formValues.value = { ...rawVals }
 
     // 5. 加载办理记录 + 节点状态着色
     historyLoading.value = true

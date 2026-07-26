@@ -25,6 +25,9 @@
         </div>
         <a-table :columns="columns" :data-source="dataList" :loading="loading" row-key="id" :pagination="pagination" @change="handleTableChange">
           <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'deptName'">
+              <span class="action-link" @click="router.push(`/system/dept-detail?id=${record.id}`)">{{ record.deptName }}</span>
+            </template>
             <template v-if="column.key === 'leaderName'">
               <span v-if="record.leaderName">{{ record.leaderName }}</span>
               <span v-else style="color: #999">未设置</span>
@@ -200,6 +203,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { getDeptsPage, getDeptTree, getDept, createDept, updateDept, deleteDept, setDeptLeader, getUsersPage } from '../../api/system'
 import { formatDate, renderDate } from '../../utils/date'
@@ -207,6 +211,7 @@ import { usePermission } from '../../composables/usePermission'
 
 // ====== 通用 ======
 const { hasPerm } = usePermission()
+const router = useRouter()
 const viewMode = ref('table')
 const loading = ref(false)
 const dataList = ref([])

@@ -55,7 +55,7 @@ public class SecurityFilterApiTest {
         testUsername = "sec_api_user_" + System.currentTimeMillis();
         User user = new User();
         user.setUsername(testUsername);
-        user.setPassword(AuthService.hashPassword(testPassword));
+        user.setPassword(testPassword);
         user.setRealName("安全测试用户");
         user.setSecurityLevel(2);
         userService.createUser(user);

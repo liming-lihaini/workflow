@@ -187,13 +187,19 @@ watch(() => route.path, (path) => {
   }
   selectedKeys.value = pathMap[path] || []
 
-  // 自动展开父菜单
-  if (path.startsWith('/process')) openKeys.value = ['process']
-  else if (path.startsWith('/form')) openKeys.value = ['process']
-  else if (path.startsWith('/data-model')) openKeys.value = ['process']
-  else if (path.startsWith('/task')) openKeys.value = ['task']
-  else if (path.startsWith('/system')) openKeys.value = ['system']
+  // 自动展开父菜单（累加式，不折叠已展开的其他菜单）
+  let parentKey = null
+  if (path.startsWith('/process') || path.startsWith('/form') || path.startsWith('/data-model')) parentKey = 'process'
+  else if (path.startsWith('/task')) parentKey = 'task'
+  else if (path.startsWith('/system')) parentKey = 'system'
+
+  if (parentKey && !openKeys.value.includes(parentKey)) {
+    openKeys.value = [...openKeys.value, parentKey]
+  }
 }, { immediate: true })
+
+// 子菜单展开/折叠由 v-model:openKeys 自动处理
+// 点击一级菜单标题自动切换展开/折叠，点击二级菜单不影响其他已展开菜单
 
 function handleLogout() {
   userStore.logout()

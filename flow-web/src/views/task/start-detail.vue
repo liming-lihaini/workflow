@@ -248,7 +248,10 @@ async function loadAll() {
       // 提取 formKey
       let formKey = null
       for (const n of (pj.nodes || [])) {
-        if (n.type === 'userTask' && n.properties?.formKey) { formKey = n.properties.formKey; break }
+        if (n.type === 'userTask') {
+          formKey = n.formKey || n.properties?.formKey || null
+          if (formKey) break
+        }
       }
 
       // 加载表单

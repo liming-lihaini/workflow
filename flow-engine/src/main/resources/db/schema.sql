@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS wf_process_definition (
 -- 2.1.2 流程实例表
 CREATE TABLE IF NOT EXISTS wf_process_instance (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    instance_no      TEXT,
     process_key      TEXT,
     process_name     TEXT,
     process_version  INTEGER,
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS wf_task (
     status          INTEGER,
     counter_sign_group_id INTEGER,
     add_sign_type   TEXT,
+    sign_type       TEXT,
     parent_task_id  INTEGER,
     create_time     TEXT,
     update_time     TEXT

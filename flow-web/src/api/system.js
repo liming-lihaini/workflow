@@ -25,6 +25,9 @@ export function deleteDept(id) {
 export function setDeptLeader(id, leaderId, leaderName) {
   return request.put(`/system/depts/${id}/leader`, null, { params: { leaderId, leaderName } })
 }
+export function getDeptDetail(id) {
+  return request.get(`/system/depts/${id}/detail`)
+}
 
 // 用户管理
 export function getUsers(params) {
@@ -62,6 +65,9 @@ export function getUserRoles(id) {
 }
 export function setUserRoles(id, roleIds) {
   return request.post(`/system/users/${id}/roles`, roleIds)
+}
+export function getUserDetail(id) {
+  return request.get(`/system/users/${id}/detail`)
 }
 
 // 角色管理

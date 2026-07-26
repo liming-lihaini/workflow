@@ -161,7 +161,7 @@ class BuiltinNodeTest {
     void testUserTaskNodeHandler() {
         // userTask 已在 ISSUE-005 实现，此处验证类型标识
         // 由于依赖 TaskService/DeptService/UserMapper/ProcessInstanceMapper，不在此做实例化测试
-        assertNotNull(new UserTaskNodeHandler(null, null, null, null).getNodeType());
+        assertNotNull(new UserTaskNodeHandler(null, null, null, null, null, null).getNodeType());
     }
 
     @Test

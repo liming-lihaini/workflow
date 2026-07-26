@@ -173,4 +173,64 @@ public class DeptService {
                 })
                 .collect(Collectors.toList());
     }
+
+    /**
+     * 获取部门详情（含父部门名称、子部门列表、成员统计、成员列表）
+     */
+    public Map<String, Object> getDeptDetail(Long id) {
+        Dept dept = getDept(id);
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("id", dept.getId());
+        detail.put("parentId", dept.getParentId());
+        detail.put("deptName", dept.getDeptName());
+        detail.put("deptCode", dept.getDeptCode());
+        detail.put("deptType", dept.getDeptType());
+        detail.put("sortOrder", dept.getSortOrder());
+        detail.put("leaderId", dept.getLeaderId());
+        detail.put("leaderName", dept.getLeaderName());
+        detail.put("phone", dept.getPhone());
+        detail.put("status", dept.getStatus());
+        detail.put("createTime", dept.getCreateTime());
+        detail.put("updateTime", dept.getUpdateTime());
+
+        // 父部门名称
+        String parentDeptName = "";
+        if (dept.getParentId() != null && dept.getParentId() > 0) {
+            Dept parent = deptMapper.selectById(dept.getParentId());
+            if (parent != null) parentDeptName = parent.getDeptName();
+        }
+        detail.put("parentDeptName", parentDeptName);
+
+        // 直属子部门列表
+        List<Dept> childDepts = deptMapper.selectList(
+                new LambdaQueryWrapper<Dept>().eq(Dept::getParentId, id).orderByAsc(Dept::getSortOrder));
+        List<Map<String, Object>> childList = childDepts.stream().map(c -> {
+            Map<String, Object> child = new LinkedHashMap<>();
+            child.put("id", c.getId());
+            child.put("deptName", c.getDeptName());
+            child.put("leaderName", c.getLeaderName());
+            child.put("status", c.getStatus());
+            return child;
+        }).collect(Collectors.toList());
+        detail.put("childDepts", childList);
+
+        // 成员统计和成员列表
+        List<User> members = userMapper.selectList(
+                new LambdaQueryWrapper<User>().eq(User::getDeptId, id).orderByAsc(User::getCreateTime));
+        detail.put("memberCount", members.size());
+        List<Map<String, Object>> memberList = members.stream().map(u -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", u.getId());
+            m.put("username", u.getUsername());
+            m.put("realName", u.getRealName());
+            m.put("phone", u.getPhone());
+            m.put("email", u.getEmail());
+            m.put("status", u.getStatus());
+            m.put("createTime", u.getCreateTime());
+            return m;
+        }).collect(Collectors.toList());
+        detail.put("members", memberList);
+
+        return detail;
+    }
 }

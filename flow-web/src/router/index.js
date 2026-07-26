@@ -110,6 +110,18 @@ const routes = [
         meta: { title: '用户管理', permKey: 'system:user' }
       },
       {
+        path: 'system/user-detail',
+        name: 'UserDetail',
+        component: () => import('../views/system/user-detail.vue'),
+        meta: { title: '用户详情', permKey: 'system:user' }
+      },
+      {
+        path: 'system/dept-detail',
+        name: 'DeptDetail',
+        component: () => import('../views/system/dept-detail.vue'),
+        meta: { title: '部门详情', permKey: 'system:dept' }
+      },
+      {
         path: 'system/role',
         name: 'RoleManage',
         component: () => import('../views/system/role.vue'),

@@ -69,6 +69,11 @@
             @change="handleTableChange"
           >
             <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'realName'">
+                <span class="action-link" @click="router.push(`/system/user-detail?id=${record.id}`)">
+                  {{ record.realName }}
+                </span>
+              </template>
               <template v-if="column.key === 'status'">
                 <a-tag :color="record.status === 1 ? 'green' : 'default'">
                   {{ record.status === 1 ? '启用' : '禁用' }}
@@ -153,6 +158,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { message, Empty } from 'ant-design-vue'
 import { getUsersPage, createUser, updateUser, deleteUser, resetPassword, getDeptTree, getRoles, getUserRoles, setUserRoles } from '../../api/system'
 import { renderDate } from '../../utils/date'
@@ -160,6 +166,7 @@ import { usePermission } from '../../composables/usePermission'
 
 const simpleEmptyImage = Empty.PRESENTED_IMAGE_SIMPLE
 const { hasPerm } = usePermission()
+const router = useRouter()
 
 const loading = ref(false)
 const dataList = ref([])

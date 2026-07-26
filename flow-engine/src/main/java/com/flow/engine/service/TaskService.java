@@ -171,17 +171,20 @@ public class TaskService {
         if (task.getStatus() != TaskStatus.PENDING.getValue()) {
             throw new BusinessException(ErrorCode.TASK_NOT_PENDING, "只有待处理任务才能签收");
         }
-        if (StringUtils.hasText(task.getAssignee()) && !task.getAssignee().equals(userId)) {
-            // 已有签收人
-            throw new BusinessException(ErrorCode.TASK_ALREADY_CLAIMED);
+
+        // 校验签收权限：assignee 匹配 或 在 candidateUsers 中，满足其一即可
+        boolean isAssignee = StringUtils.hasText(task.getAssignee()) && task.getAssignee().equals(userId);
+        boolean isCandidate = false;
+        if (StringUtils.hasText(task.getCandidateUsers())) {
+            isCandidate = Arrays.asList(task.getCandidateUsers().split(",")).contains(userId);
         }
 
-        // 校验用户是否在候选人列表中
-        if (StringUtils.hasText(task.getCandidateUsers())) {
-            List<String> candidates = Arrays.asList(task.getCandidateUsers().split(","));
-            if (!candidates.contains(userId)) {
-                throw new BusinessException(ErrorCode.TASK_NOT_ASSIGNEE, "用户不在候选人列表中");
+        if (!isAssignee && !isCandidate) {
+            // 两者都不满足：检查是否已被他人签收
+            if (StringUtils.hasText(task.getAssignee())) {
+                throw new BusinessException(ErrorCode.TASK_ALREADY_CLAIMED);
             }
+            throw new BusinessException(ErrorCode.TASK_NOT_ASSIGNEE, "用户不在候选人列表中");
         }
 
         task.setAssignee(userId);

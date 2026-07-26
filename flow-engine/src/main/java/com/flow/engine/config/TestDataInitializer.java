@@ -24,19 +24,12 @@ public class TestDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        Long count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM sys_user WHERE id BETWEEN 100 AND 264", Long.class);
-        if (count != null && count > 0) {
-            log.info("[TestDataInitializer] 测试数据已存在({}条)，跳过部门/用户初始化", count);
-        } else {
-            log.info("[TestDataInitializer] 开始初始化测试数据(水浒传人物)...");
-            initDepts();
-            initUsers();
-            initUserPosts();
-            log.info("[TestDataInitializer] 测试数据初始化完成: 33个部门 + 165个用户");
-        }
-        // 始终执行部门领导初始化（修正乱码数据或首次设置）
+        log.info("[TestDataInitializer] 开始初始化测试数据(水浒传人物)...");
+        initDepts();
+        initUsers();
+        initUserPosts();
         initDeptLeaders();
+        log.info("[TestDataInitializer] 测试数据初始化完成: 33个部门 + 165个用户");
     }
 
     private void initDepts() {

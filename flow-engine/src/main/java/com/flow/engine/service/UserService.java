@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.flow.engine.common.BusinessException;
 import com.flow.engine.common.ErrorCode;
 import com.flow.engine.entity.Dept;
+import com.flow.engine.entity.Role;
 import com.flow.engine.entity.User;
 import com.flow.engine.entity.UserPost;
 import com.flow.engine.mapper.DeptMapper;
 import com.flow.engine.mapper.UserMapper;
 import com.flow.engine.mapper.UserPostMapper;
+import com.flow.engine.service.RolePermissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,9 @@ public class UserService {
     private final UserMapper userMapper;
     private final UserPostMapper userPostMapper;
     private final DeptMapper deptMapper;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private RolePermissionService rolePermissionService;
 
     /**
      * 创建用户（密码加密存储）
@@ -253,5 +258,63 @@ public class UserService {
      */
     public List<Long> getAccessibleDepts(Long userId) {
         return getUserDeptIds(userId);
+    }
+
+    /**
+     * 获取用户详情（含部门名称、角色列表、兼职列表）
+     */
+    public java.util.Map<String, Object> getUserDetail(Long id) {
+        User user = getUser(id);
+        java.util.Map<String, Object> detail = new java.util.LinkedHashMap<>();
+        detail.put("id", user.getId());
+        detail.put("username", user.getUsername());
+        detail.put("realName", user.getRealName());
+        detail.put("email", user.getEmail());
+        detail.put("phone", user.getPhone());
+        detail.put("deptId", user.getDeptId());
+        detail.put("postId", user.getPostId());
+        detail.put("securityLevel", user.getSecurityLevel());
+        detail.put("status", user.getStatus());
+        detail.put("createTime", user.getCreateTime());
+        detail.put("updateTime", user.getUpdateTime());
+
+        // 主部门名称
+        String deptName = "";
+        if (user.getDeptId() != null) {
+            Dept dept = deptMapper.selectById(user.getDeptId());
+            if (dept != null) deptName = dept.getDeptName();
+        }
+        detail.put("deptName", deptName);
+
+        // 角色列表
+        List<Role> roles = new ArrayList<>();
+        if (rolePermissionService != null) {
+            try {
+                roles = rolePermissionService.getUserRoles(id);
+            } catch (Exception e) {
+                log.warn("获取用户角色失败: {}", e.getMessage());
+            }
+        }
+        detail.put("roles", roles);
+
+        // 兼职列表（含部门名称）
+        List<UserPost> posts = getUserPosts(id);
+        List<java.util.Map<String, Object>> postList = new ArrayList<>();
+        for (UserPost post : posts) {
+            java.util.Map<String, Object> item = new java.util.LinkedHashMap<>();
+            item.put("id", post.getId());
+            item.put("deptId", post.getDeptId());
+            item.put("postId", post.getPostId());
+            item.put("isMain", post.getIsMain());
+            // 查部门名称
+            if (post.getDeptId() != null) {
+                Dept d = deptMapper.selectById(post.getDeptId());
+                item.put("deptName", d != null ? d.getDeptName() : "");
+            }
+            postList.add(item);
+        }
+        detail.put("posts", postList);
+
+        return detail;
     }
 }
