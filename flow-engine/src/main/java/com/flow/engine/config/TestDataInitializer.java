@@ -24,12 +24,12 @@ public class TestDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        log.info("[TestDataInitializer] 开始初始化测试数据(水浒传人物)...");
-        initDepts();
-        initUsers();
-        initUserPosts();
-        initDeptLeaders();
-        log.info("[TestDataInitializer] 测试数据初始化完成: 33个部门 + 165个用户");
+        // log.info("[TestDataInitializer] 开始初始化测试数据(水浒传人物)...");
+        // initDepts();
+        // initUsers();
+        // initUserPosts();
+        // initDeptLeaders();
+        // log.info("[TestDataInitializer] 测试数据初始化完成: 33个部门 + 165个用户");
     }
 
     private void initDepts() {
