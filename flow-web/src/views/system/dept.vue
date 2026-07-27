@@ -83,6 +83,19 @@
           <!-- 右侧：详情面板 -->
           <div class="tree-right">
             <template v-if="selectedDept">
+              <!-- 顶部工具栏 -->
+              <div class="tree-toolbar">
+                <span class="tree-toolbar-title">{{ selectedDept.deptName }}</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <a-button size="small" type="link" @click="router.push(`/system/dept-detail?id=${selectedDept.id}`)">查看详情</a-button>
+                  <a-button size="small" type="primary" @click="showLeaderModal(selectedDept)">设置领导</a-button>
+                  <a-button size="small" @click="showModal(selectedDept, 'add')">添加子部门</a-button>
+                  <a-button size="small" @click="showModal(selectedDept, 'edit')">编辑</a-button>
+                  <a-popconfirm title="确定删除？" @confirm="handleDelete(selectedDept)">
+                    <a-button size="small" danger>删除</a-button>
+                  </a-popconfirm>
+                </div>
+              </div>
               <a-tabs v-model:activeKey="activeTab">
                 <a-tab-pane key="info" tab="部门信息">
                   <div class="detail-section">
@@ -112,14 +125,6 @@
                     <div class="detail-row">
                       <span class="detail-label">创建时间</span>
                       <span class="detail-value">{{ formatDate(selectedDept.createTime) || '-' }}</span>
-                    </div>
-                    <div style="margin-top: 16px; display: flex; gap: 8px;">
-                      <a-button type="primary" size="small" @click="showLeaderModal(selectedDept)">设置领导</a-button>
-                      <a-button size="small" @click="showModal(selectedDept, 'add')">添加子部门</a-button>
-                      <a-button size="small" @click="showModal(selectedDept, 'edit')">编辑</a-button>
-                      <a-popconfirm title="确定删除？" @confirm="handleDelete(selectedDept)">
-                        <a-button size="small" danger>删除</a-button>
-                      </a-popconfirm>
                     </div>
                   </div>
                 </a-tab-pane>
@@ -507,6 +512,23 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 顶部工具栏 */
+.tree-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+}
+.tree-toolbar-title {
+  font-weight: bold;
+  font-size: 15px;
+  color: #333;
 }
 
 /* 详情面板 */

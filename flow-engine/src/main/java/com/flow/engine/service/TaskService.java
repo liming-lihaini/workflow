@@ -11,6 +11,7 @@ import com.flow.engine.engine.FlowEngine;
 import com.flow.engine.entity.ProcessDefinition;
 import com.flow.engine.entity.ProcessInstance;
 import com.flow.engine.entity.Task;
+import com.flow.engine.mapper.DelegationMapper;
 import com.flow.engine.mapper.ProcessDefinitionMapper;
 import com.flow.engine.mapper.ProcessInstanceMapper;
 import com.flow.engine.mapper.TaskMapper;
@@ -43,6 +44,8 @@ public class TaskService {
     private final CacheManager cacheManager;
     private final ProcessDefinitionMapper processDefinitionMapper;
     private final ProcessInstanceMapper processInstanceMapper;
+    private final DelegationService delegationService;
+    private final DelegationMapper delegationMapper;
 
     private static final String TODO_CACHE_PREFIX = "task:todo:";
 
@@ -102,7 +105,7 @@ public class TaskService {
     }
 
     /**
-     * 获取待办任务列表
+     * 获取待办任务列表（含全局委托代理任务）
      */
     public List<TaskResponse> getTodoList(String userId) {
         if (!StringUtils.hasText(userId)) {
@@ -120,17 +123,31 @@ public class TaskService {
             }
         }
 
-        // 查 DB：(assignee=userId OR candidateUsers包含userId) 且 status!=已完成
+        // 查询用户作为代理人的所有生效委托，获取委托人ID列表
+        List<String> delegatorIds = delegationService.getActiveDelegatorIds(userId);
+
+        // 查 DB：(assignee=userId OR assignee IN delegatorIds OR candidateUsers包含userId) 且 status!=已完成
         LambdaQueryWrapper<Task> wrapper = new LambdaQueryWrapper<>();
-        wrapper.and(w -> w
-                .eq(Task::getAssignee, userId)
-                .or()
-                .apply("candidate_users LIKE {0}", "%" + userId + "%"))
+        wrapper.and(w -> {
+            w.eq(Task::getAssignee, userId)
+                    .or()
+                    .apply("candidate_users LIKE {0}", "%" + userId + "%");
+            if (!delegatorIds.isEmpty()) {
+                w.or().in(Task::getAssignee, delegatorIds);
+            }
+        })
                 .ne(Task::getStatus, TaskStatus.COMPLETED.getValue())
                 .orderByDesc(Task::getCreateTime);
 
         List<TaskResponse> result = taskMapper.selectList(wrapper).stream()
-                .map(this::toResponse)
+                .map(task -> {
+                    TaskResponse resp = toResponse(task);
+                    // 如果是代理任务，标记代理人信息
+                    if (!userId.equals(task.getAssignee()) && delegatorIds.contains(task.getAssignee())) {
+                        resp.setDelegatedBy(task.getAssignee());
+                    }
+                    return resp;
+                })
                 .collect(Collectors.toList());
 
         // 回填缓存
@@ -141,23 +158,48 @@ public class TaskService {
     }
 
     /**
-     * 获取已办任务列表
+     * 获取已办任务列表（含全局委托代理已完成任务）
      */
     public List<TaskResponse> getDoneList(String userId) {
         if (!StringUtils.hasText(userId)) {
             throw new BusinessException(ErrorCode.PARAM_INVALID, "userId不能为空");
         }
 
+        // 查询用户作为代理人的所有委托（含已过期/已取消），获取委托人ID列表
+        List<String> delegatorIds = getAllDelegatorIds(userId);
+
         LambdaQueryWrapper<Task> wrapper = new LambdaQueryWrapper<>();
-        wrapper.and(w -> w
-                .eq(Task::getAssignee, userId)
-                .or()
-                .apply("candidate_users LIKE {0}", "%" + userId + "%"))
+        wrapper.and(w -> {
+            w.eq(Task::getAssignee, userId)
+                    .or()
+                    .apply("candidate_users LIKE {0}", "%" + userId + "%");
+            if (!delegatorIds.isEmpty()) {
+                w.or().in(Task::getAssignee, delegatorIds);
+            }
+        })
                 .eq(Task::getStatus, TaskStatus.COMPLETED.getValue())
                 .orderByDesc(Task::getCompleteTime);
 
         return taskMapper.selectList(wrapper).stream()
-                .map(this::toResponse)
+                .map(task -> {
+                    TaskResponse resp = toResponse(task);
+                    if (!userId.equals(task.getAssignee()) && delegatorIds.contains(task.getAssignee())) {
+                        resp.setDelegatedBy(task.getAssignee());
+                    }
+                    return resp;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取用户曾经代理过的所有委托人ID（含历史委托）
+     */
+    private List<String> getAllDelegatorIds(String userId) {
+        LambdaQueryWrapper<com.flow.engine.entity.Delegation> query = new LambdaQueryWrapper<>();
+        query.eq(com.flow.engine.entity.Delegation::getDelegateId, userId);
+        return delegationMapper.selectList(query).stream()
+                .map(com.flow.engine.entity.Delegation::getDelegatorId)
+                .distinct()
                 .collect(Collectors.toList());
     }
 
@@ -225,11 +267,17 @@ public class TaskService {
 
     /**
      * 完成任务（通过）
+     * 支持代理人代办：代理人在委托生效期间可完成委托人的任务
      */
     @Transactional
     public TaskResponse complete(Long taskId, String userId, Map<String, Object> variables) {
         Task task = getTaskOrThrow(taskId);
-        validateOperator(task, userId);
+        validateOperatorWithDelegation(task, userId);
+
+        // 记录实际操作人（代理人代办时）
+        if (!userId.equals(task.getAssignee())) {
+            task.setActualOperatorId(userId);
+        }
 
         task.setStatus(TaskStatus.COMPLETED.getValue());
         task.setTaskAction(TaskAction.APPROVED.getValue());
@@ -238,6 +286,10 @@ public class TaskService {
         taskMapper.updateById(task);
 
         evictTodoCache(userId);
+        // 如果是代理人操作，同时清除委托人缓存
+        if (!userId.equals(task.getAssignee())) {
+            evictTodoCache(task.getAssignee());
+        }
 
         // 推进流程
         flowEngine.completeTask(task.getProcessInstanceId(), variables);
@@ -252,7 +304,12 @@ public class TaskService {
     @Transactional
     public TaskResponse reject(Long taskId, String userId, String targetNodeId, Map<String, Object> variables) {
         Task task = getTaskOrThrow(taskId);
-        validateOperator(task, userId);
+        validateOperatorWithDelegation(task, userId);
+
+        // 记录实际操作人（代理人代办时）
+        if (!userId.equals(task.getAssignee())) {
+            task.setActualOperatorId(userId);
+        }
 
         task.setStatus(TaskStatus.COMPLETED.getValue());
         task.setTaskAction(TaskAction.REJECTED.getValue());
@@ -273,15 +330,28 @@ public class TaskService {
      * 转办任务
      */
     @Transactional
-    public TaskResponse transfer(Long taskId, String operatorId, String targetUserId) {
+    public TaskResponse transfer(Long taskId, String operatorId, String targetUserId, String reason) {
         Task task = getTaskOrThrow(taskId);
-        validateOperator(task, operatorId);
+        validateOperatorWithDelegation(task, operatorId);
 
-        // 原任务标记为转办完成
+        // 记录实际操作人（代理人代办时）
+        if (!operatorId.equals(task.getAssignee())) {
+            task.setActualOperatorId(operatorId);
+        }
+
+        if (!StringUtils.hasText(targetUserId)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "转办目标用户不能为空");
+        }
+        if (!StringUtils.hasText(reason)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "转办原因不能为空");
+        }
+
+        // 原任务标记为转办完成，记录原因
         task.setStatus(TaskStatus.COMPLETED.getValue());
         task.setTaskAction(TaskAction.TRANSFERRED.getValue());
         task.setCompleteTime(LocalDateTime.now());
         task.setUpdateTime(LocalDateTime.now());
+        task.setReason(reason);
         taskMapper.updateById(task);
 
         // 创建新任务给目标用户
@@ -295,47 +365,13 @@ public class TaskService {
         );
         newTask.setStatus(TaskStatus.PENDING.getValue());
         newTask.setTaskAction(TaskAction.NORMAL.getValue());
+        newTask.setReason("由 " + operatorId + " 转办，原因：" + reason);
         taskMapper.updateById(newTask);
 
         evictTodoCache(operatorId);
         evictTodoCache(targetUserId);
 
-        log.info("[TaskService] 任务 {} 由 {} 转办给 {}", taskId, operatorId, targetUserId);
-        return toResponse(newTask);
-    }
-
-    /**
-     * 委派任务
-     */
-    @Transactional
-    public TaskResponse delegate(Long taskId, String operatorId, String delegateUserId) {
-        Task task = getTaskOrThrow(taskId);
-        validateOperator(task, operatorId);
-
-        // 原任务标记为委派完成
-        task.setStatus(TaskStatus.COMPLETED.getValue());
-        task.setTaskAction(TaskAction.DELEGATED.getValue());
-        task.setCompleteTime(LocalDateTime.now());
-        task.setUpdateTime(LocalDateTime.now());
-        taskMapper.updateById(task);
-
-        // 创建新任务给受托人
-        Task newTask = createTask(
-                task.getProcessInstanceId(),
-                task.getProcessKey(),
-                task.getNodeId(),
-                task.getNodeName(),
-                delegateUserId,
-                null
-        );
-        newTask.setStatus(TaskStatus.PENDING.getValue());
-        newTask.setTaskAction(TaskAction.NORMAL.getValue());
-        taskMapper.updateById(newTask);
-
-        evictTodoCache(operatorId);
-        evictTodoCache(delegateUserId);
-
-        log.info("[TaskService] 任务 {} 由 {} 委派给 {}", taskId, operatorId, delegateUserId);
+        log.info("[TaskService] 任务 {} 由 {} 转办给 {}, 原因: {}", taskId, operatorId, targetUserId, reason);
         return toResponse(newTask);
     }
 
@@ -482,6 +518,35 @@ public class TaskService {
         }
     }
 
+    /**
+     * 校验操作人权限（含全局委托代理检查）
+     */
+    private void validateOperatorWithDelegation(Task task, String userId) {
+        if (!StringUtils.hasText(userId)) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "操作人不能为空");
+        }
+        if (task.getStatus() == TaskStatus.COMPLETED.getValue()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "任务已完成");
+        }
+        // 如果是任务处理人本人，直接通过
+        if (StringUtils.hasText(task.getAssignee()) && task.getAssignee().equals(userId)) {
+            return;
+        }
+        // 检查是否是全局委托代理人
+        List<String> delegatorIds = delegationService.getActiveDelegatorIds(userId);
+        if (StringUtils.hasText(task.getAssignee()) && delegatorIds.contains(task.getAssignee())) {
+            return; // 代理人有权操作
+        }
+        // 未签收时检查候选人
+        if (!StringUtils.hasText(task.getAssignee()) && StringUtils.hasText(task.getCandidateUsers())) {
+            List<String> candidates = Arrays.asList(task.getCandidateUsers().split(","));
+            if (candidates.contains(userId)) {
+                return;
+            }
+        }
+        throw new BusinessException(ErrorCode.TASK_NOT_ASSIGNEE);
+    }
+
     private void evictTodoCache(String userId) {
         if (StringUtils.hasText(userId)) {
             Cache cache = cacheManager.getCache(TODO_CACHE_PREFIX + userId);
@@ -519,6 +584,8 @@ public class TaskService {
         resp.setStatusDesc(status != null ? status.getDesc() : "未知");
         resp.setCreateTime(task.getCreateTime());
         resp.setUpdateTime(task.getUpdateTime());
+        resp.setReason(task.getReason());
+        resp.setActualOperatorId(task.getActualOperatorId());
 
         // 填充流程名称和流程类型（关联查询）
         if (StringUtils.hasText(task.getProcessKey())) {

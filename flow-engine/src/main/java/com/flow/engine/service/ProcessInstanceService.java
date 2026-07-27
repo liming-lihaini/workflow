@@ -4,12 +4,15 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.flow.engine.common.BusinessException;
 import com.flow.engine.common.ErrorCode;
 import com.flow.engine.common.enums.ProcessStatus;
+import com.flow.engine.common.enums.TaskStatus;
 import com.flow.engine.dto.ProcessDefinitionResponse;
 import com.flow.engine.dto.ProcessInstanceResponse;
 import com.flow.engine.dto.StartProcessRequest;
 import com.flow.engine.engine.FlowEngine;
 import com.flow.engine.entity.ProcessInstance;
+import com.flow.engine.entity.Task;
 import com.flow.engine.mapper.ProcessInstanceMapper;
+import com.flow.engine.mapper.TaskMapper;
 import com.flow.engine.model.NodeModel;
 import com.flow.engine.model.ProcessModel;
 import com.flow.engine.parser.ProcessJsonParser;
@@ -32,6 +35,7 @@ import java.util.stream.Collectors;
 public class ProcessInstanceService {
 
     private final ProcessInstanceMapper instanceMapper;
+    private final TaskMapper taskMapper;
     private final FlowEngine flowEngine;
     private final VariableService variableService;
     private final TaskService taskService;
@@ -111,6 +115,18 @@ public class ProcessInstanceService {
                     Map<String, String> nameMap = nodeNamesCache.getOrDefault(inst.getProcessKey(), Map.of());
                     if (inst.getCurrentNodeId() != null) {
                         resp.setCurrentNodeName(nameMap.getOrDefault(inst.getCurrentNodeId(), inst.getCurrentNodeId()));
+                    }
+                    // 查询当前活跃任务的办理人
+                    if (inst.getStatus() == ProcessStatus.RUNNING.getValue()) {
+                        LambdaQueryWrapper<Task> taskQuery = new LambdaQueryWrapper<>();
+                        taskQuery.eq(Task::getProcessInstanceId, inst.getId())
+                                .ne(Task::getStatus, TaskStatus.COMPLETED.getValue())
+                                .isNotNull(Task::getAssignee)
+                                .last("LIMIT 1");
+                        Task activeTask = taskMapper.selectOne(taskQuery);
+                        if (activeTask != null) {
+                            resp.setCurrentAssignee(activeTask.getAssignee());
+                        }
                     }
                     return resp;
                 })

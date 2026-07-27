@@ -59,6 +59,15 @@ public class TaskResponse {
     /** 状态描述 */
     private String statusDesc;
 
+    /** 转办/委托原因 */
+    private String reason;
+
+    /** 代理标识：当该任务是代理人查看时显示委托人用户名 */
+    private String delegatedBy;
+
+    /** 实际操作人（代理人代办时记录代理人ID） */
+    private String actualOperatorId;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

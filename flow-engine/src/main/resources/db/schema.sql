@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS wf_task (
     add_sign_type   TEXT,
     sign_type       TEXT,
     parent_task_id  INTEGER,
+    reason          TEXT,
+    actual_operator_id TEXT,     -- 实际操作人（代理人代办时记录代理人ID）
     create_time     TEXT,
     update_time     TEXT
 );
@@ -349,3 +351,23 @@ CREATE TABLE IF NOT EXISTS wf_webhook_log (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_webhook_key ON wf_webhook(webhook_key);
+
+-- 全局委托表（替代旧的任务级委托表）
+DROP TABLE IF EXISTS wf_delegation;
+CREATE TABLE IF NOT EXISTS wf_delegation (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    delegator_id  TEXT NOT NULL,   -- 委托人用户ID
+    delegate_id   TEXT NOT NULL,   -- 代理人用户ID
+    start_time    TEXT,            -- 委托开始时间
+    end_time      TEXT,            -- 委托结束时间（为空则永久）
+    reason        TEXT,            -- 委托说明
+    status        INTEGER DEFAULT 0, -- 0-生效中 2-已取消 3-已过期
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- =====================================================================
+-- 迁移脚本：为旧表添加缺失列（已存在时会报错但 continue-on-error=true 会跳过）
+-- =====================================================================
+ALTER TABLE wf_task ADD COLUMN reason TEXT;
+ALTER TABLE wf_task ADD COLUMN actual_operator_id TEXT;

@@ -3,10 +3,10 @@ package com.flow.engine.dto;
 import lombok.Data;
 
 /**
- * 委托任务请求
+ * 创建全局委托请求
  */
 @Data
-public class DelegateTaskRequest {
+public class CreateDelegationRequest {
 
     /** 当前操作人ID（委托人） */
     private String operatorId;

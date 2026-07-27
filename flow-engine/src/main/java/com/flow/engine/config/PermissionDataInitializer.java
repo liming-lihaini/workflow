@@ -126,6 +126,9 @@ public class PermissionDataInitializer implements CommandLineRunner {
         Long myRequestId = createPermission(taskMenuId, "我的申请", "task:my-request", 1, "task", "/task/my-request", 4);
         createPermission(myRequestId, "终止我的申请", "task:my-request:terminate", 2, "task", null, 1);
 
+        createPermission(taskMenuId, "委托与代理", "task:delegation", 1, "task", "/task/delegation", 5);
+        createPermission(taskMenuId, "代理记录", "task:proxy", 1, "task", "/task/proxy", 6);
+
         // ========== 4. 后台管理 ==========
         Long systemMenuId = createPermission(0L, "后台管理", "system", 1, "system", "/system", ++sortOrder);
 

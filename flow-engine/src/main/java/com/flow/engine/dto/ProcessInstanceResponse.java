@@ -25,6 +25,8 @@ public class ProcessInstanceResponse {
     private String currentNodeId;
     /** 当前节点中文名称 */
     private String currentNodeName;
+    /** 当前办理人（活跃任务的处理人） */
+    private String currentAssignee;
     private String startUser;
     private LocalDateTime startTime;
     private LocalDateTime endTime;

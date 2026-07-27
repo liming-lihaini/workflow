@@ -121,7 +121,9 @@ const menuConfig = [
       { key: 'task-start', title: '发起流程', path: '/task/start', permKey: 'task:start' },
       { key: 'task-todo', title: '待办任务', path: '/task/todo', permKey: 'task:todo' },
       { key: 'task-done', title: '已办任务', path: '/task/done', permKey: 'task:done' },
-      { key: 'task-my-request', title: '我的申请', path: '/task/my-request', permKey: 'task:my-request' }
+      { key: 'task-my-request', title: '我的申请', path: '/task/my-request', permKey: 'task:my-request' },
+      { key: 'task-delegation', title: '委托与代理', path: '/task/delegation', permKey: 'task:delegation' },
+      { key: 'task-proxy', title: '代理记录', path: '/task/proxy', permKey: 'task:proxy' }
     ]
   },
   {
@@ -177,6 +179,8 @@ watch(() => route.path, (path) => {
     '/task/handle': ['task-todo'],
     '/task/done': ['task-done'],
     '/task/my-request': ['task-my-request'],
+    '/task/delegation': ['task-delegation'],
+    '/task/proxy': ['task-proxy'],
     '/system/dept': ['system-dept'],
     '/system/user': ['system-user'],
     '/system/role': ['system-role'],

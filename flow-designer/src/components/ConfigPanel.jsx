@@ -427,9 +427,9 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
               ) : (
                 <>
                   <div className="config-label" style={{ marginBottom: 8, fontWeight: 500 }}>按钮权限</div>
-                  {['submit', 'reject', 'transfer', 'delegate'].map(btn => {
+                  {['submit', 'reject', 'transfer', 'addSign'].map(btn => {
                     const btnPerm = permissions.buttons?.[btn] || {}
-                    const btnLabel = { submit: '提交', reject: '驳回', transfer: '转办', delegate: '委派' }[btn] || btn
+                    const btnLabel = { submit: '提交', reject: '驳回', transfer: '转办', addSign: '加签' }[btn] || btn
                     return (
                       <div key={btn} className="perm-btn-row">
                         <span className="perm-btn-name">{btnLabel}</span>

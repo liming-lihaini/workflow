@@ -104,16 +104,7 @@ public class TaskController {
      */
     @PostMapping("/{id}/transfer")
     public Result<TaskResponse> transfer(@PathVariable Long id, @RequestBody TransferTaskRequest request) {
-        return Result.ok(taskService.transfer(id, request.getOperatorId(), request.getTargetUserId()));
-    }
-
-    /**
-     * 委派任务
-     * POST /api/v1/tasks/{id}/delegate
-     */
-    @PostMapping("/{id}/delegate")
-    public Result<TaskResponse> delegate(@PathVariable Long id, @RequestBody DelegateTaskRequest request) {
-        return Result.ok(taskService.delegate(id, request.getOperatorId(), request.getDelegateUserId()));
+        return Result.ok(taskService.transfer(id, request.getOperatorId(), request.getTargetUserId(), request.getReason()));
     }
 
     /**

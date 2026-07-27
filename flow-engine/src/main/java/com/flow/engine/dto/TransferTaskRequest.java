@@ -13,4 +13,7 @@ public class TransferTaskRequest {
 
     /** 目标处理人ID */
     private String targetUserId;
+
+    /** 转办原因 */
+    private String reason;
 }

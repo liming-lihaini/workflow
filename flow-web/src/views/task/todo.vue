@@ -31,6 +31,13 @@
           <template v-else-if="column.key === 'processName'">
             <span style="font-weight: 500">{{ record.processName || record.processKey || '-' }}</span>
           </template>
+          <template v-else-if="column.key === 'assignee'">
+            {{ record.assignee || '-' }}
+            <a-tag v-if="record.delegatedBy" color="purple" size="small" style="margin-left: 4px">代理</a-tag>
+            <div v-if="record.actualOperatorId" style="font-size: 12px; color: #888">
+              实际办理：{{ record.actualOperatorId }}
+            </div>
+          </template>
           <template v-else-if="column.key === 'status'">
             <a-tag :color="record.status === 2 ? 'green' : record.status === 1 ? 'blue' : 'default'">
               {{ record.statusDesc || (record.status === 2 ? '已完成' : record.status === 1 ? '处理中' : '待处理') }}
@@ -41,8 +48,6 @@
               <span class="action-link" @click="handleProcess(record)">办理</span>
               <a-divider type="vertical" />
               <span class="action-link" @click="showTransferModal(record)">转办</span>
-              <a-divider type="vertical" />
-              <span class="action-link" @click="showDelegateModal(record)">委派</span>
             </template>
             <span v-else-if="!record.assignee" class="action-link" @click="handleClaim(record)">签收</span>
             <span v-else class="text-muted">已办结</span>
@@ -52,19 +57,26 @@
     </div>
 
     <!-- 转办弹窗 -->
-    <a-modal v-model:open="transferVisible" title="转办" @ok="handleTransfer">
+    <a-modal v-model:open="transferVisible" title="转办任务" @ok="handleTransfer" :width="480">
       <a-form layout="vertical">
-        <a-form-item label="转办目标用户ID" required>
-          <a-input v-model:value="transferUserId" placeholder="请输入目标用户ID" />
+        <a-form-item label="转办给（必填）" required>
+          <a-select
+            v-model:value="transferForm.targetUserId"
+            show-search
+            :filter-option="false"
+            placeholder="搜索用户姓名/用户名"
+            :options="transferUserOptions"
+            @search="onTransferSearch"
+            :loading="transferSearchLoading"
+            style="width: 100%"
+          >
+            <template #option="{ value, label, deptName, postName }">
+              <span>{{ label }} - {{ deptName || '-' }} / {{ postName || '-' }}</span>
+            </template>
+          </a-select>
         </a-form-item>
-      </a-form>
-    </a-modal>
-
-    <!-- 委派弹窗 -->
-    <a-modal v-model:open="delegateVisible" title="委派" @ok="handleDelegate">
-      <a-form layout="vertical">
-        <a-form-item label="委派目标用户ID" required>
-          <a-input v-model:value="delegateUserId" placeholder="请输入目标用户ID" />
+        <a-form-item label="转办原因（必填）" required>
+          <a-textarea v-model:value="transferForm.reason" :rows="3" placeholder="请输入转办原因" :maxlength="200" show-count />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -76,7 +88,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { getTodoTasks, claimTask, transferTask, delegateTask } from '../../api/task'
+import { getTodoTasks, claimTask, transferTask, searchUsers } from '../../api/task'
 import { renderDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
 
@@ -102,10 +114,10 @@ const columns = [
   { title: '流程编号', key: 'instanceNo', width: 220 },
   { title: '流程名称', key: 'processName', width: 160 },
   { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName' },
-  { title: '处理人', dataIndex: 'assignee', key: 'assignee' },
+  { title: '处理人', key: 'assignee', width: 120 },
   { title: '状态', key: 'status', width: 100 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
-  { title: '操作', key: 'action', width: 200 }
+  { title: '操作', key: 'action', width: 140 }
 ]
 
 // 前端过滤
@@ -132,14 +144,13 @@ const filteredData = computed(() => {
   return list
 })
 
-// 表格固定高度（与已办页面保持一致）
+// 表格固定高度
 const tableScrollY = ref(400)
 function calcTableHeight() {
   nextTick(() => {
     const tableWrap = document.querySelector('.card-wrap .ant-table-wrapper')
     if (tableWrap) {
       const rect = tableWrap.getBoundingClientRect()
-      // 56 = 分页高度, 16 = 底部留白
       tableScrollY.value = Math.max(window.innerHeight - rect.top - 56 - 16, 200)
     }
   })
@@ -147,20 +158,42 @@ function calcTableHeight() {
 
 // 转办
 const transferVisible = ref(false)
-const transferUserId = ref('')
-// 委派
-const delegateVisible = ref(false)
-const delegateUserId = ref('')
+const transferForm = reactive({ targetUserId: undefined, reason: '' })
+const transferUserOptions = ref([])
+const transferSearchLoading = ref(false)
+let transferSearchTimer = null
+
+// 用户搜索
+async function doSearchUsers(keyword) {
+  if (!keyword || keyword.trim().length < 1) return []
+  try {
+    const res = await searchUsers({ keyword: keyword.trim(), size: 20 })
+    const data = res.data || res
+    const list = Array.isArray(data) ? data : (data.list || data.records || [])
+    return list.map(u => ({
+      value: u.username,
+      label: u.realName || u.username,
+      deptName: u.deptName || '',
+      postName: u.postName || ''
+    }))
+  } catch { return [] }
+}
+
+function onTransferSearch(val) {
+  clearTimeout(transferSearchTimer)
+  transferSearchLoading.value = true
+  transferSearchTimer = setTimeout(async () => {
+    transferUserOptions.value = await doSearchUsers(val)
+    transferSearchLoading.value = false
+  }, 300)
+}
 
 function showTransferModal(record) {
   currentTask.value = record
-  transferUserId.value = ''
+  transferForm.targetUserId = undefined
+  transferForm.reason = ''
+  transferUserOptions.value = []
   transferVisible.value = true
-}
-function showDelegateModal(record) {
-  currentTask.value = record
-  delegateUserId.value = ''
-  delegateVisible.value = true
 }
 
 async function loadData() {
@@ -180,36 +213,27 @@ function handleProcess(record) {
   router.push(`/task/handle?id=${record.id}`)
 }
 
+const userId = computed(() => userStore.username || localStorage.getItem('username') || '')
+
 async function handleClaim(record) {
   try {
-    await claimTask(record.id, { userId: userId })
+    await claimTask(record.id, { userId: userId.value })
     message.success('签收成功')
     loadData()
   } catch {}
 }
 
 async function handleTransfer() {
-  if (!transferUserId.value.trim()) { message.warning('请输入转办目标用户ID'); return }
+  if (!transferForm.targetUserId) { message.warning('请选择转办目标用户'); return }
+  if (!transferForm.reason.trim()) { message.warning('请填写转办原因'); return }
   try {
     await transferTask(currentTask.value.id, {
       operatorId: currentTask.value.assignee,
-      targetUserId: transferUserId.value.trim()
+      targetUserId: transferForm.targetUserId,
+      reason: transferForm.reason.trim()
     })
     message.success('转办成功')
     transferVisible.value = false
-    loadData()
-  } catch {}
-}
-
-async function handleDelegate() {
-  if (!delegateUserId.value.trim()) { message.warning('请输入委派目标用户ID'); return }
-  try {
-    await delegateTask(currentTask.value.id, {
-      operatorId: currentTask.value.assignee,
-      delegateUserId: delegateUserId.value.trim()
-    })
-    message.success('委派成功')
-    delegateVisible.value = false
     loadData()
   } catch {}
 }

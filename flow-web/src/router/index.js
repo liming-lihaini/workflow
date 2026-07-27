@@ -98,6 +98,18 @@ const routes = [
         meta: { title: '已办任务', permKey: 'task:done' }
       },
       {
+        path: 'task/delegation',
+        name: 'TaskDelegation',
+        component: () => import('../views/task/delegation.vue'),
+        meta: { title: '委托与代理', permKey: 'task:delegation' }
+      },
+      {
+        path: 'task/proxy',
+        name: 'TaskProxy',
+        component: () => import('../views/task/proxy.vue'),
+        meta: { title: '代理记录', permKey: 'task:proxy' }
+      },
+      {
         path: 'system/dept',
         name: 'DeptManage',
         component: () => import('../views/system/dept.vue'),

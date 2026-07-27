@@ -50,6 +50,12 @@ public class Task {
     /** 加签类型：before/after/parallel */
     private String signType;
 
+    /** 转办/委托原因 */
+    private String reason;
+
+    /** 实际操作人（代理人代办时记录代理人ID） */
+    private String actualOperatorId;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

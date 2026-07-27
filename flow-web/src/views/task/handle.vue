@@ -54,20 +54,22 @@
               </table>
             </div>
 
-            <!-- 表单内容 -->
-            <div class="panel-title">表单内容</div>
-            <div class="form-body">
-              <a-spin :spinning="formLoading">
-                <FormRenderer
-                  :form-json="formJson"
-                  :fields="formFields"
-                  v-model="formValues"
-                  mode="readonly"
-                  :field-permissions="fieldPermMap"
-                  :node-permission="nodePermission"
-                />
-              </a-spin>
-            </div>
+            <!-- 表单内容（节点权限 hidden 时隐藏） -->
+            <template v-if="nodePermission !== 'hidden'">
+              <div class="panel-title">表单内容</div>
+              <div class="form-body">
+                <a-spin :spinning="formLoading">
+                  <FormRenderer
+                    :form-json="formJson"
+                    :fields="formFields"
+                    v-model="formValues"
+                    :mode="formMode"
+                    :field-permissions="fieldPermMap"
+                    :node-permission="nodePermission"
+                  />
+                </a-spin>
+              </div>
+            </template>
 
             <!-- 审批意见区域（仅待处理时显示） -->
             <template v-if="currentTask && currentTask.status !== 2">
@@ -103,9 +105,6 @@
                   <template v-if="nodeActions.includes('transfer') && hasPerm('task:todo:transfer') && isButtonVisible('transfer')">
                     <a-button class="btn-transfer" @click="showTransferModal">转发他人处理</a-button>
                   </template>
-                  <template v-if="nodeActions.includes('delegate') && hasPerm('task:todo:delegate') && isButtonVisible('delegate')">
-                    <a-button class="btn-addsign" @click="showDelegateModal">委派协同审批</a-button>
-                  </template>
                   <template v-if="nodeActions.includes('addSign') && isButtonVisible('addSign')">
                     <a-button class="btn-addsign" @click="showAddSignModal">加签</a-button>
                   </template>
@@ -119,14 +118,17 @@
           <div class="right-history">
             <div class="panel-title">审批处置历史</div>
             <a-spin :spinning="historyLoading">
-              <div class="history-inner" v-if="taskHistory.length > 0">
-                <div class="history-item" v-for="(item, idx) in taskHistory" :key="idx">
+              <div class="history-inner" v-if="enhancedHistory.length > 0">
+                <div :class="['history-item', item.isStartNode ? 'history-start' : '', item.isEndNode ? 'history-end' : '']" v-for="(item, idx) in enhancedHistory" :key="idx">
                   <div class="history-user">{{ item.assignee || '-' }}（{{ item.nodeName || item.nodeId }}）</div>
                   <div class="history-row">
                     <span :class="['history-opt', getActionTagClass(item.taskAction)]">
                       {{ getActionLabel(item) }}
                     </span>
                     <span class="history-time">{{ formatDate(item.completeTime || item.createTime) }}</span>
+                  </div>
+                  <div v-if="item.actualOperatorId && item.actualOperatorId !== item.assignee" style="font-size: 12px; color: #8c8c8c; margin-top: 2px">
+                    实际办理人：{{ item.actualOperatorId }}
                   </div>
                   <div class="history-opinion" v-if="getOpinion(item)">
                     {{ getOpinion(item) }}
@@ -151,19 +153,26 @@
     </div>
 
     <!-- 转办弹窗 -->
-    <a-modal v-model:open="transferVisible" title="转办" @ok="doTransfer">
+    <a-modal v-model:open="transferVisible" title="转办任务" @ok="doTransfer" :width="480">
       <a-form layout="vertical">
-        <a-form-item label="转办目标用户ID" required>
-          <a-input v-model:value="transferUserId" placeholder="请输入目标用户ID" />
+        <a-form-item label="转办给（必填）" required>
+          <a-select
+            v-model:value="transferForm.targetUserId"
+            show-search
+            :filter-option="false"
+            placeholder="搜索用户姓名/用户名"
+            :options="transferUserOptions"
+            @search="onTransferSearch"
+            :loading="transferSearchLoading"
+            style="width: 100%"
+          >
+            <template #option="{ value, label, deptName, postName }">
+              <span>{{ label }} - {{ deptName || '-' }} / {{ postName || '-' }}</span>
+            </template>
+          </a-select>
         </a-form-item>
-      </a-form>
-    </a-modal>
-
-    <!-- 委派弹窗 -->
-    <a-modal v-model:open="delegateVisible" title="委派" @ok="doDelegate">
-      <a-form layout="vertical">
-        <a-form-item label="委派目标用户ID" required>
-          <a-input v-model:value="delegateUserId" placeholder="请输入目标用户ID" />
+        <a-form-item label="转办原因（必填）" required>
+          <a-textarea v-model:value="transferForm.reason" :rows="3" placeholder="请输入转办原因" :maxlength="200" show-count />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -178,8 +187,22 @@
             <a-radio value="parallel">并行加签（同时审批）</a-radio>
           </a-radio-group>
         </a-form-item>
-        <a-form-item label="被加签人" required>
-          <a-input v-model:value="addSignForm.targetUsers" placeholder="输入用户ID，多个用逗号分隔" />
+        <a-form-item label="被加签人（必填）" required>
+          <a-select
+            v-model:value="addSignForm.targetUsers"
+            mode="multiple"
+            show-search
+            :filter-option="false"
+            placeholder="搜索用户姓名/用户名"
+            :options="addSignUserOptions"
+            @search="onAddSignSearch"
+            :loading="addSignSearchLoading"
+            style="width: 100%"
+          >
+            <template #option="{ value, label, deptName, postName }">
+              <span>{{ label }} - {{ deptName || '-' }} / {{ postName || '-' }}</span>
+            </template>
+          </a-select>
         </a-form-item>
         <a-form-item label="加签原因">
           <a-textarea v-model:value="addSignForm.reason" :rows="3" placeholder="请输入加签原因" />
@@ -195,7 +218,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
-import { getTaskDetail, getTasksByInstance, completeTask, rejectTask, transferTask, delegateTask, addSign, getFormPermissions } from '../../api/task'
+import { getTaskDetail, getTasksByInstance, completeTask, rejectTask, transferTask, addSign, getFormPermissions, searchUsers } from '../../api/task'
+import dayjs from 'dayjs'
 import { getProcessInstance, getProcessVariables, getProcessDefinitionByKey } from '../../api/process'
 import { getForm } from '../../api/form'
 import { formatDate } from '../../utils/date'
@@ -226,6 +250,16 @@ const fieldPermMap = ref({})
 const nodePermission = ref('')
 const buttonPermMap = ref({})
 
+// 表单模式动态计算：基于节点权限 + 任务状态
+const formMode = computed(() => {
+  // 任务已完成 → 始终只读
+  if (currentTask.value?.status === 2) return 'readonly'
+  // 节点级权限为 readonly → 只读
+  if (nodePermission.value === 'readonly') return 'readonly'
+  // 节点级权限为 edit 或未配置 → 可编辑
+  return 'editable'
+})
+
 // 判断按钮是否可见（基于表单权限配置）
 function isButtonVisible(buttonKey) {
   const perms = buttonPermMap.value
@@ -243,6 +277,7 @@ const flowEdgesRaw = ref([])
 // 办理记录
 const taskHistory = ref([])
 const historyLoading = ref(false)
+const processInstanceStatus = ref(0)  // 0=运行中, 1=已完成, 2=已终止
 
 // 操作栏
 const approvalComment = ref('')
@@ -255,21 +290,25 @@ const quickPhrases = ref([
   '不同意，请修改后重新提交', '材料不全，请补充', '退回修改'
 ])
 
-// 转办/委派
+// 转办
 const transferVisible = ref(false)
-const transferUserId = ref('')
-const delegateVisible = ref(false)
-const delegateUserId = ref('')
+const transferForm = reactive({ targetUserId: undefined, reason: '' })
+const transferUserOptions = ref([])
+const transferSearchLoading = ref(false)
+let transferSearchTimer = null
 
 // 加签
 const addSignVisible = ref(false)
 const addSignForm = reactive({
   signType: 'parallel',
-  targetUsers: '',
+  targetUsers: [],
   reason: ''
 })
+const addSignUserOptions = ref([])
+const addSignSearchLoading = ref(false)
+let addSignSearchTimer = null
 
-const ACTION_MAP = { 0: '操作', 1: '审批操作：同意', 2: '操作：驳回', 3: '操作：转办', 4: '操作：委派', 5: '操作：取消' }
+const ACTION_MAP = { '-1': '流程发起', '-2': '流程结束', 0: '操作', 1: '审批操作：同意', 2: '操作：驳回', 3: '操作：转办', 4: '操作：委派', 5: '操作：取消' }
 
 /**
  * 容错解析子表字符串（兼容 Java toString 格式和标准 JSON）
@@ -337,15 +376,24 @@ function goBack() {
 }
 
 function getActionLabel(item) {
+  if (item.taskAction === -1 || item.taskAction === -2) return ACTION_MAP[item.taskAction] || ''
   if (item.taskActionDesc) return item.taskActionDesc
   return ACTION_MAP[item.taskAction] || '操作'
 }
 function getActionTagClass(action) {
+  if (action === -1) return 'tag-start'
+  if (action === -2) return 'tag-end'
   if (action === 1) return 'tag-pass'
   if (action === 2) return 'tag-reject'
+  if (action === 3) return 'tag-transfer'
+  if (action === 4) return 'tag-delegate'
+  if (action === 5) return 'tag-cancel'
   return 'tag-pending'
 }
 function getOpinion(item) {
+  // 转办/委托操作显示原因
+  if (item.taskAction === 3 && item.reason) return `转办原因：${item.reason}`
+  if (item.taskAction === 4 && item.reason) return `委托说明：${item.reason}`
   // 尝试从变量中获取意见
   if (item.taskActionDesc && item.taskActionDesc !== ACTION_MAP[item.taskAction]) return item.taskActionDesc
   return null
@@ -390,6 +438,31 @@ const flowSequence = computed(() => {
   return nodes
 })
 
+const enhancedHistory = computed(() => {
+  const list = []
+  // 开始节点
+  list.push({
+    isStartNode: true,
+    nodeName: '开始节点',
+    assignee: processInfo.value.startUser || '-',
+    completeTime: processInfo.value.startTime,
+    taskAction: -1
+  })
+  // 原有审批记录
+  list.push(...taskHistory.value)
+  // 结束节点（流程已完成时）
+  if (processInstanceStatus.value === 1) {
+    list.push({
+      isEndNode: true,
+      nodeName: '结束节点',
+      assignee: processInfo.value.startUser || '-',
+      completeTime: processInfo.value.endTime,
+      taskAction: -2
+    })
+  }
+  return list
+})
+
 const nodeStatusMap = computed(() => {
   const map = {}
   if (!flowNodesRaw.value.length) return map
@@ -397,8 +470,11 @@ const nodeStatusMap = computed(() => {
   const currentId = currentTask.value?.nodeId
   flowNodesRaw.value.forEach(n => {
     const id = n.id || n.nodeId
+    const nt = n.type || n.nodeType
     if (id === currentId) map[id] = 'current'
     else if (completedIds.includes(id)) map[id] = 'completed'
+    // 流程已完成时，结束节点标记为completed
+    else if (processInstanceStatus.value === 1 && nt === 'end') map[id] = 'completed'
   })
   return map
 })
@@ -428,8 +504,10 @@ async function loadAll() {
         processKey: processKey,
         startTime: inst.startTime || inst.createTime || '-',
         startUser: inst.startUser || '-',
+        endTime: inst.endTime || '-',
         deptName: '-'
       }
+      processInstanceStatus.value = inst.status ?? 0
       // 查找当前活跃任务（进行中）或最近完成的任务
       try {
         const tasksRes = await getTasksByInstance(instId)
@@ -452,8 +530,10 @@ async function loadAll() {
         processKey: processKey,
         startTime: inst.startTime || inst.createTime || '-',
         startUser: inst.startUser || '-',
+        endTime: inst.endTime || '-',
         deptName: '-'
       }
+      processInstanceStatus.value = inst.status ?? 0
     }
 
     // 3. 获取流程变量
@@ -600,46 +680,86 @@ async function handleReject() {
   submitLoading.value = false
 }
 
-function showTransferModal() { transferUserId.value = ''; transferVisible.value = true }
-function showDelegateModal() { delegateUserId.value = ''; delegateVisible.value = true }
-function showAddSignModal() {
-  addSignForm.signType = 'parallel'
-  addSignForm.targetUsers = ''
-  addSignForm.reason = ''
-  addSignVisible.value = true
+// ====== 用户搜索（通用） ======
+async function doSearchUsers(keyword) {
+  if (!keyword || keyword.trim().length < 1) return []
+  try {
+    const res = await searchUsers({ keyword: keyword.trim(), size: 20 })
+    const data = res.data || res
+    const list = Array.isArray(data) ? data : (data.list || data.records || [])
+    return list.map(u => ({
+      value: u.username,
+      label: u.realName || u.username,
+      deptName: u.deptName || '',
+      postName: u.postName || ''
+    }))
+  } catch { return [] }
+}
+
+function onTransferSearch(val) {
+  clearTimeout(transferSearchTimer)
+  transferSearchLoading.value = true
+  transferSearchTimer = setTimeout(async () => {
+    transferUserOptions.value = await doSearchUsers(val)
+    transferSearchLoading.value = false
+  }, 300)
+}
+
+function showTransferModal() {
+  transferForm.targetUserId = undefined
+  transferForm.reason = ''
+  transferUserOptions.value = []
+  transferVisible.value = true
 }
 
 async function doTransfer() {
-  if (!transferUserId.value.trim()) { message.warning('请输入转办目标用户ID'); return }
+  if (!transferForm.targetUserId) { message.warning('请选择转办目标用户'); return }
+  if (!transferForm.reason.trim()) { message.warning('请填写转办原因'); return }
   try {
     await transferTask(currentTask.value.id, {
       operatorId: currentTask.value.assignee,
-      targetUserId: transferUserId.value.trim()
+      targetUserId: transferForm.targetUserId,
+      reason: transferForm.reason.trim()
     })
     message.success('转办成功'); transferVisible.value = false; goBack()
   } catch {}
 }
 
-async function doDelegate() {
-  if (!delegateUserId.value.trim()) { message.warning('请输入委派目标用户ID'); return }
-  try {
-    await delegateTask(currentTask.value.id, {
-      operatorId: currentTask.value.assignee,
-      delegateUserId: delegateUserId.value.trim()
-    })
-    message.success('委派成功'); delegateVisible.value = false; goBack()
-  } catch {}
+function showAddSignModal() {
+  addSignForm.signType = 'parallel'
+  addSignForm.targetUsers = []
+  addSignForm.reason = ''
+  addSignUserOptions.value = []
+  addSignVisible.value = true
+}
+
+function onAddSignSearch(val) {
+  clearTimeout(addSignSearchTimer)
+  if (!val || val.trim().length < 1) return
+  addSignSearchLoading.value = true
+  addSignSearchTimer = setTimeout(async () => {
+    try {
+      const res = await searchUsers({ keyword: val.trim(), size: 20 })
+      const data = res.data || res
+      const list = Array.isArray(data) ? data : (data.list || data.records || [])
+      addSignUserOptions.value = list.map(u => ({
+        value: u.username,
+        label: u.realName || u.username,
+        deptName: u.deptName || '',
+        postName: u.postName || ''
+      }))
+    } catch { addSignUserOptions.value = [] }
+    addSignSearchLoading.value = false
+  }, 300)
 }
 
 async function doAddSign() {
-  if (!addSignForm.targetUsers.trim()) { message.warning('请输入被加签人'); return }
-  const targetUsers = addSignForm.targetUsers.split(',').map(u => u.trim()).filter(Boolean)
-  if (targetUsers.length === 0) { message.warning('请输入有效的被加签人'); return }
+  if (!addSignForm.targetUsers || addSignForm.targetUsers.length === 0) { message.warning('请选择被加签人'); return }
   try {
     await addSign(currentTask.value.id, {
       operatorId: userStore.username || currentTask.value.assignee,
       signType: addSignForm.signType,
-      targetUsers,
+      targetUsers: addSignForm.targetUsers,
       reason: addSignForm.reason
     })
     message.success('加签成功')
@@ -940,12 +1060,19 @@ async function handleDownloadPdf() {
 .history-inner { padding: 12px; }
 .history-item { border-bottom: 1px dashed #eee; padding: 12px 0; }
 .history-item:last-child { border-bottom: none; }
+.history-start { background: #f0f9ff; border-radius: 6px; padding: 12px 8px; margin-bottom: 4px; border-bottom: none; }
+.history-end { background: #f0fff4; border-radius: 6px; padding: 12px 8px; margin-top: 4px; border-bottom: none; }
 .history-user { font-weight: bold; font-size: 14px; }
 .history-row { margin: 6px 0; }
 .history-opt { margin-right: 16px; font-weight: 500; }
+.tag-start { color: #1677ff; font-weight: bold; }
+.tag-end { color: #00a854; font-weight: bold; }
 .tag-pass { color: #00a854; }
 .tag-pending { color: #ff7d00; }
 .tag-reject { color: #f53f3f; }
+.tag-transfer { color: #1677ff; }
+.tag-delegate { color: #722ed1; }
+.tag-cancel { color: #999; }
 .history-time { color: #999; font-size: 12px; }
 .history-opinion {
   background: #f7f9fc;
@@ -956,6 +1083,7 @@ async function handleDownloadPdf() {
   border-radius: 4px;
   font-size: 13px;
 }
+
 
 
 </style>

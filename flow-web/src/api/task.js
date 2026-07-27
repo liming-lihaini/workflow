@@ -27,9 +27,6 @@ export function rejectTask(id, data) {
 export function transferTask(id, data) {
   return request.post(`/tasks/${id}/transfer`, data)
 }
-export function delegateTask(id, data) {
-  return request.post(`/tasks/${id}/delegate`, data)
-}
 export function counterSignVote(id, data) {
   return request.post(`/tasks/${id}/counter-sign/vote`, data)
 }
@@ -38,4 +35,23 @@ export function addSign(id, data) {
 }
 export function getFormPermissions(taskId) {
   return request.get(`/tasks/${taskId}/form-permissions`)
+}
+
+// 全局委托相关
+export function createDelegation(data) {
+  return request.post('/delegations', data)
+}
+export function getMyDelegations(params) {
+  return request.get('/delegations/my', { params })
+}
+export function getProxyDelegations(params) {
+  return request.get('/delegations/proxy', { params })
+}
+export function cancelDelegation(id, data) {
+  return request.post(`/delegations/${id}/cancel`, data)
+}
+
+// 用户搜索
+export function searchUsers(params) {
+  return request.get('/system/users/page', { params })
 }

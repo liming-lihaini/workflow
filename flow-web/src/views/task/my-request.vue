@@ -89,6 +89,7 @@ const columns = [
   { title: '流程Key', dataIndex: 'processKey', key: 'processKey', width: 140 },
   { title: '状态', key: 'status', width: 100 },
   { title: '当前节点', key: 'currentNode', width: 140 },
+  { title: '当前办理人', dataIndex: 'currentAssignee', key: 'currentAssignee', width: 120 },
   { title: '发起时间', dataIndex: 'startTime', key: 'startTime', width: 120, customRender: renderDate },
   { title: '耗时', key: 'duration', width: 120 },
   { title: '操作', key: 'action', width: 80 }
