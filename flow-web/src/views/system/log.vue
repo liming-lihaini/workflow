@@ -22,6 +22,7 @@
             :loading="accessLoading"
             :pagination="accessPagination"
             :resize-column="true"
+            :scroll="{ y: tableScrollY }"
             @resizeColumn="handleAccessResize"
             row-key="id"
             size="small"
@@ -49,6 +50,7 @@
             :loading="opLoading"
             :pagination="opPagination"
             :resize-column="true"
+            :scroll="{ y: tableScrollY }"
             @resizeColumn="handleOpResize"
             row-key="id"
             size="small"
@@ -75,13 +77,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { getAccessLogs, getOperationLogs, exportAccessLogs, exportOperationLogs } from '../../api/log'
 import { renderDate } from '../../utils/date'
 import { useResizableColumns } from '../../composables/useResizableTable'
 
 const activeTab = ref('access')
+const tableScrollY = computed(() => 'calc(100vh - 320px)')
 
 // 访问日志
 const accessLoading = ref(false)

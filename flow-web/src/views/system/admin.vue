@@ -26,6 +26,7 @@
             :loading="userLoading"
             :pagination="false"
             :resize-column="true"
+            :scroll="{ y: tableScrollY }"
             @resizeColumn="handleUserResize"
             row-key="id"
             size="small"
@@ -57,6 +58,7 @@
             :loading="auditLoading"
             :pagination="auditPagination"
             :resize-column="true"
+            :scroll="{ y: tableScrollY }"
             @resizeColumn="handleAuditResize"
             row-key="id"
             size="small"
@@ -69,13 +71,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { getTripleAdminUsers, getTripleAdminAuditLogs } from '../../api/admin'
 import { renderDate } from '../../utils/date'
 import { useResizableColumns } from '../../composables/useResizableTable'
 
 const activeTab = ref('users')
 const adminType = ref(null)
+const tableScrollY = computed(() => 'calc(100vh - 320px)')
 
 // 三员列表
 const userLoading = ref(false)
