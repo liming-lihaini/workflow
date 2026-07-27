@@ -25,6 +25,8 @@
             :data-source="userList"
             :loading="userLoading"
             :pagination="false"
+            :resize-column="true"
+            @resizeColumn="handleUserResize"
             row-key="id"
             size="small"
           >
@@ -54,6 +56,8 @@
             :data-source="auditList"
             :loading="auditLoading"
             :pagination="auditPagination"
+            :resize-column="true"
+            @resizeColumn="handleAuditResize"
             row-key="id"
             size="small"
             @change="handleAuditTableChange"
@@ -68,6 +72,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { getTripleAdminUsers, getTripleAdminAuditLogs } from '../../api/admin'
 import { renderDate } from '../../utils/date'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const activeTab = ref('users')
 const adminType = ref(null)
@@ -75,14 +80,14 @@ const adminType = ref(null)
 // 三员列表
 const userLoading = ref(false)
 const userList = ref([])
-const userColumns = [
-  { title: 'ID', dataIndex: 'id', width: 60 },
-  { title: '用户名', dataIndex: 'username' },
-  { title: '姓名', dataIndex: 'realName' },
-  { title: '管理员类型', key: 'adminType', width: 140 },
+const { columns: userColumns, handleResizeColumn: handleUserResize } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', width: 60, sorter: true },
+  { title: '用户名', dataIndex: 'username', sorter: true },
+  { title: '姓名', dataIndex: 'realName', sorter: true },
+  { title: '管理员类型', key: 'adminType', dataIndex: 'adminType', width: 140 },
   { title: '状态', dataIndex: 'status', width: 80 },
-  { title: '创建时间', dataIndex: 'createTime', width: 120, customRender: renderDate }
-]
+  { title: '创建时间', dataIndex: 'createTime', width: 120, customRender: renderDate, sorter: true }
+])
 
 // 审计日志
 const auditLoading = ref(false)
@@ -95,14 +100,14 @@ const auditPagination = reactive({
   showSizeChanger: true,
   showTotal: (total) => `共 ${total} 条`
 })
-const auditColumns = [
-  { title: 'ID', dataIndex: 'id', width: 60 },
+const { columns: auditColumns, handleResizeColumn: handleAuditResize } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', width: 60, sorter: true },
   { title: '用户', dataIndex: 'username', width: 100 },
-  { title: '模块', dataIndex: 'module', width: 100 },
-  { title: '操作', dataIndex: 'operation', width: 120 },
+  { title: '模块', dataIndex: 'module', width: 100, sorter: true },
+  { title: '操作', dataIndex: 'operation', width: 120, sorter: true },
   { title: '结果', dataIndex: 'result', width: 80 },
-  { title: '操作时间', dataIndex: 'operationTime', width: 120, customRender: renderDate }
-]
+  { title: '操作时间', dataIndex: 'operationTime', width: 120, customRender: renderDate, sorter: true }
+])
 
 function typeColor(type) {
   const map = { 1: 'blue', 2: 'orange', 3: 'green' }

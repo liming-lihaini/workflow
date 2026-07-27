@@ -11,6 +11,8 @@
         :data-source="dataList"
         :loading="loading"
         :pagination="pagination"
+        :resize-column="true"
+        @resizeColumn="handleResizeColumn"
         row-key="id"
         @change="handleTableChange"
       >
@@ -65,6 +67,7 @@ import { getRoles, createRole, updateRole, deleteRole, getRolePermissions, assig
 import { getPermissionsGrouped } from '../../api/system'
 import { renderDate } from '../../utils/date'
 import { usePermission } from '../../composables/usePermission'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const { hasPerm } = usePermission()
 const loading = ref(false)
@@ -85,13 +88,13 @@ const pagination = reactive({
   showTotal: (total) => `共 ${total} 条`
 })
 
-const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
-  { title: '角色名称', dataIndex: 'roleName', key: 'roleName' },
-  { title: '角色标识', dataIndex: 'roleKey', key: 'roleKey' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
+const { columns, handleResizeColumn } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
+  { title: '角色名称', dataIndex: 'roleName', key: 'roleName', sorter: true },
+  { title: '角色标识', dataIndex: 'roleKey', key: 'roleKey', sorter: true },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate, sorter: true },
   { title: '操作', key: 'action', width: 220 }
-]
+])
 
 const formState = reactive({
   roleName: '',

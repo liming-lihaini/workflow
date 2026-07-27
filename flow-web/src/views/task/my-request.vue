@@ -21,6 +21,8 @@
         :loading="loading"
         :pagination="pagination"
         :scroll="{ y: tableScrollY }"
+        :resize-column="true"
+        @resizeColumn="handleResizeColumn"
         row-key="id"
         @change="handleTableChange"
       >
@@ -61,6 +63,7 @@ import { getMyProcessInstances, terminateProcessInstance } from '../../api/proce
 import { renderDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
 import { usePermission } from '../../composables/usePermission'
+import { useResizableColumns, sortClientData } from '../../composables/useResizableTable'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -83,19 +86,22 @@ const pagination = reactive({
   showSizeChanger: true, showTotal: (total) => `共 ${total} 条`
 })
 
-const columns = [
-  { title: '流程编号', key: 'instanceNo', width: 220 },
-  { title: '流程名称', dataIndex: 'processName', key: 'processName', width: 160 },
+const { columns, handleResizeColumn } = useResizableColumns([
+  { title: '流程编号', key: 'instanceNo', dataIndex: 'instanceNo', width: 220, sorter: true },
+  { title: '流程名称', dataIndex: 'processName', key: 'processName', width: 160, sorter: true },
   { title: '流程Key', dataIndex: 'processKey', key: 'processKey', width: 140 },
-  { title: '状态', key: 'status', width: 100 },
-  { title: '当前节点', key: 'currentNode', width: 140 },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 100, sorter: true },
+  { title: '当前节点', key: 'currentNode', dataIndex: 'currentNodeName', width: 140 },
   { title: '当前办理人', dataIndex: 'currentAssignee', key: 'currentAssignee', width: 120 },
-  { title: '发起时间', dataIndex: 'startTime', key: 'startTime', width: 120, customRender: renderDate },
-  { title: '耗时', key: 'duration', width: 120 },
+  { title: '发起时间', dataIndex: 'startTime', key: 'startTime', width: 120, customRender: renderDate, sorter: true },
+  { title: '耗时', key: 'duration', dataIndex: 'duration', width: 120, sorter: true },
   { title: '操作', key: 'action', width: 80 }
-]
+])
 
-// 前端过滤（后端暂不支持条件查询时，在前端过滤）
+// 排序状态
+const currentSorter = ref(null)
+
+// 前端过滤 + 排序
 const filteredData = computed(() => {
   let list = dataList.value
   if (search.processName) {
@@ -115,6 +121,7 @@ const filteredData = computed(() => {
       return t.isAfter(start) && t.isBefore(end)
     })
   }
+  list = sortClientData(list, currentSorter.value)
   pagination.total = list.length
   return list
 })
@@ -186,9 +193,10 @@ function handleReset() {
   pagination.current = 1
 }
 
-function handleTableChange(pag) {
+function handleTableChange(pag, filters, sorter) {
   pagination.current = pag.current
   pagination.pageSize = pag.pageSize
+  currentSorter.value = sorter && sorter.field ? sorter : null
 }
 
 onMounted(() => {

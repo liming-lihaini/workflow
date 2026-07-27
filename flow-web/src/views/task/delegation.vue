@@ -11,6 +11,8 @@
         :data-source="dataList"
         :loading="loading"
         :pagination="pagination"
+        :resize-column="true"
+        @resizeColumn="handleResizeColumn"
         row-key="id"
         @change="handleTableChange"
       >
@@ -80,6 +82,7 @@ import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { getMyDelegations, createDelegation, cancelDelegation, searchUsers } from '../../api/task'
 import { useUserStore } from '../../stores/user'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const userStore = useUserStore()
 const loading = ref(false)
@@ -90,15 +93,15 @@ const pagination = reactive({
   showSizeChanger: true, showTotal: (total) => `共 ${total} 条`
 })
 
-const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
+const { columns, handleResizeColumn } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
   { title: '代理人', dataIndex: 'delegateName', key: 'delegateName', width: 120 },
   { title: '委托时间区间', key: 'timeRange', width: 280 },
   { title: '委托说明', dataIndex: 'reason', key: 'reason', ellipsis: true },
-  { title: '状态', key: 'status', width: 90 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120 },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 90, sorter: true },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, sorter: true },
   { title: '操作', key: 'action', width: 100 }
-]
+])
 
 // 创建委托
 const createVisible = ref(false)

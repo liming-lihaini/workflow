@@ -47,6 +47,8 @@
             :data-source="itemList"
             :loading="itemLoading"
             :pagination="false"
+            :resize-column="true"
+            @resizeColumn="handleItemResize"
             row-key="id"
             size="small"
           >
@@ -117,6 +119,7 @@ import {
   getDictItemsByTypeId, createDictItem, updateDictItem, deleteDictItem
 } from '../../api/dict'
 import { usePermission } from '../../composables/usePermission'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const { hasPerm } = usePermission()
 const typeLoading = ref(false)
@@ -135,14 +138,14 @@ const itemModalVisible = ref(false)
 const editingItem = ref(null)
 const itemForm = reactive({ itemText: '', itemValue: '', sortOrder: 0 })
 
-const itemColumns = [
-  { title: 'ID', dataIndex: 'id', width: 60 },
-  { title: '显示文本', dataIndex: 'itemText' },
-  { title: '字典值', dataIndex: 'itemValue' },
-  { title: '排序', dataIndex: 'sortOrder', width: 80 },
-  { title: '状态', key: 'status', width: 80 },
+const { columns: itemColumns, handleResizeColumn: handleItemResize } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', width: 60, sorter: true },
+  { title: '显示文本', dataIndex: 'itemText', sorter: true },
+  { title: '字典值', dataIndex: 'itemValue', sorter: true },
+  { title: '排序', dataIndex: 'sortOrder', width: 80, sorter: true },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 80 },
   { title: '操作', key: 'action', width: 140 }
-]
+])
 
 async function loadTypes() {
   typeLoading.value = true

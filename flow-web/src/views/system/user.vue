@@ -65,6 +65,8 @@
             :data-source="dataList"
             :loading="loading"
             :pagination="pagination"
+            :resize-column="true"
+            @resizeColumn="handleResizeColumn"
             row-key="id"
             @change="handleTableChange"
           >
@@ -163,6 +165,7 @@ import { message, Empty } from 'ant-design-vue'
 import { getUsersPage, createUser, updateUser, deleteUser, resetPassword, getDeptTree, getRoles, getUserRoles, setUserRoles } from '../../api/system'
 import { renderDate } from '../../utils/date'
 import { usePermission } from '../../composables/usePermission'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const simpleEmptyImage = Empty.PRESENTED_IMAGE_SIMPLE
 const { hasPerm } = usePermission()
@@ -250,15 +253,15 @@ const pagination = reactive({
   showTotal: (total) => `共 ${total} 条`
 })
 
-const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
-  { title: '用户名', dataIndex: 'username', key: 'username' },
-  { title: '姓名', dataIndex: 'realName', key: 'realName' },
+const { columns, handleResizeColumn } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
+  { title: '用户名', dataIndex: 'username', key: 'username', sorter: true },
+  { title: '姓名', dataIndex: 'realName', key: 'realName', sorter: true },
   { title: '部门', dataIndex: 'deptName', key: 'deptName' },
-  { title: '状态', key: 'status', width: 80 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 80 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate, sorter: true },
   { title: '操作', key: 'action', width: 300 }
-]
+])
 
 const formState = reactive({
   username: '',

@@ -11,6 +11,8 @@
         :data-source="dataList"
         :loading="loading"
         :pagination="pagination"
+        :resize-column="true"
+        @resizeColumn="handleResizeColumn"
         row-key="id"
         @change="handleTableChange"
       >
@@ -55,6 +57,7 @@ import { message } from 'ant-design-vue'
 import { getProcessInstances, terminateProcessInstance } from '../../../api/process'
 import { formatDate } from '../../../utils/date'
 import { usePermission } from '../../../composables/usePermission'
+import { useResizableColumns } from '../../../composables/useResizableTable'
 
 const { hasPerm } = usePermission()
 
@@ -71,14 +74,14 @@ const pagination = reactive({
   showTotal: (total) => `共 ${total} 条`
 })
 
-const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
-  { title: '流程名称', dataIndex: 'processName', key: 'processName' },
-  { title: '状态', key: 'status', width: 120 },
+const { columns, handleResizeColumn } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
+  { title: '流程名称', dataIndex: 'processName', key: 'processName', sorter: true },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 120, sorter: true },
   { title: '当前节点', dataIndex: 'currentNodeId', key: 'currentNodeId' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: ({ text }) => formatDate(text) },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: ({ text }) => formatDate(text), sorter: true },
   { title: '操作', key: 'action', width: 150 }
-]
+])
 
 function statusText(status) {
   const map = { 0: '运行中', 1: '已完成', 2: '已暂停', 3: '已终止' }

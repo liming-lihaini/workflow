@@ -54,6 +54,8 @@
             :columns="childDeptColumns"
             :data-source="detail.childDepts"
             :pagination="false"
+            :resize-column="true"
+            @resizeColumn="handleChildDeptResize"
             row-key="id"
             size="small"
             class="section-table"
@@ -85,6 +87,8 @@
             :columns="memberColumns"
             :data-source="detail.members"
             :pagination="{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 人` }"
+            :resize-column="true"
+            @resizeColumn="handleMemberResize"
             row-key="id"
             size="small"
             class="section-table"
@@ -118,6 +122,7 @@ import { ArrowLeftOutlined } from '@ant-design/icons-vue'
 import { Empty } from 'ant-design-vue'
 import { getDeptDetail } from '../../api/system'
 import { formatDate } from '../../utils/date'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const route = useRoute()
 const router = useRouter()
@@ -126,19 +131,19 @@ const simpleEmptyImage = Empty.PRESENTED_IMAGE_SIMPLE
 const loading = ref(false)
 const detail = ref(null)
 
-const childDeptColumns = [
-  { title: '部门名称', key: 'deptName' },
-  { title: '部门领导', key: 'leaderName', width: 120 },
-  { title: '状态', key: 'status', width: 80 }
-]
+const { columns: childDeptColumns, handleResizeColumn: handleChildDeptResize } = useResizableColumns([
+  { title: '部门名称', key: 'deptName', dataIndex: 'deptName', sorter: true },
+  { title: '部门领导', key: 'leaderName', dataIndex: 'leaderName', width: 120 },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 80 }
+])
 
-const memberColumns = [
-  { title: '姓名', key: 'realName' },
-  { title: '用户名', dataIndex: 'username', key: 'username' },
+const { columns: memberColumns, handleResizeColumn: handleMemberResize } = useResizableColumns([
+  { title: '姓名', key: 'realName', dataIndex: 'realName', sorter: true },
+  { title: '用户名', dataIndex: 'username', key: 'username', sorter: true },
   { title: '手机号', dataIndex: 'phone', key: 'phone' },
-  { title: '状态', key: 'status', width: 80 },
-  { title: '加入时间', key: 'createTime', width: 120 }
-]
+  { title: '状态', key: 'status', dataIndex: 'status', width: 80 },
+  { title: '加入时间', key: 'createTime', dataIndex: 'createTime', width: 120, sorter: true }
+])
 
 function goDeptDetail(deptId) {
   router.push(`/system/dept-detail?id=${deptId}`)

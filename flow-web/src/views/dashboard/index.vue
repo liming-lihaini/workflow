@@ -45,6 +45,8 @@
             :data-source="todoList"
             :loading="loading"
             :pagination="false"
+            :resize-column="true"
+            @resizeColumn="handleTodoResize"
             size="small"
             row-key="id"
           >
@@ -110,6 +112,7 @@ import { getTodoTasks } from '../../api/task'
 import { getProcessDefinitions } from '../../api/process'
 import { renderDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const userStore = useUserStore()
 const loading = ref(false)
@@ -122,12 +125,12 @@ const stats = reactive({
   definitionCount: 0
 })
 
-const todoColumns = [
-  { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName' },
+const { columns: todoColumns, handleResizeColumn: handleTodoResize } = useResizableColumns([
+  { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName', sorter: true },
   { title: '处理人', dataIndex: 'assignee', key: 'assignee' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', customRender: renderDate },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', customRender: renderDate, sorter: true },
   { title: '操作', key: 'action', width: 80 }
-]
+])
 
 onMounted(async () => {
   loading.value = true

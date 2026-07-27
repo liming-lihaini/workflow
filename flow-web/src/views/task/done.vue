@@ -21,6 +21,8 @@
         :loading="loading"
         :pagination="pagination"
         :scroll="{ y: tableScrollY }"
+        :resize-column="true"
+        @resizeColumn="handleResizeColumn"
         row-key="id"
         @change="handleTableChange"
       >
@@ -53,6 +55,7 @@ import { getDoneTasks } from '../../api/task'
 import { getDictItemsByCode } from '../../api/dict'
 import { renderDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
+import { useResizableColumns, sortClientData } from '../../composables/useResizableTable'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -87,18 +90,21 @@ const pagination = reactive({
   showSizeChanger: true, showTotal: (total) => `共 ${total} 条`
 })
 
-const columns = [
-  { title: '流程编号', key: 'instanceNo', width: 220 },
-  { title: '流程名称', dataIndex: 'processName', key: 'processName', width: 160 },
-  { title: '流程类型', key: 'processType', width: 110 },
-  { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName', width: 140 },
+const { columns, handleResizeColumn } = useResizableColumns([
+  { title: '流程编号', key: 'instanceNo', dataIndex: 'instanceNo', width: 220, sorter: true },
+  { title: '流程名称', dataIndex: 'processName', key: 'processName', width: 160, sorter: true },
+  { title: '流程类型', key: 'processType', dataIndex: 'processType', width: 110 },
+  { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName', width: 140, sorter: true },
   { title: '处理人', dataIndex: 'assignee', key: 'assignee', width: 100 },
-  { title: '处理时间', dataIndex: 'completeTime', key: 'completeTime', width: 120, customRender: renderDate },
-  { title: '节点耗时', key: 'duration', width: 120 },
-  { title: '办理时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate }
-]
+  { title: '处理时间', dataIndex: 'completeTime', key: 'completeTime', width: 120, customRender: renderDate, sorter: true },
+  { title: '节点耗时', key: 'duration', dataIndex: 'duration', width: 120, sorter: true },
+  { title: '办理时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate, sorter: true }
+])
 
-// 前端过滤
+// 排序状态
+const currentSorter = ref(null)
+
+// 前端过滤 + 排序
 const filteredData = computed(() => {
   let list = dataList.value
   if (search.processName) {
@@ -121,6 +127,7 @@ const filteredData = computed(() => {
       return t.isAfter(start) && t.isBefore(end)
     })
   }
+  list = sortClientData(list, currentSorter.value)
   pagination.total = list.length
   return list
 })
@@ -180,10 +187,10 @@ function handleReset() {
   pagination.current = 1
 }
 
-function handleTableChange(pag) {
+function handleTableChange(pag, filters, sorter) {
   pagination.current = pag.current
   pagination.pageSize = pag.pageSize
-  loadData()
+  currentSorter.value = sorter && sorter.field ? sorter : null
 }
 
 onMounted(() => {

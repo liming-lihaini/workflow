@@ -64,6 +64,8 @@
                 :columns="varColumns"
                 :data-source="variableList"
                 :pagination="false"
+                :resize-column="true"
+                @resizeColumn="handleVarResize"
                 size="small"
                 row-key="id"
               />
@@ -92,6 +94,8 @@
                 :columns="nodeTimeColumns"
                 :data-source="statistics.nodeDurations || []"
                 :pagination="false"
+                :resize-column="true"
+                @resizeColumn="handleNodeTimeResize"
                 size="small"
                 row-key="nodeId"
               />
@@ -132,6 +136,7 @@ import {
 } from '../../api/monitor'
 import { formatDate } from '../../utils/date'
 import { usePermission } from '../../composables/usePermission'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const { hasPerm } = usePermission()
 const runningLoading = ref(false)
@@ -146,17 +151,17 @@ const statistics = reactive({ totalDuration: 0, nodeCount: 0, nodeDurations: [] 
 const interveneVisible = ref(false)
 const interveneForm = reactive({ targetNodeId: '', reason: '' })
 
-const varColumns = [
-  { title: '变量名', dataIndex: 'name', key: 'name' },
+const { columns: varColumns, handleResizeColumn: handleVarResize } = useResizableColumns([
+  { title: '变量名', dataIndex: 'name', key: 'name', sorter: true },
   { title: '值', dataIndex: 'value', key: 'value' },
   { title: '类型', dataIndex: 'type', key: 'type', width: 100 }
-]
+])
 
-const nodeTimeColumns = [
+const { columns: nodeTimeColumns, handleResizeColumn: handleNodeTimeResize } = useResizableColumns([
   { title: '节点ID', dataIndex: 'nodeId', key: 'nodeId' },
-  { title: '节点名', dataIndex: 'nodeName', key: 'nodeName' },
-  { title: '耗时(ms)', dataIndex: 'duration', key: 'duration', width: 120 }
-]
+  { title: '节点名', dataIndex: 'nodeName', key: 'nodeName', sorter: true },
+  { title: '耗时(ms)', dataIndex: 'duration', key: 'duration', width: 120, sorter: true }
+])
 
 async function loadRunning() {
   runningLoading.value = true

@@ -21,6 +21,8 @@
             :data-source="accessList"
             :loading="accessLoading"
             :pagination="accessPagination"
+            :resize-column="true"
+            @resizeColumn="handleAccessResize"
             row-key="id"
             size="small"
             @change="handleAccessTableChange"
@@ -46,6 +48,8 @@
             :data-source="opList"
             :loading="opLoading"
             :pagination="opPagination"
+            :resize-column="true"
+            @resizeColumn="handleOpResize"
             row-key="id"
             size="small"
             @change="handleOpTableChange"
@@ -61,6 +65,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { getAccessLogs, getOperationLogs, exportAccessLogs, exportOperationLogs } from '../../api/log'
 import { renderDate } from '../../utils/date'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const activeTab = ref('access')
 
@@ -75,15 +80,15 @@ const accessPagination = reactive({
   showSizeChanger: true,
   showTotal: (total) => `共 ${total} 条`
 })
-const accessColumns = [
-  { title: 'ID', dataIndex: 'id', width: 60 },
+const { columns: accessColumns, handleResizeColumn: handleAccessResize } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', width: 60, sorter: true },
   { title: '请求方式', dataIndex: 'method', width: 80 },
   { title: 'URL', dataIndex: 'url', ellipsis: true },
   { title: 'IP', dataIndex: 'ip', width: 140 },
-  { title: '用户', dataIndex: 'username', width: 100 },
+  { title: '用户', dataIndex: 'username', width: 100, sorter: true },
   { title: '结果', dataIndex: 'result', width: 80 },
-  { title: '访问时间', dataIndex: 'accessTime', width: 120, customRender: renderDate }
-]
+  { title: '访问时间', dataIndex: 'accessTime', width: 120, customRender: renderDate, sorter: true }
+])
 
 // 操作日志
 const opLoading = ref(false)
@@ -96,14 +101,14 @@ const opPagination = reactive({
   showSizeChanger: true,
   showTotal: (total) => `共 ${total} 条`
 })
-const opColumns = [
-  { title: 'ID', dataIndex: 'id', width: 60 },
-  { title: '模块', dataIndex: 'module', width: 100 },
-  { title: '操作', dataIndex: 'operation', width: 120 },
+const { columns: opColumns, handleResizeColumn: handleOpResize } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', width: 60, sorter: true },
+  { title: '模块', dataIndex: 'module', width: 100, sorter: true },
+  { title: '操作', dataIndex: 'operation', width: 120, sorter: true },
   { title: '用户', dataIndex: 'username', width: 100 },
   { title: '结果', dataIndex: 'result', width: 80 },
-  { title: '操作时间', dataIndex: 'operationTime', width: 120, customRender: renderDate }
-]
+  { title: '操作时间', dataIndex: 'operationTime', width: 120, customRender: renderDate, sorter: true }
+])
 
 async function loadAccessLogs() {
   accessLoading.value = true

@@ -43,6 +43,8 @@
             :columns="roleColumns"
             :data-source="detail.roles || []"
             :pagination="false"
+            :resize-column="true"
+            @resizeColumn="handleRoleResize"
             row-key="id"
             size="small"
             class="section-table"
@@ -62,6 +64,8 @@
             :columns="postColumns"
             :data-source="detail.posts || []"
             :pagination="false"
+            :resize-column="true"
+            @resizeColumn="handlePostResize"
             row-key="id"
             size="small"
             class="section-table"
@@ -95,6 +99,7 @@ import { ArrowLeftOutlined } from '@ant-design/icons-vue'
 import { Empty } from 'ant-design-vue'
 import { getUserDetail } from '../../api/system'
 import { formatDate } from '../../utils/date'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const route = useRoute()
 const router = useRouter()
@@ -110,15 +115,15 @@ function securityColor(level) {
   return { 1: 'default', 2: 'blue', 3: 'orange', 4: 'red' }[level] || 'default'
 }
 
-const roleColumns = [
-  { title: '角色名称', key: 'roleName', dataIndex: 'roleName' },
+const { columns: roleColumns, handleResizeColumn: handleRoleResize } = useResizableColumns([
+  { title: '角色名称', key: 'roleName', dataIndex: 'roleName', sorter: true },
   { title: '角色描述', dataIndex: 'description', key: 'description' }
-]
+])
 
-const postColumns = [
-  { title: '部门名称', key: 'deptName' },
-  { title: '类型', key: 'isMain', width: 100 }
-]
+const { columns: postColumns, handleResizeColumn: handlePostResize } = useResizableColumns([
+  { title: '部门名称', key: 'deptName', dataIndex: 'deptName', sorter: true },
+  { title: '类型', key: 'isMain', dataIndex: 'isMain', width: 100 }
+])
 
 function goDeptDetail(deptId) {
   router.push(`/system/dept-detail?id=${deptId}`)

@@ -14,6 +14,8 @@
         :data-source="dataList"
         :loading="loading"
         :pagination="pagination"
+        :resize-column="true"
+        @resizeColumn="handleResizeColumn"
         row-key="id"
         @change="handleTableChange"
       >
@@ -119,6 +121,7 @@ import {
 import { getDictItemsByCode } from '../../../api/dict'
 import { renderDate } from '../../../utils/date'
 import { usePermission } from '../../../composables/usePermission'
+import { useResizableColumns } from '../../../composables/useResizableTable'
 
 const router = useRouter()
 const { hasPerm } = usePermission()
@@ -136,17 +139,17 @@ const pagination = reactive({
   showTotal: (total) => `共 ${total} 条`
 })
 
-const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
-  { title: '流程标识', dataIndex: 'processKey', key: 'processKey' },
-  { title: '流程名称', dataIndex: 'processName', key: 'processName' },
-  { title: '类型', key: 'processType', width: 100 },
+const { columns, handleResizeColumn } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
+  { title: '流程标识', dataIndex: 'processKey', key: 'processKey', sorter: true },
+  { title: '流程名称', dataIndex: 'processName', key: 'processName', sorter: true },
+  { title: '类型', key: 'processType', dataIndex: 'processType', width: 100 },
   { title: '分类', dataIndex: 'category', key: 'category' },
-  { title: '版本', dataIndex: 'version', key: 'version', width: 80 },
-  { title: '状态', key: 'status', width: 100 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
+  { title: '版本', dataIndex: 'version', key: 'version', width: 80, sorter: true },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 100 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate, sorter: true },
   { title: '操作', key: 'action', width: 340 }
-]
+])
 
 const formState = reactive({
   processKey: '',

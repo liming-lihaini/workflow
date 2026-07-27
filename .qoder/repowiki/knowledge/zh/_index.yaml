@@ -3,14 +3,15 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-27T02:26:00Z"
+exported_at: "2026-07-27T07:01:29Z"
 modules:
     "":
-        dir_name: 自定义流程引擎前后端工程
-        title: 自定义流程引擎前后端工程
+        dir_name: 自定义流程引擎（Flow Engine）多模块项目
+        title: 自定义流程引擎（Flow Engine）多模块项目
         scope: []
         source_files: []
-        children: []
+        children:
+            - flow_web
         depends_on: []
         related_to: []
     flow_web:

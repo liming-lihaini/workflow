@@ -15,6 +15,8 @@
         :data-source="dataList"
         :loading="loading"
         :pagination="pagination"
+        :resize-column="true"
+        @resizeColumn="handleResizeColumn"
         row-key="id"
         @change="handleTableChange"
       >
@@ -39,6 +41,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getProxyDelegations } from '../../api/task'
 import { useUserStore } from '../../stores/user'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -50,15 +53,15 @@ const pagination = reactive({
   showSizeChanger: true, showTotal: (total) => `共 ${total} 条`
 })
 
-const columns = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
+const { columns, handleResizeColumn } = useResizableColumns([
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
   { title: '委托人', dataIndex: 'delegatorName', key: 'delegatorName', width: 120 },
   { title: '委托时间区间', key: 'timeRange', width: 280 },
   { title: '委托说明', dataIndex: 'reason', key: 'reason', ellipsis: true },
-  { title: '状态', key: 'status', width: 90 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120 },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 90, sorter: true },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, sorter: true },
   { title: '操作', key: 'action', width: 100 }
-]
+])
 
 function getStatusColor(status) {
   if (status === 0) return 'blue'

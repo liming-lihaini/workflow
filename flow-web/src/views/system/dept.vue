@@ -23,7 +23,7 @@
           <a-button type="primary" @click="handleSearch">查询</a-button>
           <a-button @click="handleReset">重置</a-button>
         </div>
-        <a-table :columns="columns" :data-source="dataList" :loading="loading" row-key="id" :pagination="pagination" @change="handleTableChange">
+        <a-table :columns="columns" :data-source="dataList" :loading="loading" :resize-column="true" @resizeColumn="handleResizeColumn" row-key="id" :pagination="pagination" @change="handleTableChange">
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'deptName'">
               <span class="action-link" @click="router.push(`/system/dept-detail?id=${record.id}`)">{{ record.deptName }}</span>
@@ -138,6 +138,8 @@
                     :columns="memberColumns"
                     :data-source="deptMembers"
                     :loading="membersLoading"
+                    :resize-column="true"
+                    @resizeColumn="handleMemberResize"
                     row-key="id"
                     :pagination="{ pageSize: 10 }"
                     size="small"
@@ -213,6 +215,7 @@ import { message } from 'ant-design-vue'
 import { getDeptsPage, getDeptTree, getDept, createDept, updateDept, deleteDept, setDeptLeader, getUsersPage } from '../../api/system'
 import { formatDate, renderDate } from '../../utils/date'
 import { usePermission } from '../../composables/usePermission'
+import { useResizableColumns } from '../../composables/useResizableTable'
 
 // ====== 通用 ======
 const { hasPerm } = usePermission()
@@ -242,14 +245,14 @@ const pagination = reactive({
   current: 1, pageSize: 10, total: 0, showSizeChanger: true,
   showTotal: (total) => `共 ${total} 条`
 })
-const columns = [
-  { title: '部门名称', dataIndex: 'deptName', key: 'deptName' },
+const { columns, handleResizeColumn } = useResizableColumns([
+  { title: '部门名称', dataIndex: 'deptName', key: 'deptName', sorter: true },
   { title: '部门领导', key: 'leaderName', width: 120 },
-  { title: '排序', dataIndex: 'sortOrder', key: 'sortOrder', width: 80 },
-  { title: '状态', key: 'status', width: 100 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate },
+  { title: '排序', dataIndex: 'sortOrder', key: 'sortOrder', width: 80, sorter: true },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 100 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate, sorter: true },
   { title: '操作', key: 'action', width: 300 }
-]
+])
 const formState = reactive({ deptName: '', sortOrder: 0, status: 1 })
 
 // ====== 树形视图 ======
@@ -263,12 +266,12 @@ const activeTab = ref('info')
 const deptMembers = ref([])
 const membersLoading = ref(false)
 
-const memberColumns = [
-  { title: '用户名', dataIndex: 'username', key: 'username' },
-  { title: '姓名', dataIndex: 'realName', key: 'realName' },
-  { title: '状态', key: 'status', width: 80 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate }
-]
+const { columns: memberColumns, handleResizeColumn: handleMemberResize } = useResizableColumns([
+  { title: '用户名', dataIndex: 'username', key: 'username', sorter: true },
+  { title: '姓名', dataIndex: 'realName', key: 'realName', sorter: true },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 80 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate, sorter: true }
+])
 
 // ====== 数据加载 ======
 async function loadData() {
