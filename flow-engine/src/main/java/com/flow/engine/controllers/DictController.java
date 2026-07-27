@@ -1,5 +1,6 @@
 package com.flow.engine.controllers;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.entity.DictItem;
 import com.flow.engine.entity.DictType;
@@ -45,6 +46,7 @@ public class DictController {
      * 创建字典类型
      */
     @PostMapping("/types")
+    @OpLog(module = "数据字典", operation = "创建字典类型")
     public Result<DictType> createType(@RequestBody DictType dictType) {
         return Result.ok(dictService.createDictType(dictType));
     }
@@ -53,6 +55,7 @@ public class DictController {
      * 更新字典类型
      */
     @PutMapping("/types/{id}")
+    @OpLog(module = "数据字典", operation = "更新字典类型")
     public Result<DictType> updateType(@PathVariable Long id, @RequestBody DictType dictType) {
         return Result.ok(dictService.updateDictType(id, dictType));
     }
@@ -61,6 +64,7 @@ public class DictController {
      * 删除字典类型（系统内置不可删除）
      */
     @DeleteMapping("/types/{id}")
+    @OpLog(module = "数据字典", operation = "删除字典类型")
     public Result<Void> deleteType(@PathVariable Long id) {
         dictService.deleteDictType(id);
         return Result.ok();
@@ -98,6 +102,7 @@ public class DictController {
      * 创建字典项
      */
     @PostMapping("/items")
+    @OpLog(module = "数据字典", operation = "创建字典项")
     public Result<DictItem> createItem(@RequestBody DictItem dictItem) {
         return Result.ok(dictService.createDictItem(dictItem));
     }
@@ -106,6 +111,7 @@ public class DictController {
      * 更新字典项
      */
     @PutMapping("/items/{id}")
+    @OpLog(module = "数据字典", operation = "更新字典项")
     public Result<DictItem> updateItem(@PathVariable Long id, @RequestBody DictItem dictItem) {
         return Result.ok(dictService.updateDictItem(id, dictItem));
     }
@@ -114,6 +120,7 @@ public class DictController {
      * 删除字典项
      */
     @DeleteMapping("/items/{id}")
+    @OpLog(module = "数据字典", operation = "删除字典项")
     public Result<Void> deleteItem(@PathVariable Long id) {
         dictService.deleteDictItem(id);
         return Result.ok();

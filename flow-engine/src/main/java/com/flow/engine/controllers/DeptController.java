@@ -1,5 +1,6 @@
 package com.flow.engine.controllers;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.entity.*;
 import com.flow.engine.service.*;
@@ -47,22 +48,26 @@ public class DeptController {
     }
 
     @PostMapping
+    @OpLog(module = "部门管理", operation = "创建部门")
     public Result<Dept> create(@RequestBody Dept dept) {
         return Result.ok(deptService.createDept(dept));
     }
 
     @PutMapping("/{id}")
+    @OpLog(module = "部门管理", operation = "更新部门")
     public Result<Dept> update(@PathVariable Long id, @RequestBody Dept dept) {
         return Result.ok(deptService.updateDept(id, dept));
     }
 
     @DeleteMapping("/{id}")
+    @OpLog(module = "部门管理", operation = "删除部门")
     public Result<Void> delete(@PathVariable Long id) {
         deptService.deleteDept(id);
         return Result.ok();
     }
 
     @PutMapping("/{id}/leader")
+    @OpLog(module = "部门管理", operation = "设置部门领导")
     public Result<Dept> setLeader(@PathVariable Long id, @RequestParam Long leaderId, @RequestParam String leaderName) {
         return Result.ok(deptService.setLeader(id, leaderId, leaderName));
     }
@@ -71,6 +76,7 @@ public class DeptController {
      * 通过 JSON body 设置部门领导（解决 query string 中文编码问题）
      */
     @PostMapping("/{id}/leader")
+    @OpLog(module = "部门管理", operation = "设置部门领导")
     public Result<Dept> setLeaderByBody(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         Long leaderId = Long.valueOf(body.get("leaderId").toString());
         String leaderName = body.get("leaderName").toString();

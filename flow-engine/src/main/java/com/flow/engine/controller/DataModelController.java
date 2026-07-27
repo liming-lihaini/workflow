@@ -1,5 +1,6 @@
 package com.flow.engine.controller;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.dto.*;
 import com.flow.engine.service.DataModelService;
@@ -27,6 +28,7 @@ public class DataModelController {
      * POST /api/v1/data-models
      */
     @PostMapping
+    @OpLog(module = "数据模型", operation = "创建数据模型")
     public Result<DataModelResponse> create(@RequestBody DataModelRequest request) {
         DataModelResponse response = dataModelService.createModel(request);
         return Result.ok(response);
@@ -57,6 +59,7 @@ public class DataModelController {
      * PUT /api/v1/data-models/{modelKey}
      */
     @PutMapping("/{modelKey}")
+    @OpLog(module = "数据模型", operation = "更新数据模型")
     public Result<DataModelResponse> update(@PathVariable String modelKey,
                                             @RequestBody DataModelRequest request) {
         DataModelResponse response = dataModelService.updateModel(modelKey, request);
@@ -68,6 +71,7 @@ public class DataModelController {
      * DELETE /api/v1/data-models/{modelKey}
      */
     @DeleteMapping("/{modelKey}")
+    @OpLog(module = "数据模型", operation = "删除数据模型")
     public Result<Void> delete(@PathVariable String modelKey) {
         dataModelService.deleteModel(modelKey);
         return Result.ok();
@@ -78,6 +82,7 @@ public class DataModelController {
      * POST /api/v1/data-models/{modelKey}/publish
      */
     @PostMapping("/{modelKey}/publish")
+    @OpLog(module = "数据模型", operation = "发布数据模型")
     public Result<DataModelResponse> publish(@PathVariable String modelKey) {
         DataModelResponse response = dataModelService.publishModel(modelKey);
         return Result.ok(response);
@@ -98,6 +103,7 @@ public class DataModelController {
      * POST /api/v1/data-models/{modelKey}/instances
      */
     @PostMapping("/{modelKey}/instances")
+    @OpLog(module = "数据模型", operation = "创建模型实例")
     public Result<ModelInstanceResponse> createInstance(@PathVariable String modelKey,
                                                          @RequestBody ModelInstanceRequest request) {
         request.setModelKey(modelKey);
@@ -120,6 +126,7 @@ public class DataModelController {
      * PUT /api/v1/data-models/instances/{instanceId}
      */
     @PutMapping("/instances/{instanceId}")
+    @OpLog(module = "数据模型", operation = "更新模型实例")
     public Result<ModelInstanceResponse> updateInstance(@PathVariable String instanceId,
                                                          @RequestBody Map<String, Object> data) {
         ModelInstanceResponse response = modelInstanceManager.updateInstance(instanceId, data);

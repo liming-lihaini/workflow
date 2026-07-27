@@ -1,5 +1,6 @@
 package com.flow.engine.controller;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.dto.*;
 import com.flow.engine.service.ProcessDefinitionService;
@@ -24,6 +25,7 @@ public class ProcessController {
      * POST /api/v1/process/definitions
      */
     @PostMapping
+    @OpLog(module = "流程定义", operation = "创建流程定义")
     public Result<ProcessDefinitionResponse> create(@RequestBody ProcessDefinitionCreateRequest request) {
         ProcessDefinitionResponse response = definitionService.create(request);
         return Result.ok(response);
@@ -67,6 +69,7 @@ public class ProcessController {
      * PUT /api/v1/process/definitions/{id}
      */
     @PutMapping("/{id}")
+    @OpLog(module = "流程定义", operation = "更新流程定义")
     public Result<ProcessDefinitionResponse> update(@PathVariable Long id,
                                                      @RequestBody ProcessDefinitionUpdateRequest request) {
         ProcessDefinitionResponse response = definitionService.update(id, request);
@@ -78,6 +81,7 @@ public class ProcessController {
      * DELETE /api/v1/process/definitions/{id}
      */
     @DeleteMapping("/{id}")
+    @OpLog(module = "流程定义", operation = "删除流程定义")
     public Result<Void> delete(@PathVariable Long id) {
         definitionService.delete(id);
         return Result.ok();
@@ -88,6 +92,7 @@ public class ProcessController {
      * POST /api/v1/process/definitions/{id}/deploy
      */
     @PostMapping("/{id}/deploy")
+    @OpLog(module = "流程定义", operation = "部署流程")
     public Result<ProcessDefinitionResponse> deploy(@PathVariable Long id) {
         ProcessDefinitionResponse response = definitionService.deploy(id);
         return Result.ok(response);
@@ -98,6 +103,7 @@ public class ProcessController {
      * POST /api/v1/process/definitions/{id}/undeploy
      */
     @PostMapping("/{id}/undeploy")
+    @OpLog(module = "流程定义", operation = "取消部署")
     public Result<ProcessDefinitionResponse> undeploy(@PathVariable Long id) {
         ProcessDefinitionResponse response = definitionService.undeploy(id);
         return Result.ok(response);
@@ -118,6 +124,7 @@ public class ProcessController {
      * POST /api/v1/process/definitions/import
      */
     @PostMapping("/import")
+    @OpLog(module = "流程定义", operation = "导入流程定义")
     public Result<ProcessDefinitionResponse> importDefinition(@RequestBody ProcessDefinitionImportRequest request) {
         ProcessDefinitionResponse response = definitionService.importDefinition(request);
         return Result.ok(response);

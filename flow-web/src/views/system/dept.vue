@@ -57,6 +57,15 @@
           <div class="tree-left">
             <div class="tree-header">
               <a-input v-model:value="treeSearch" placeholder="搜索部门" allow-clear size="small" />
+              <div class="tree-actions">
+                <span class="tree-action-btn" @click="expandAll" title="展开全部">
+                  <DownCircleOutlined /> 展开全部
+                </span>
+                <a-divider type="vertical" style="margin: 0 6px" />
+                <span class="tree-action-btn" @click="collapseAll" title="折叠全部">
+                  <RightCircleOutlined /> 折叠全部
+                </span>
+              </div>
             </div>
             <div class="tree-body">
               <a-tree
@@ -87,7 +96,6 @@
               <div class="tree-toolbar">
                 <span class="tree-toolbar-title">{{ selectedDept.deptName }}</span>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                  <a-button size="small" type="link" @click="router.push(`/system/dept-detail?id=${selectedDept.id}`)">查看详情</a-button>
                   <a-button size="small" type="primary" @click="showLeaderModal(selectedDept)">设置领导</a-button>
                   <a-button size="small" @click="showModal(selectedDept, 'add')">添加子部门</a-button>
                   <a-button size="small" @click="showModal(selectedDept, 'edit')">编辑</a-button>
@@ -96,62 +104,109 @@
                   </a-popconfirm>
                 </div>
               </div>
-              <a-tabs v-model:activeKey="activeTab">
-                <a-tab-pane key="info" tab="部门信息">
-                  <div class="detail-section">
-                    <div class="detail-row">
-                      <span class="detail-label">部门名称</span>
-                      <span class="detail-value">{{ selectedDept.deptName }}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="detail-label">部门 ID</span>
-                      <span class="detail-value">{{ selectedDept.id }}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="detail-label">排序号</span>
-                      <span class="detail-value">{{ selectedDept.sortOrder ?? '-' }}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="detail-label">状态</span>
-                      <a-tag :color="selectedDept.status === 1 ? 'green' : 'default'">{{ selectedDept.status === 1 ? '启用' : '禁用' }}</a-tag>
-                    </div>
-                    <div class="detail-row">
-                      <span class="detail-label">部门领导</span>
-                      <span class="detail-value">
-                        <span v-if="selectedDept.leaderName">{{ selectedDept.leaderName }}</span>
-                        <span v-else style="color: #999">未设置</span>
-                      </span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="detail-label">创建时间</span>
-                      <span class="detail-value">{{ formatDate(selectedDept.createTime) || '-' }}</span>
-                    </div>
-                  </div>
-                </a-tab-pane>
 
-                <a-tab-pane key="members" tab="直属人员">
-                  <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 13px; color: #666;">部门 {{ selectedDept.deptName }} 的人员列表</span>
-                    <a-button size="small" type="link" @click="loadDeptMembers">刷新</a-button>
+              <a-spin :spinning="detailLoading">
+                <template v-if="deptDetail">
+                  <!-- 基本信息 -->
+                  <div class="section-title">基本信息</div>
+                  <a-descriptions :column="2" bordered size="small" class="info-desc">
+                    <a-descriptions-item label="部门ID">{{ deptDetail.id }}</a-descriptions-item>
+                    <a-descriptions-item label="部门名称">{{ deptDetail.deptName }}</a-descriptions-item>
+                    <a-descriptions-item label="部门编码">{{ deptDetail.deptCode || '-' }}</a-descriptions-item>
+                    <a-descriptions-item label="部门类型">{{ deptDetail.deptType || '-' }}</a-descriptions-item>
+                    <a-descriptions-item label="排序号">{{ deptDetail.sortOrder ?? '-' }}</a-descriptions-item>
+                    <a-descriptions-item label="状态">
+                      <a-tag :color="deptDetail.status === 1 ? 'green' : 'default'">
+                        {{ deptDetail.status === 1 ? '启用' : '禁用' }}
+                      </a-tag>
+                    </a-descriptions-item>
+                    <a-descriptions-item label="上级部门">
+                      <span v-if="deptDetail.parentId && deptDetail.parentId > 0" class="dept-link" @click="goDeptDetail(deptDetail.parentId)">
+                        {{ deptDetail.parentDeptName || `ID:${deptDetail.parentId}` }}
+                      </span>
+                      <span v-else style="color: #999">顶级部门</span>
+                    </a-descriptions-item>
+                    <a-descriptions-item label="部门领导">
+                      <span v-if="deptDetail.leaderId" class="user-link" @click="goUserDetail(deptDetail.leaderId)">
+                        {{ deptDetail.leaderName }}
+                      </span>
+                      <span v-else style="color: #999">未设置</span>
+                    </a-descriptions-item>
+                    <a-descriptions-item label="联系电话">{{ deptDetail.phone || '-' }}</a-descriptions-item>
+                    <a-descriptions-item label="成员人数">
+                      <a-badge :count="deptDetail.memberCount || 0" :number-style="{ backgroundColor: deptDetail.memberCount > 0 ? '#1677ff' : '#ccc' }" />
+                    </a-descriptions-item>
+                    <a-descriptions-item label="创建时间">{{ formatDate(deptDetail.createTime) || '-' }}</a-descriptions-item>
+                    <a-descriptions-item label="更新时间">{{ formatDate(deptDetail.updateTime) || '-' }}</a-descriptions-item>
+                  </a-descriptions>
+
+                  <!-- 子部门 -->
+                  <div class="section-title">
+                    子部门
+                    <a-badge :count="deptDetail.childDepts?.length || 0" :number-style="{ backgroundColor: '#87d068' }" style="margin-left: 8px;" />
                   </div>
                   <a-table
-                    :columns="memberColumns"
-                    :data-source="deptMembers"
-                    :loading="membersLoading"
+                    v-if="deptDetail.childDepts && deptDetail.childDepts.length > 0"
+                    :columns="childDeptColumns"
+                    :data-source="deptDetail.childDepts"
+                    :pagination="false"
                     :resize-column="true"
-                    @resizeColumn="handleMemberResize"
+                    @resizeColumn="handleChildDeptResize"
                     row-key="id"
-                    :pagination="{ pageSize: 10 }"
                     size="small"
+                    class="section-table"
                   >
                     <template #bodyCell="{ column, record }">
+                      <template v-if="column.key === 'deptName'">
+                        <span class="dept-link" @click="goDeptDetail(record.id)">{{ record.deptName }}</span>
+                      </template>
+                      <template v-if="column.key === 'leaderName'">
+                        <span v-if="record.leaderName">{{ record.leaderName }}</span>
+                        <span v-else style="color: #999">未设置</span>
+                      </template>
                       <template v-if="column.key === 'status'">
-                        <a-tag :color="record.status === 1 ? 'green' : 'default'" size="small">{{ record.status === 1 ? '启用' : '禁用' }}</a-tag>
+                        <a-tag :color="record.status === 1 ? 'green' : 'default'" size="small">
+                          {{ record.status === 1 ? '启用' : '禁用' }}
+                        </a-tag>
                       </template>
                     </template>
                   </a-table>
-                </a-tab-pane>
-              </a-tabs>
+                  <a-empty v-else description="暂无子部门" :image="simpleEmptyImage" />
+
+                  <!-- 成员列表 -->
+                  <div class="section-title">
+                    成员列表
+                    <a-badge :count="deptDetail.memberCount || 0" :number-style="{ backgroundColor: '#1677ff' }" style="margin-left: 8px;" />
+                  </div>
+                  <a-table
+                    v-if="deptDetail.members && deptDetail.members.length > 0"
+                    :columns="memberColumns"
+                    :data-source="deptDetail.members"
+                    :pagination="{ pageSize: 10, showSizeChanger: true, showTotal: (t) => `共 ${t} 人` }"
+                    :resize-column="true"
+                    @resizeColumn="handleMemberResize"
+                    row-key="id"
+                    size="small"
+                    class="section-table"
+                  >
+                    <template #bodyCell="{ column, record }">
+                      <template v-if="column.key === 'realName'">
+                        <span class="user-link" @click="goUserDetail(record.id)">{{ record.realName || record.username }}</span>
+                      </template>
+                      <template v-if="column.key === 'status'">
+                        <a-tag :color="record.status === 1 ? 'green' : 'default'" size="small">
+                          {{ record.status === 1 ? '正常' : '禁用' }}
+                        </a-tag>
+                      </template>
+                      <template v-if="column.key === 'createTime'">
+                        {{ formatDate(record.createTime) || '-' }}
+                      </template>
+                    </template>
+                  </a-table>
+                  <a-empty v-else description="暂无成员" :image="simpleEmptyImage" />
+                </template>
+                <a-empty v-else-if="!detailLoading" description="部门不存在" />
+              </a-spin>
             </template>
             <template v-else>
               <div class="empty-detail">
@@ -209,13 +264,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { getDeptsPage, getDeptTree, getDept, createDept, updateDept, deleteDept, setDeptLeader, getUsersPage } from '../../api/system'
+import { getDeptsPage, getDeptTree, getDeptDetail, createDept, updateDept, deleteDept, setDeptLeader, getUsersPage } from '../../api/system'
 import { formatDate, renderDate } from '../../utils/date'
 import { usePermission } from '../../composables/usePermission'
 import { useResizableColumns } from '../../composables/useResizableTable'
+import { DownCircleOutlined, RightCircleOutlined } from '@ant-design/icons-vue'
+import { Empty } from 'ant-design-vue'
 
 // ====== 通用 ======
 const { hasPerm } = usePermission()
@@ -256,21 +313,74 @@ const { columns, handleResizeColumn } = useResizableColumns([
 const formState = reactive({ deptName: '', sortOrder: 0, status: 1 })
 
 // ====== 树形视图 ======
-const treeData = ref([])
+const rawTreeData = ref([])
 const treeSelectedKeys = ref([])
 const expandedKeys = ref([])
 const autoExpandParent = ref(true)
 const treeSearch = ref('')
 const selectedDept = ref(null)
-const activeTab = ref('info')
-const deptMembers = ref([])
-const membersLoading = ref(false)
+
+/** 按关键字递归过滤树，同时收集需要展开的父节点 key */
+const treeData = computed(() => {
+  const kw = (treeSearch.value || '').trim().toLowerCase()
+  if (!kw) return rawTreeData.value
+
+  function filter(nodes) {
+    return nodes.reduce((acc, node) => {
+      const nameMatch = (node.deptName || '').toLowerCase().includes(kw)
+      const filteredChildren = node.children?.length ? filter(node.children) : []
+      if (nameMatch || filteredChildren.length > 0) {
+        acc.push({ ...node, children: filteredChildren.length > 0 ? filteredChildren : (node.children || []) })
+      }
+      return acc
+    }, [])
+  }
+
+  return filter(rawTreeData.value)
+})
+
+/** 搜索关键字变化时自动展开所有匹配路径上的节点 */
+watch(treeSearch, (kw) => {
+  const keyword = (kw || '').trim().toLowerCase()
+  if (!keyword) {
+    // 清空时展开所有节点
+    expandedKeys.value = flattenKeys(rawTreeData.value)
+    autoExpandParent.value = true
+    return
+  }
+  const keysToExpand = []
+  function walk(nodes) {
+    let anyMatch = false
+    for (const node of nodes) {
+      const nameMatch = (node.deptName || '').toLowerCase().includes(keyword)
+      const childMatch = node.children?.length ? walk(node.children) : false
+      if (nameMatch || childMatch) {
+        keysToExpand.push(node.id)
+        anyMatch = true
+      }
+    }
+    return anyMatch
+  }
+  walk(rawTreeData.value)
+  expandedKeys.value = keysToExpand
+  autoExpandParent.value = true
+})
+const deptDetail = ref(null)
+const detailLoading = ref(false)
+const simpleEmptyImage = Empty.PRESENTED_IMAGE_SIMPLE
 
 const { columns: memberColumns, handleResizeColumn: handleMemberResize } = useResizableColumns([
+  { title: '姓名', key: 'realName', dataIndex: 'realName', sorter: true },
   { title: '用户名', dataIndex: 'username', key: 'username', sorter: true },
-  { title: '姓名', dataIndex: 'realName', key: 'realName', sorter: true },
+  { title: '手机号', dataIndex: 'phone', key: 'phone' },
   { title: '状态', key: 'status', dataIndex: 'status', width: 80 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate, sorter: true }
+  { title: '加入时间', key: 'createTime', dataIndex: 'createTime', width: 120, sorter: true }
+])
+
+const { columns: childDeptColumns, handleResizeColumn: handleChildDeptResize } = useResizableColumns([
+  { title: '部门名称', key: 'deptName', dataIndex: 'deptName', sorter: true },
+  { title: '部门领导', key: 'leaderName', dataIndex: 'leaderName', width: 120 },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 80 }
 ])
 
 // ====== 数据加载 ======
@@ -294,10 +404,10 @@ async function loadTreeData() {
   try {
     const res = await getDeptTree()
     const data = res.data || res
-    treeData.value = Array.isArray(data) ? data : []
+    rawTreeData.value = Array.isArray(data) ? data : []
     // 默认展开所有
-    expandedKeys.value = flattenKeys(treeData.value)
-  } catch { treeData.value = [] }
+    expandedKeys.value = flattenKeys(rawTreeData.value)
+  } catch { rawTreeData.value = [] }
 }
 
 function flattenKeys(tree) {
@@ -312,15 +422,21 @@ function flattenKeys(tree) {
   return keys
 }
 
-async function loadDeptMembers() {
+async function loadDeptDetail() {
   if (!selectedDept.value) return
-  membersLoading.value = true
+  detailLoading.value = true
   try {
-    const res = await getUsersPage({ deptId: selectedDept.value.id, page: 1, size: 50 })
-    const d = res.data || res
-    deptMembers.value = Array.isArray(d) ? d : (d.records || d.list || [])
-  } catch { deptMembers.value = [] }
-  membersLoading.value = false
+    const res = await getDeptDetail(selectedDept.value.id)
+    deptDetail.value = res.data || res
+  } catch { deptDetail.value = null }
+  detailLoading.value = false
+}
+
+function goDeptDetail(deptId) {
+  router.push(`/system/dept-detail?id=${deptId}`)
+}
+function goUserDetail(userId) {
+  router.push(`/system/user-detail?id=${userId}`)
 }
 
 // ====== 树形交互 ======
@@ -328,13 +444,22 @@ function handleTreeSelect(keys, { node }) {
   if (keys.length === 0) return
   treeSelectedKeys.value = keys
   selectedDept.value = node
-  activeTab.value = 'info'
-  deptMembers.value = []
-  loadDeptMembers()
+  deptDetail.value = null
+  loadDeptDetail()
 }
 
 function onExpand(keys) {
   expandedKeys.value = keys
+  autoExpandParent.value = false
+}
+
+function expandAll() {
+  expandedKeys.value = flattenKeys(rawTreeData.value)
+  autoExpandParent.value = true
+}
+
+function collapseAll() {
+  expandedKeys.value = []
   autoExpandParent.value = false
 }
 
@@ -438,12 +563,7 @@ function refreshAfterChange() {
     // 如果当前有选中节点，重新加载其信息
     if (selectedDept.value) {
       setTimeout(async () => {
-        try {
-          const res = await getDept(selectedDept.value.id)
-          const updated = res.data || res
-          selectedDept.value = { ...selectedDept.value, ...updated }
-          if (activeTab.value === 'members') loadDeptMembers()
-        } catch { /* ignore */ }
+        loadDeptDetail()
       }, 300)
     }
   }
@@ -481,6 +601,34 @@ onMounted(() => {
 .tree-header {
   padding: 12px;
   border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tree-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.tree-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  color: #595959;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s, color 0.2s;
+}
+.tree-action-btn:hover {
+  background: #e6f4ff;
+  color: #1677ff;
+}
+.tree-action-btn:active {
+  background: #bae0ff;
+  color: #0958d9;
 }
 .tree-body {
   flex: 1;
@@ -535,24 +683,35 @@ onMounted(() => {
 }
 
 /* 详情面板 */
-.detail-section {
-  padding: 8px 0;
-}
-.detail-row {
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-title);
+  margin: 24px 0 12px;
+  padding-left: 10px;
+  border-left: 3px solid var(--color-primary);
   display: flex;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #f5f5f5;
 }
-.detail-label {
-  width: 90px;
-  font-size: 13px;
-  color: #888;
-  flex-shrink: 0;
+.section-table {
+  margin-bottom: 8px;
 }
-.detail-value {
-  font-size: 13px;
-  color: #333;
+.dept-link {
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.dept-link:hover {
+  text-decoration: underline;
+}
+.user-link {
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.user-link:hover {
+  text-decoration: underline;
+}
+.info-desc {
+  margin-bottom: 8px;
 }
 .empty-detail {
   display: flex;

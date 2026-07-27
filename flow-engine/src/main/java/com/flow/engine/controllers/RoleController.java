@@ -1,5 +1,6 @@
 package com.flow.engine.controllers;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.entity.*;
 import com.flow.engine.service.RolePermissionService;
@@ -30,16 +31,19 @@ public class RoleController {
     }
 
     @PostMapping
+    @OpLog(module = "角色管理", operation = "创建角色")
     public Result<Role> create(@RequestBody Role role) {
         return Result.ok(rolePermissionService.createRole(role));
     }
 
     @PutMapping("/{id}")
+    @OpLog(module = "角色管理", operation = "更新角色")
     public Result<Role> update(@PathVariable Long id, @RequestBody Role role) {
         return Result.ok(rolePermissionService.updateRole(id, role));
     }
 
     @DeleteMapping("/{id}")
+    @OpLog(module = "角色管理", operation = "删除角色")
     public Result<Void> delete(@PathVariable Long id) {
         rolePermissionService.deleteRole(id);
         return Result.ok();
@@ -51,6 +55,7 @@ public class RoleController {
     }
 
     @PostMapping("/{id}/users")
+    @OpLog(module = "角色管理", operation = "分配用户")
     public Result<Void> assignUser(@PathVariable Long id, @RequestBody Map<String, Long> body) {
         rolePermissionService.assignUserToRole(id, body.get("userId"));
         return Result.ok();
@@ -62,12 +67,14 @@ public class RoleController {
     }
 
     @PutMapping("/{id}/permissions")
+    @OpLog(module = "角色管理", operation = "分配权限")
     public Result<Void> assignPermissions(@PathVariable Long id, @RequestBody List<Long> permissionIds) {
         rolePermissionService.assignPermissions(id, permissionIds);
         return Result.ok();
     }
 
     @PutMapping("/{id}/data-scope")
+    @OpLog(module = "角色管理", operation = "设置数据范围")
     public Result<Void> setDataScope(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         Long deptId = Long.valueOf(body.get("deptId").toString());
         Integer dataScope = Integer.valueOf(body.get("dataScope").toString());

@@ -6,18 +6,24 @@
         <div class="card-wrap dept-panel">
           <div class="page-header">
             <span class="page-title">部门</span>
-            <a-space :size="4">
-              <span class="tree-tool-link" @click="expandAll">展开全部</span>
-              <a-divider type="vertical" />
-              <span class="tree-tool-link" @click="collapseAll">折叠全部</span>
-            </a-space>
           </div>
-          <a-input-search
-            v-model:value="deptSearchText"
-            placeholder="搜索部门名称"
-            allow-clear
-            class="dept-search"
-          />
+          <div class="tree-header">
+            <a-input-search
+              v-model:value="deptSearchText"
+              placeholder="搜索部门名称"
+              allow-clear
+              size="small"
+            />
+            <div class="tree-actions">
+              <span class="tree-action-btn" @click="expandAll" title="展开全部">
+                <DownCircleOutlined /> 展开全部
+              </span>
+              <a-divider type="vertical" style="margin: 0 6px" />
+              <span class="tree-action-btn" @click="collapseAll" title="折叠全部">
+                <RightCircleOutlined /> 折叠全部
+              </span>
+            </div>
+          </div>
           <div class="dept-tree-wrap">
             <a-tree
               v-if="filteredDeptTree.length"
@@ -28,10 +34,13 @@
               @select="onDeptSelect"
             >
               <template #title="node">
-                <span v-if="deptKeyword && (node.deptName || '').toLowerCase().includes(deptKeyword)">
-                  {{ node.deptName.slice(0, node.deptName.toLowerCase().indexOf(deptKeyword)) }}<span class="dept-name-hit">{{ node.deptName.slice(node.deptName.toLowerCase().indexOf(deptKeyword), node.deptName.toLowerCase().indexOf(deptKeyword) + deptKeyword.length) }}</span>{{ node.deptName.slice(node.deptName.toLowerCase().indexOf(deptKeyword) + deptKeyword.length) }}
+                <span class="tree-node-title">
+                  <span v-if="deptKeyword && (node.deptName || '').toLowerCase().includes(deptKeyword)">
+                    {{ node.deptName.slice(0, node.deptName.toLowerCase().indexOf(deptKeyword)) }}<span class="dept-name-hit">{{ node.deptName.slice(node.deptName.toLowerCase().indexOf(deptKeyword), node.deptName.toLowerCase().indexOf(deptKeyword) + deptKeyword.length) }}</span>{{ node.deptName.slice(node.deptName.toLowerCase().indexOf(deptKeyword) + deptKeyword.length) }}
+                  </span>
+                  <span v-else>{{ node.deptName }}</span>
+                  <span v-if="node.leaderName" class="tree-node-badge">{{ node.leaderName }}</span>
                 </span>
-                <span v-else>{{ node.deptName }}</span>
               </template>
             </a-tree>
             <a-empty
@@ -162,6 +171,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Empty } from 'ant-design-vue'
+import { DownCircleOutlined, RightCircleOutlined } from '@ant-design/icons-vue'
 import { getUsersPage, createUser, updateUser, deleteUser, resetPassword, getDeptTree, getRoles, getUserRoles, setUserRoles } from '../../api/system'
 import { renderDate } from '../../utils/date'
 import { usePermission } from '../../composables/usePermission'
@@ -419,6 +429,78 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 左侧部门树面板 */
+.dept-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+}
+.tree-header {
+  padding: 0 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.tree-actions {
+  display: flex;
+  align-items: center;
+}
+.tree-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  color: #595959;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s, color 0.2s;
+}
+.tree-action-btn:hover {
+  background: #e6f4ff;
+  color: #1677ff;
+}
+.tree-action-btn:active {
+  background: #bae0ff;
+  color: #0958d9;
+}
+.dept-tree-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 6px;
+}
+.tree-node-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 4px;
+}
+.tree-node-badge {
+  font-size: 10px;
+  color: #1677ff;
+  background: #e6f4ff;
+  padding: 0 4px;
+  border-radius: 2px;
+  line-height: 16px;
+  flex-shrink: 0;
+  margin-left: auto;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dept-name-hit {
+  color: #f5222d;
+  font-weight: 600;
+}
+.dept-empty {
+  padding: 32px 0;
+}
+
+/* 授权角色弹窗 */
 .role-option {
   padding: 6px 0;
   border-bottom: 1px solid #f0f0f0;

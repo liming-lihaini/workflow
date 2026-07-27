@@ -1,5 +1,6 @@
 package com.flow.engine.controller;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.dto.CompleteTaskRequest;
 import com.flow.engine.dto.ProcessInstanceResponse;
@@ -27,6 +28,7 @@ public class ProcessInstanceController {
      * POST /api/v1/process/instances
      */
     @PostMapping
+    @OpLog(module = "流程实例", operation = "发起流程")
     public Result<ProcessInstanceResponse> start(@RequestBody StartProcessRequest request) {
         ProcessInstanceResponse response = instanceService.start(request);
         return Result.ok(response);
@@ -69,6 +71,7 @@ public class ProcessInstanceController {
      * POST /api/v1/process/instances/{id}/suspend
      */
     @PostMapping("/{id}/suspend")
+    @OpLog(module = "流程实例", operation = "暂停流程")
     public Result<ProcessInstanceResponse> suspend(@PathVariable Long id) {
         ProcessInstanceResponse response = instanceService.suspend(id);
         return Result.ok(response);
@@ -79,6 +82,7 @@ public class ProcessInstanceController {
      * POST /api/v1/process/instances/{id}/resume
      */
     @PostMapping("/{id}/resume")
+    @OpLog(module = "流程实例", operation = "恢复流程")
     public Result<ProcessInstanceResponse> resume(@PathVariable Long id) {
         ProcessInstanceResponse response = instanceService.resume(id);
         return Result.ok(response);
@@ -89,6 +93,7 @@ public class ProcessInstanceController {
      * POST /api/v1/process/instances/{id}/terminate
      */
     @PostMapping("/{id}/terminate")
+    @OpLog(module = "流程实例", operation = "终止流程")
     public Result<ProcessInstanceResponse> terminate(@PathVariable Long id) {
         ProcessInstanceResponse response = instanceService.terminate(id);
         return Result.ok(response);
@@ -109,6 +114,7 @@ public class ProcessInstanceController {
      * PUT /api/v1/process/instances/{id}/variables
      */
     @PutMapping("/{id}/variables")
+    @OpLog(module = "流程实例", operation = "更新流程变量")
     public Result<Void> updateVariables(@PathVariable Long id, @RequestBody Map<String, Object> variables) {
         instanceService.updateVariables(id, variables);
         return Result.ok();
@@ -119,6 +125,7 @@ public class ProcessInstanceController {
      * POST /api/v1/process/instances/{id}/complete
      */
     @PostMapping("/{id}/complete")
+    @OpLog(module = "流程实例", operation = "完成任务")
     public Result<Void> completeTask(@PathVariable Long id, @RequestBody(required = false) CompleteTaskRequest request) {
         Map<String, Object> variables = request != null ? request.getVariables() : null;
         instanceService.completeTask(id, variables);

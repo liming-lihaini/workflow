@@ -1,5 +1,6 @@
 package com.flow.engine.controllers;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.service.ProcessMonitorService;
 import lombok.RequiredArgsConstructor;
@@ -72,6 +73,7 @@ public class MonitorController {
      * 管理员干预：强制推进到指定节点
      */
     @PostMapping("/instances/{id}/intervene")
+    @OpLog(module = "流程监控", operation = "管理员干预")
     public Result<Void> intervene(
             @PathVariable Long id,
             @RequestParam String targetNodeId,

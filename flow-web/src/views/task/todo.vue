@@ -115,6 +115,8 @@ const pagination = reactive({
 const { columns, handleResizeColumn } = useResizableColumns([
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
   { title: '流程编号', key: 'instanceNo', dataIndex: 'instanceNo', width: 220, sorter: true },
+  { title: '流程类型', key: 'processType', dataIndex: 'processType', width: 100,
+    customRender: ({ text }) => text || '-' },
   { title: '流程名称', key: 'processName', dataIndex: 'processName', width: 160, sorter: true },
   { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName', width: 120, sorter: true },
   { title: '处理人', key: 'assignee', dataIndex: 'assignee', width: 120 },

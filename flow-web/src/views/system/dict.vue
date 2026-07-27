@@ -3,31 +3,33 @@
     <a-row :gutter="16">
       <!-- 左侧字典类型 -->
       <a-col :span="8">
-        <div class="card-wrap">
+        <div class="card-wrap type-panel">
           <div class="page-header">
             <span class="page-title">字典类型</span>
             <a-button v-if="hasPerm('system:dict:create-type')" type="primary" size="small" @click="showTypeModal()">新建</a-button>
           </div>
-          <a-list
-            :data-source="typeList"
-            :loading="typeLoading"
-            size="small"
-          >
-            <template #renderItem="{ item }">
-              <a-list-item
-                :class="{ 'active-item': selectedType?.id === item.id }"
-                @click="selectType(item)"
-              >
-                <a-list-item-meta :title="item.dictName" :description="item.dictCode" />
-                <template #actions>
-                  <span class="action-link" @click.stop="showTypeModal(item, 'edit')">编辑</span>
-                  <a-popconfirm title="确定删除？" @confirm="handleDeleteType(item)">
-                    <span class="action-link danger" @click.stop>删除</span>
-                  </a-popconfirm>
-                </template>
-              </a-list-item>
-            </template>
-          </a-list>
+          <div class="type-list-wrap">
+            <a-list
+              :data-source="typeList"
+              :loading="typeLoading"
+              size="small"
+            >
+              <template #renderItem="{ item }">
+                <a-list-item
+                  :class="{ 'active-item': selectedType?.id === item.id }"
+                  @click="selectType(item)"
+                >
+                  <a-list-item-meta :title="item.dictName" :description="item.dictCode" />
+                  <template #actions>
+                    <span class="action-link" @click.stop="showTypeModal(item, 'edit')">编辑</span>
+                    <a-popconfirm title="确定删除？" @confirm="handleDeleteType(item)">
+                      <span class="action-link danger" @click.stop>删除</span>
+                    </a-popconfirm>
+                  </template>
+                </a-list-item>
+              </template>
+            </a-list>
+          </div>
         </div>
       </a-col>
 
@@ -276,6 +278,16 @@ onMounted(loadTypes)
 </script>
 
 <style scoped>
+.type-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+}
+.type-list-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
 .active-item {
   background: var(--color-primary-light);
 }

@@ -1,5 +1,6 @@
 package com.flow.engine.controllers;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.entity.Permission;
 import com.flow.engine.service.RolePermissionService;
@@ -94,16 +95,19 @@ public class PermissionController {
     }
 
     @PostMapping
+    @OpLog(module = "权限管理", operation = "创建权限")
     public Result<Permission> create(@RequestBody Permission perm) {
         return Result.ok(rolePermissionService.createPermission(perm));
     }
 
     @PutMapping("/{id}")
+    @OpLog(module = "权限管理", operation = "更新权限")
     public Result<Permission> update(@PathVariable Long id, @RequestBody Permission perm) {
         return Result.ok(rolePermissionService.updatePermission(id, perm));
     }
 
     @DeleteMapping("/{id}")
+    @OpLog(module = "权限管理", operation = "删除权限")
     public Result<Void> delete(@PathVariable Long id) {
         rolePermissionService.deletePermission(id);
         return Result.ok();

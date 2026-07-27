@@ -51,8 +51,13 @@
             row-key="id"
           >
             <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'instanceNo'">
+                <a @click="$router.push(`/task/handle?id=${record.id}`)" style="font-family: monospace">
+                  {{ record.instanceNo || '-' }}
+                </a>
+              </template>
               <template v-if="column.key === 'action'">
-                <span class="action-link" @click="$router.push('/task/todo')">处理</span>
+                <span class="action-link" @click="$router.push(`/task/handle?id=${record.id}`)">处理</span>
               </template>
             </template>
           </a-table>
@@ -126,9 +131,12 @@ const stats = reactive({
 })
 
 const { columns: todoColumns, handleResizeColumn: handleTodoResize } = useResizableColumns([
-  { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName', sorter: true },
-  { title: '处理人', dataIndex: 'assignee', key: 'assignee' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', customRender: renderDate, sorter: true },
+  { title: '流程编号', dataIndex: 'instanceNo', key: 'instanceNo', ellipsis: true, sorter: true },
+  { title: '流程类型', dataIndex: 'processType', key: 'processType', width: 100,
+    customRender: ({ text }) => text || '-' },
+  { title: '节点名称', dataIndex: 'nodeName', key: 'nodeName', sorter: true, width: 100 },
+  { title: '处理人', dataIndex: 'assignee', key: 'assignee', width: 100 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 100, customRender: renderDate, sorter: true },
   { title: '操作', key: 'action', width: 80 }
 ])
 

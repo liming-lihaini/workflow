@@ -1,5 +1,6 @@
 package com.flow.engine.controllers;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.entity.Role;
 import com.flow.engine.service.AuthService;
@@ -22,12 +23,14 @@ public class AuthController {
     private final RolePermissionService rolePermissionService;
 
     @PostMapping("/login")
+    @OpLog(module = "认证管理", operation = "用户登录", recordParams = false)
     public Result<Map<String, String>> login(@RequestBody Map<String, String> body) {
         String token = authService.login(body.get("username"), body.get("password"));
         return Result.ok(Map.of("token", token));
     }
 
     @PostMapping("/logout")
+    @OpLog(module = "认证管理", operation = "用户登出", recordParams = false)
     public Result<Void> logout(@RequestHeader(value = "Authorization", required = false) String token) {
         if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);

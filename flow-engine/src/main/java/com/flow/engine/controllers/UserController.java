@@ -4,6 +4,7 @@ import com.flow.engine.common.Result;
 import com.flow.engine.entity.Role;
 import com.flow.engine.entity.User;
 import com.flow.engine.entity.UserPost;
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.service.RolePermissionService;
 import com.flow.engine.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -46,22 +47,26 @@ public class UserController {
     }
 
     @PostMapping
+    @OpLog(module = "用户管理", operation = "创建用户")
     public Result<User> create(@RequestBody User user) {
         return Result.ok(userService.createUser(user));
     }
 
     @PutMapping("/{id}")
+    @OpLog(module = "用户管理", operation = "更新用户")
     public Result<User> update(@PathVariable Long id, @RequestBody User user) {
         return Result.ok(userService.updateUser(id, user));
     }
 
     @DeleteMapping("/{id}")
+    @OpLog(module = "用户管理", operation = "删除用户")
     public Result<Void> delete(@PathVariable Long id) {
         userService.deleteUser(id);
         return Result.ok();
     }
 
     @PostMapping("/{id}/reset-pwd")
+    @OpLog(module = "用户管理", operation = "重置密码")
     public Result<Void> resetPwd(@PathVariable Long id, @RequestBody Map<String, String> body) {
         userService.resetPassword(id, body.get("password"));
         return Result.ok();
@@ -73,6 +78,7 @@ public class UserController {
     }
 
     @PostMapping("/{id}/posts")
+    @OpLog(module = "用户管理", operation = "添加岗位")
     public Result<UserPost> addPost(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         Long deptId = Long.valueOf(body.get("deptId").toString());
         Long postId = Long.valueOf(body.get("postId").toString());
@@ -81,6 +87,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}/posts/{postId}")
+    @OpLog(module = "用户管理", operation = "删除岗位")
     public Result<Void> deletePost(@PathVariable Long id, @PathVariable Long postId) {
         userService.deleteUserPost(id, postId);
         return Result.ok();
@@ -94,6 +101,7 @@ public class UserController {
     }
 
     @PostMapping("/{id}/roles")
+    @OpLog(module = "用户管理", operation = "设置用户角色")
     public Result<Void> setUserRoles(@PathVariable Long id, @RequestBody List<Long> roleIds) {
         rolePermissionService.setUserRoles(id, roleIds);
         return Result.ok();

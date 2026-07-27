@@ -185,9 +185,9 @@ router.beforeEach((to, from, next) => {
     if (!token) {
       next('/login')
     } else {
-      // 权限检查
+      // 权限检查（工作台作为兜底页，跳过权限校验避免无限重定向）
       const permKey = to.meta.permKey
-      if (permKey) {
+      if (permKey && to.path !== '/dashboard') {
         const isAdmin = localStorage.getItem('isAdmin') === 'true'
         const permissions = JSON.parse(localStorage.getItem('permissions') || '[]')
         if (!isAdmin && !permissions.includes(permKey)) {

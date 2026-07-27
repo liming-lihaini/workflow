@@ -1,5 +1,6 @@
 package com.flow.engine.controller;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.dto.CreateDelegationRequest;
 import com.flow.engine.dto.DelegationResponse;
@@ -26,6 +27,7 @@ public class DelegationController {
      * POST /api/v1/delegations
      */
     @PostMapping
+    @OpLog(module = "委托管理", operation = "创建委托")
     public Result<DelegationResponse> create(@RequestBody CreateDelegationRequest request) {
         return Result.ok(delegationService.createDelegation(request));
     }
@@ -53,6 +55,7 @@ public class DelegationController {
      * POST /api/v1/delegations/{id}/cancel
      */
     @PostMapping("/{id}/cancel")
+    @OpLog(module = "委托管理", operation = "取消委托")
     public Result<Void> cancel(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String operatorId = body.get("operatorId");
         delegationService.cancelDelegation(id, operatorId);

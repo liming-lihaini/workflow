@@ -1,5 +1,6 @@
 package com.flow.engine.controller;
 
+import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.dto.*;
 import com.flow.engine.service.FormPermissionService;
@@ -63,6 +64,7 @@ public class TaskController {
      * POST /api/v1/tasks/{id}/claim
      */
     @PostMapping("/{id}/claim")
+    @OpLog(module = "任务管理", operation = "签收任务")
     public Result<TaskResponse> claim(@PathVariable Long id, @RequestBody ClaimTaskRequest request) {
         return Result.ok(taskService.claim(id, request.getUserId()));
     }
@@ -72,6 +74,7 @@ public class TaskController {
      * POST /api/v1/tasks/{id}/unclaim
      */
     @PostMapping("/{id}/unclaim")
+    @OpLog(module = "任务管理", operation = "取消签收")
     public Result<TaskResponse> unclaim(@PathVariable Long id) {
         return Result.ok(taskService.unclaim(id));
     }
@@ -81,6 +84,7 @@ public class TaskController {
      * POST /api/v1/tasks/{id}/complete
      */
     @PostMapping("/{id}/complete")
+    @OpLog(module = "任务管理", operation = "完成任务")
     public Result<TaskResponse> complete(@PathVariable Long id,
                                          @RequestBody(required = false) Map<String, Object> body) {
         String userId = body != null ? (String) body.get("userId") : null;
@@ -94,6 +98,7 @@ public class TaskController {
      * POST /api/v1/tasks/{id}/reject
      */
     @PostMapping("/{id}/reject")
+    @OpLog(module = "任务管理", operation = "驳回任务")
     public Result<TaskResponse> reject(@PathVariable Long id, @RequestBody RejectTaskRequest request) {
         return Result.ok(taskService.reject(id, request.getUserId(), request.getTargetNodeId(), request.getVariables()));
     }
@@ -103,6 +108,7 @@ public class TaskController {
      * POST /api/v1/tasks/{id}/transfer
      */
     @PostMapping("/{id}/transfer")
+    @OpLog(module = "任务管理", operation = "转办任务")
     public Result<TaskResponse> transfer(@PathVariable Long id, @RequestBody TransferTaskRequest request) {
         return Result.ok(taskService.transfer(id, request.getOperatorId(), request.getTargetUserId(), request.getReason()));
     }
@@ -112,6 +118,7 @@ public class TaskController {
      * POST /api/v1/tasks/{id}/add-sign
      */
     @PostMapping("/{id}/add-sign")
+    @OpLog(module = "任务管理", operation = "加签任务")
     public Result<List<TaskResponse>> addSign(@PathVariable Long id, @RequestBody AddSignRequest request) {
         return Result.ok(taskService.addSign(id, request));
     }

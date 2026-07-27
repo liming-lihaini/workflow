@@ -44,6 +44,7 @@
       :confirm-loading="submitLoading"
       width="720px"
     >
+      <div class="modal-body-scroll">
       <a-form :model="formState" layout="vertical">
         <a-row :gutter="16">
           <a-col :span="12">
@@ -185,6 +186,7 @@
           </a-collapse-panel>
         </a-collapse>
       </a-form>
+      </div>
     </a-modal>
   </div>
 </template>
@@ -411,3 +413,11 @@ function handleTableChange(pag) {
 
 onMounted(loadData)
 </script>
+
+<style scoped>
+.modal-body-scroll {
+  max-height: calc(80vh - 140px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+</style>

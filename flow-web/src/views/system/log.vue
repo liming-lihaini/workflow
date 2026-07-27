@@ -53,7 +53,21 @@
             row-key="id"
             size="small"
             @change="handleOpTableChange"
-          />
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'params'">
+                <a-tooltip v-if="record.params" :title="record.params" placement="topLeft">
+                  <span class="params-cell">{{ record.params }}</span>
+                </a-tooltip>
+                <span v-else>-</span>
+              </template>
+              <template v-if="column.key === 'result'">
+                <a-tag :color="record.result === '成功' || record.result === 1 ? 'green' : 'default'">
+                  {{ record.result === 1 ? '成功' : (record.result || '-') }}
+                </a-tag>
+              </template>
+            </template>
+          </a-table>
         </a-tab-pane>
       </a-tabs>
     </div>
@@ -106,7 +120,8 @@ const { columns: opColumns, handleResizeColumn: handleOpResize } = useResizableC
   { title: '模块', dataIndex: 'module', width: 100, sorter: true },
   { title: '操作', dataIndex: 'operation', width: 120, sorter: true },
   { title: '用户', dataIndex: 'username', width: 100 },
-  { title: '结果', dataIndex: 'result', width: 80 },
+  { title: '请求参数', key: 'params', dataIndex: 'params', width: 200, ellipsis: true },
+  { title: 'IP', dataIndex: 'ip', width: 130 },
   { title: '操作时间', dataIndex: 'operationTime', width: 120, customRender: renderDate, sorter: true }
 ])
 
@@ -179,3 +194,17 @@ onMounted(() => {
   loadOperationLogs()
 })
 </script>
+
+<style scoped>
+.params-cell {
+  display: block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 12px;
+  color: #595959;
+  cursor: pointer;
+}
+</style>

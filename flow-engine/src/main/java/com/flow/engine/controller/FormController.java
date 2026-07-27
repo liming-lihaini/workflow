@@ -1,5 +1,6 @@
 package com.flow.engine.controller;
 
+import com.flow.engine.annotation.OpLog;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.flow.engine.common.Result;
 import com.flow.engine.entity.FormDefinition;
@@ -58,6 +59,7 @@ public class FormController {
      * POST /api/v1/forms
      */
     @PostMapping
+    @OpLog(module = "表单管理", operation = "创建表单")
     public Result<FormDefinition> create(@RequestBody FormDefinition form) {
         FormDefinition created = formDefinitionService.createForm(form);
         return Result.ok(created);
@@ -68,6 +70,7 @@ public class FormController {
      * PUT /api/v1/forms/{formKey}
      */
     @PutMapping("/{formKey}")
+    @OpLog(module = "表单管理", operation = "更新表单")
     public Result<FormDefinition> update(@PathVariable String formKey, @RequestBody FormDefinition form) {
         FormDefinition updated = formDefinitionService.updateForm(formKey, form);
         return Result.ok(updated);
@@ -78,6 +81,7 @@ public class FormController {
      * DELETE /api/v1/forms/{formKey}
      */
     @DeleteMapping("/{formKey}")
+    @OpLog(module = "表单管理", operation = "删除表单")
     public Result<Void> delete(@PathVariable String formKey) {
         formDefinitionService.deleteForm(formKey);
         return Result.ok();
