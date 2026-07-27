@@ -22,7 +22,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(accessLogInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
-                        "/api/v1/auth/**",           // 登录接口不记录
                         "/api/v1/system/logs/**"     // 日志查询接口不记录（避免循环）
                 );
     }
