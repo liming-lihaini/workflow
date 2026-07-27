@@ -105,17 +105,11 @@
 
       <!-- Tab2: 流程图 -->
       <div v-show="activeTab === 'flow'" class="tab-panel">
-        <div class="panel-title">流程轨迹拓扑图</div>
-        <div class="flow-chart-box" v-if="flowSequence.length > 0">
-          <template v-for="(item, idx) in flowSequence" :key="idx">
-            <div class="flow-node">
-              <div class="flow-node-name">{{ item.name }}</div>
-              <div class="flow-node-user">{{ item.ntLabel }}</div>
-            </div>
-            <div v-if="idx < flowSequence.length - 1" class="flow-line"></div>
-          </template>
-        </div>
-        <a-empty v-else description="暂无流程图数据" style="margin-top: 40px" />
+        <div class="panel-title">流程配置拓扑图</div>
+        <FlowViewer
+          :nodes="flowNodesRaw"
+          :edges="flowEdgesRaw"
+        />
       </div>
     </div>
   </div>
@@ -129,6 +123,7 @@ import { getProcessDefinitionByKey, startProcessInstance } from '../../api/proce
 import { getForm } from '../../api/form'
 import { useUserStore } from '../../stores/user'
 import FormRenderer from '../../components/FormRenderer.vue'
+import FlowViewer from '../../components/FlowViewer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -194,7 +189,7 @@ const flowSequence = computed(() => {
   const sorted = []
   while (queue.length) {
     const id = queue.shift()
-    sorted.push(id)
+    sorted.push(id);
     (adj[id] || []).forEach(next => {
       inDeg[next]--
       if (inDeg[next] === 0) queue.push(next)
@@ -323,6 +318,8 @@ onMounted(loadAll)
 /* 顶部深蓝标题栏 */
 .top-bar {
   height: 44px;
+  margin-top: 12px;
+  margin-left: 20px;
   background: #0052a5;
   color: #fff;
   display: flex;
@@ -331,6 +328,8 @@ onMounted(loadAll)
   justify-content: space-between;
 }
 .top-title {
+  margin-top: 12px;
+  margin-right: 20px;
   font-size: 16px;
   font-weight: normal;
 }
@@ -494,37 +493,5 @@ onMounted(loadAll)
 }
 .node-name { color: #333; }
 
-/* 流程图 - 横向节点流 */
-.flow-chart-box {
-  padding: 30px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  overflow-x: auto;
-}
-.flow-node {
-  width: 130px;
-  min-height: 70px;
-  border: 2px solid #d0d7df;
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  background: #fafbfd;
-  flex-shrink: 0;
-  padding: 8px;
-}
-.flow-node-name { font-weight: bold; margin-bottom: 4px; font-size: 13px; text-align: center; }
-.flow-node-user { font-size: 12px; color: #666; text-align: center; }
-.flow-line {
-  width: 40px;
-  height: 3px;
-  background: #d0d7df;
-  margin: 0 -2px;
-  z-index: -1;
-  flex-shrink: 0;
-}
+
 </style>

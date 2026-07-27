@@ -36,3 +36,6 @@ export function counterSignVote(id, data) {
 export function addSign(id, data) {
   return request.post(`/tasks/${id}/add-sign`, data)
 }
+export function getFormPermissions(taskId) {
+  return request.get(`/tasks/${taskId}/form-permissions`)
+}

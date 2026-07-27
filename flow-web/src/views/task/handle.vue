@@ -9,6 +9,8 @@
         </a-tag>
       </div>
       <div class="top-opt">
+        <a-button size="small" ghost @click="handlePrint" :loading="printLoading" style="margin-right:8px">🖨 打印</a-button>
+        <a-button size="small" ghost @click="handleDownloadPdf" :loading="pdfLoading" style="margin-right:8px">📄 下载PDF</a-button>
         <a @click="goBack">返回列表</a>
       </div>
     </div>
@@ -61,6 +63,8 @@
                   :fields="formFields"
                   v-model="formValues"
                   mode="readonly"
+                  :field-permissions="fieldPermMap"
+                  :node-permission="nodePermission"
                 />
               </a-spin>
             </div>
@@ -86,23 +90,23 @@
               <!-- 底部操作按钮 -->
               <div class="opt-bottom">
                 <div class="btn-group">
-                  <template v-if="nodeActions.includes('approve') && hasPerm('task:todo:complete')">
+                  <template v-if="nodeActions.includes('approve') && hasPerm('task:todo:complete') && isButtonVisible('submit')">
                     <a-button class="btn-agree" type="primary" @click="handleApprove" :loading="submitLoading">
                       提交
                     </a-button>
                   </template>
-                  <template v-if="nodeActions.includes('reject') && hasPerm('task:todo:reject')">
+                  <template v-if="nodeActions.includes('reject') && hasPerm('task:todo:reject') && isButtonVisible('reject')">
                     <a-button class="btn-refuse" danger @click="handleReject" :loading="submitLoading">
                       驳回
                     </a-button>
                   </template>
-                  <template v-if="nodeActions.includes('transfer') && hasPerm('task:todo:transfer')">
+                  <template v-if="nodeActions.includes('transfer') && hasPerm('task:todo:transfer') && isButtonVisible('transfer')">
                     <a-button class="btn-transfer" @click="showTransferModal">转发他人处理</a-button>
                   </template>
-                  <template v-if="nodeActions.includes('delegate') && hasPerm('task:todo:delegate')">
+                  <template v-if="nodeActions.includes('delegate') && hasPerm('task:todo:delegate') && isButtonVisible('delegate')">
                     <a-button class="btn-addsign" @click="showDelegateModal">委派协同审批</a-button>
                   </template>
-                  <template v-if="nodeActions.includes('addSign')">
+                  <template v-if="nodeActions.includes('addSign') && isButtonVisible('addSign')">
                     <a-button class="btn-addsign" @click="showAddSignModal">加签</a-button>
                   </template>
                   <a-button class="btn-back" @click="goBack">返回列表</a-button>
@@ -137,17 +141,12 @@
 
       <!-- Tab2: 流程图 -->
       <div v-show="activeTab === 'flow'" class="tab-panel">
-        <div class="panel-title">流程轨迹拓扑图</div>
-        <div class="flow-chart-box" v-if="flowSequence.length > 0">
-          <template v-for="(item, idx) in flowSequence" :key="idx">
-            <div :class="['flow-node', item.statusClass]">
-              <div class="flow-node-name">{{ item.name || item.ntLabel }}</div>
-              <div class="flow-node-user">{{ item.assignee || item.ntLabel }}</div>
-            </div>
-            <div v-if="idx < flowSequence.length - 1" :class="['flow-line', item.lineClass]"></div>
-          </template>
-        </div>
-        <a-empty v-else description="暂无流程图数据" style="margin-top: 40px" />
+        <div class="panel-title">流程配置拓扑图</div>
+        <FlowViewer
+          :nodes="flowNodesRaw"
+          :edges="flowEdgesRaw"
+          :node-status="nodeStatusMap"
+        />
       </div>
     </div>
 
@@ -191,16 +190,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { getTaskDetail, getTasksByInstance, completeTask, rejectTask, transferTask, delegateTask, addSign } from '../../api/task'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
+import { getTaskDetail, getTasksByInstance, completeTask, rejectTask, transferTask, delegateTask, addSign, getFormPermissions } from '../../api/task'
 import { getProcessInstance, getProcessVariables, getProcessDefinitionByKey } from '../../api/process'
 import { getForm } from '../../api/form'
 import { formatDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
 import { usePermission } from '../../composables/usePermission'
 import FormRenderer from '../../components/FormRenderer.vue'
+import FlowViewer from '../../components/FlowViewer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -218,6 +220,21 @@ const formLoading = ref(false)
 const formJson = ref(null)
 const formFields = ref([])
 const formValues = ref({})
+
+// 表单权限
+const fieldPermMap = ref({})
+const nodePermission = ref('')
+const buttonPermMap = ref({})
+
+// 判断按钮是否可见（基于表单权限配置）
+function isButtonVisible(buttonKey) {
+  const perms = buttonPermMap.value
+  // 无权限配置时默认全部可见
+  if (!perms || Object.keys(perms).length === 0) return true
+  const perm = perms[buttonKey]
+  if (!perm) return true  // 未配置的按钮默认可见
+  return perm.visible !== false
+}
 
 // 流程图
 const flowNodesRaw = ref([])
@@ -373,6 +390,19 @@ const flowSequence = computed(() => {
   return nodes
 })
 
+const nodeStatusMap = computed(() => {
+  const map = {}
+  if (!flowNodesRaw.value.length) return map
+  const completedIds = taskHistory.value.map(h => h.nodeId)
+  const currentId = currentTask.value?.nodeId
+  flowNodesRaw.value.forEach(n => {
+    const id = n.id || n.nodeId
+    if (id === currentId) map[id] = 'current'
+    else if (completedIds.includes(id)) map[id] = 'completed'
+  })
+  return map
+})
+
 // ====== 数据加载 ======
 async function loadAll() {
   if (!taskId.value && !instanceId.value) { message.error('缺少任务ID'); return }
@@ -512,6 +542,33 @@ async function loadAll() {
       nodeActions.value = []
     }
 
+    // 6. 加载表单权限（仅当有任务ID时）
+    if (currentTask.value?.id) {
+      try {
+        const permRes = await getFormPermissions(currentTask.value.id)
+        const perm = permRes.data || permRes
+        if (perm) {
+          nodePermission.value = perm.nodePermission || ''
+          // 将字段权限数组转换为 Map: fieldKey -> permission
+          const fpMap = {}
+          if (Array.isArray(perm.fieldPermissions)) {
+            perm.fieldPermissions.forEach(fp => {
+              if (fp.fieldKey) fpMap[fp.fieldKey] = fp.permission || 'edit'
+            })
+          }
+          fieldPermMap.value = fpMap
+          // 按钮权限
+          const bpMap = {}
+          if (Array.isArray(perm.buttonPermissions)) {
+            perm.buttonPermissions.forEach(bp => {
+              if (bp.buttonKey) bpMap[bp.buttonKey] = { visible: bp.visible, enabled: bp.enabled }
+            })
+          }
+          buttonPermMap.value = bpMap
+        }
+      } catch { /* 权限加载失败不阻塞页面 */ }
+    }
+
   } catch (e) {
     message.error('加载任务详情失败: ' + (e.message || ''))
   }
@@ -592,6 +649,80 @@ async function doAddSign() {
 }
 
 onMounted(loadAll)
+
+// ====== 打印 / PDF ======
+const printLoading = ref(false)
+const pdfLoading = ref(false)
+
+async function handlePrint() {
+  printLoading.value = true
+  await nextTick()
+  try {
+    // 获取当前表单Tab内容区域
+    const el = document.querySelector('.tab-panel .form-container')
+    if (!el) { message.warning('请先切换到表单详情Tab'); return }
+
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) { message.warning('请允许弹出窗口以使用打印功能'); return }
+
+    printWindow.document.write(`
+      <!DOCTYPE html><html><head><meta charset="utf-8">
+      <title>${processInfo.value.processName || '流程表单'}</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 20px; color: #333; font-size: 14px; }
+        h2 { text-align: center; margin-bottom: 16px; font-size: 18px; }
+        h3 { font-size: 15px; margin: 16px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        td, th { border: 1px solid #ddd; padding: 8px 10px; font-size: 13px; }
+        td.label { background: #f5f5f5; font-weight: 500; width: 100px; text-align: right; }
+        th { background: #f0f4f9; font-weight: 500; }
+        .ant-form-item { margin-bottom: 10px; }
+        .ant-form-item-label { font-weight: 500; color: #555; margin-bottom: 2px; }
+        .readonly-value { color: #333; }
+        .ant-divider-inner-text { font-weight: 500; color: #0052a5; }
+        .ant-divider { margin: 10px 0; }
+        .ant-spin-nested-loading, .ant-spin-container { display: block !important; }
+        .ant-spin-blur { opacity: 1 !important; pointer-events: auto !important; }
+        @media print { body { padding: 0; } }
+      </style>
+      </head><body>${el.innerHTML}</body></html>
+    `)
+    printWindow.document.close()
+    setTimeout(() => { printWindow.print(); printWindow.close() }, 500)
+  } finally { printLoading.value = false }
+}
+
+async function handleDownloadPdf() {
+  pdfLoading.value = true
+  await nextTick()
+  try {
+    const el = document.querySelector('.tab-panel .form-container')
+    if (!el) { message.warning('请先切换到表单详情Tab'); pdfLoading.value = false; return }
+
+    const canvas = await html2canvas(el, {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false
+    })
+    const imgWidth = 210
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    let position = 0
+    const pageHeight = 297
+    if (imgHeight <= pageHeight) {
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, imgWidth, imgHeight)
+    } else {
+      while (position < imgHeight) {
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, -position, imgWidth, imgHeight)
+        position += pageHeight
+        if (position < imgHeight) pdf.addPage()
+      }
+    }
+    const fileName = `${processInfo.value.processName || '流程表单'}_${Date.now()}.pdf`
+    pdf.save(fileName)
+    message.success('PDF 下载成功')
+  } catch (e) {
+    message.error('PDF 生成失败: ' + (e.message || ''))
+  } finally { pdfLoading.value = false }
+}
 </script>
 
 <style scoped>
@@ -627,6 +758,17 @@ onMounted(loadAll)
   margin-right: 30px;
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+.top-opt :deep(.ant-btn-ghost) {
+  color: #fff;
+  border-color: rgba(255,255,255,0.5);
+  font-size: 12px;
+}
+.top-opt :deep(.ant-btn-ghost:hover) {
+  color: #fff;
+  border-color: #fff;
+  background: rgba(255,255,255,0.15);
 }
 .top-opt a {
   color: #fff;
@@ -815,46 +957,5 @@ onMounted(loadAll)
   font-size: 13px;
 }
 
-/* 流程图 - 横向节点流 */
-.flow-chart-box {
-  padding: 30px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  overflow-x: auto;
-}
-.flow-node {
-  width: 130px;
-  min-height: 70px;
-  border: 2px solid #d0d7df;
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  background: #fafbfd;
-  flex-shrink: 0;
-  padding: 8px;
-}
-.flow-node.finish {
-  border-color: #00a854;
-  background: #e6fffb;
-}
-.flow-node.current {
-  border-color: #0052a5;
-  background: #e1ecf9;
-}
-.flow-node-name { font-weight: bold; margin-bottom: 4px; font-size: 13px; text-align: center; }
-.flow-node-user { font-size: 12px; color: #666; text-align: center; }
-.flow-line {
-  width: 40px;
-  height: 3px;
-  background: #d0d7df;
-  margin: 0 -2px;
-  z-index: -1;
-  flex-shrink: 0;
-}
-.flow-line.finish { background: #00a854; }
+
 </style>

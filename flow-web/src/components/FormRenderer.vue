@@ -15,51 +15,53 @@
                 :span="24 / (row.columns || 1)"
               >
                 <template v-for="(field, fIdx) in (cell.fields || [])" :key="field.id || fIdx">
-                  <!-- 子表表格：占满整行 -->
-                  <template v-if="field.type === 'subTable'">
-                    <a-divider orientation="left" style="margin: 4px 0 8px">{{ field.label || '子表' }}</a-divider>
-                    <SubTableRenderer
-                      :field="field"
-                      :model-value="localValues[field.field || field.key] || []"
-                      :mode="mode"
-                      @update:model-value="(val) => { localValues[field.field || field.key] = val; emit('update:modelValue', { ...localValues }) }"
-                    />
-                  </template>
-                  <!-- 接口引用 DataRef -->
-                  <template v-else-if="field.type === 'data-ref'">
-                    <a-form-item :label="field.label || field.field" style="margin-bottom: 12px">
-                      <DataRefRenderer
+                  <template v-if="!isFieldHidden(field)">
+                    <!-- 子表表格：占满整行 -->
+                    <template v-if="field.type === 'subTable'">
+                      <a-divider orientation="left" style="margin: 4px 0 8px">{{ field.label || '子表' }}</a-divider>
+                      <SubTableRenderer
                         :field="field"
-                        :form-values="localValues"
-                        :readonly="mode === 'readonly'"
-                        @update-value="(val) => { if (field.bindToForm) { localValues[field.field || field.key] = val; emit('update:modelValue', { ...localValues }) } }"
+                        :model-value="localValues[field.field || field.key] || []"
+                        :mode="(mode === 'readonly' || isFieldReadonly(field)) ? 'readonly' : mode"
+                        @update:model-value="(val) => { localValues[field.field || field.key] = val; emit('update:modelValue', { ...localValues }) }"
                       />
+                    </template>
+                    <!-- 接口引用 DataRef -->
+                    <template v-else-if="field.type === 'data-ref'">
+                      <a-form-item :label="field.label || field.field" style="margin-bottom: 12px">
+                        <DataRefRenderer
+                          :field="field"
+                          :form-values="localValues"
+                          :readonly="mode === 'readonly' || isFieldReadonly(field)"
+                          @update-value="(val) => { if (field.bindToForm) { localValues[field.field || field.key] = val; emit('update:modelValue', { ...localValues }) } }"
+                        />
+                      </a-form-item>
+                    </template>
+                    <a-form-item
+                      v-else
+                      :label="field.label || field.field"
+                      :required="field.required"
+                      style="margin-bottom: 12px"
+                    >
+                      <!-- 只读模式（含权限覆盖） -->
+                      <template v-if="mode === 'readonly' || isFieldReadonly(field)">
+                        <span class="readonly-value">{{ getDisplayValue(field) }}</span>
+                      </template>
+                      <!-- 可编辑模式 -->
+                      <template v-else>
+                        <!-- 计算控件：只读显示计算结果 -->
+                        <div v-if="field.type === 'calculation'" class="calc-display">
+                          {{ computeCalcValue(field) }}
+                        </div>
+                        <component
+                          v-else
+                          :is="getComponent(field)"
+                          v-model:value="localValues[field.field || field.key]"
+                          v-bind="getComponentProps(field)"
+                        />
+                      </template>
                     </a-form-item>
                   </template>
-                  <a-form-item
-                    v-else
-                    :label="field.label || field.field"
-                    :required="field.required"
-                    style="margin-bottom: 12px"
-                  >
-                    <!-- 只读模式 -->
-                    <template v-if="mode === 'readonly'">
-                      <span class="readonly-value">{{ getDisplayValue(field) }}</span>
-                    </template>
-                    <!-- 可编辑模式 -->
-                    <template v-else>
-                      <!-- 计算控件：只读显示计算结果 -->
-                      <div v-if="field.type === 'calculation'" class="calc-display">
-                        {{ computeCalcValue(field) }}
-                      </div>
-                      <component
-                        v-else
-                        :is="getComponent(field)"
-                        v-model:value="localValues[field.field || field.key]"
-                        v-bind="getComponentProps(field)"
-                      />
-                    </template>
-                  </a-form-item>
                 </template>
               </a-col>
             </a-row>
@@ -75,16 +77,17 @@
             :key="field.key || field.id"
             :label="field.label"
             :required="field.required"
+            v-show="!isFieldHidden(field)"
           >
             <template v-if="field.type === 'data-ref'">
               <DataRefRenderer
                 :field="field"
                 :form-values="localValues"
-                :readonly="mode === 'readonly'"
+                :readonly="mode === 'readonly' || isFieldReadonly(field)"
                 @update-value="(val) => { if (field.bindToForm) { localValues[field.field || field.key] = val; emit('update:modelValue', { ...localValues }) } }"
               />
             </template>
-            <template v-else-if="mode === 'readonly'">
+            <template v-else-if="mode === 'readonly' || isFieldReadonly(field)">
               <span class="readonly-value">{{ getDisplayValue(field) }}</span>
             </template>
             <template v-else>
@@ -128,7 +131,11 @@ const props = defineProps({
   /** 加载中 */
   loading: { type: Boolean, default: false },
   /** 字典数据缓存 { dictCode: [{value, label}] } */
-  dictData: { type: Object, default: () => ({}) }
+  dictData: { type: Object, default: () => ({}) },
+  /** 字段级权限 { fieldKey: 'edit' | 'readonly' | 'hidden' } */
+  fieldPermissions: { type: Object, default: () => ({}) },
+  /** 节点级权限：edit | readonly | hidden */
+  nodePermission: { type: String, default: '' }
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -147,6 +154,24 @@ watch(localValues, (val) => {
     emit('update:modelValue', { ...val })
   }
 }, { deep: true })
+
+// 判断字段是否隐藏
+function isFieldHidden(field) {
+  const key = field.field || field.key || field.id
+  const perm = props.fieldPermissions[key]
+  if (perm === 'hidden') return true
+  if (props.nodePermission === 'hidden') return true
+  return false
+}
+
+// 判断字段是否只读（权限覆盖或节点级只读）
+function isFieldReadonly(field) {
+  const key = field.field || field.key || field.id
+  const perm = props.fieldPermissions[key]
+  if (perm === 'readonly') return true
+  if (props.nodePermission === 'readonly') return true
+  return false
+}
 
 // 解析 formJson → sections
 const parsedSections = computed(() => {
