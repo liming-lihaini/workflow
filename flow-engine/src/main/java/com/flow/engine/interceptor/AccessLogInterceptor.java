@@ -37,6 +37,12 @@ public class AccessLogInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, 
                                 Object handler, Exception ex) {
+        // 只记录登录和登出的访问日志
+        String uri = request.getRequestURI();
+        if (!isAuthEndpoint(uri)) {
+            return;
+        }
+
         try {
             AccessLog accessLog = new AccessLog();
             
@@ -84,6 +90,13 @@ public class AccessLogInterceptor implements HandlerInterceptor {
         } catch (Exception e) {
             log.warn("[AccessLogInterceptor] 记录访问日志失败: {}", e.getMessage());
         }
+    }
+
+    /**
+     * 判断是否为认证相关端点（登录/登出）
+     */
+    private boolean isAuthEndpoint(String uri) {
+        return uri != null && (uri.endsWith("/auth/login") || uri.endsWith("/auth/logout"));
     }
 
     /**
