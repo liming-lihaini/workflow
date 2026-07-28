@@ -85,6 +85,10 @@
                           <a-radio-group v-if="field.type === 'radio'"><a-radio value="1">选项</a-radio></a-radio-group>
                           <a-checkbox-group v-if="field.type === 'checkbox'"><a-checkbox value="1">选项</a-checkbox></a-checkbox-group>
                           <a-upload v-if="field.type === 'file'" disabled><a-button>上传</a-button></a-upload>
+                          <div v-if="field.type === 'richtext'" class="richtext-preview">
+                            <EditOutlined style="margin-right: 4px; color: #eb2f96" />
+                            <span>{{ field.label || '富文本' }}</span>
+                          </div>
                           <div v-if="field.type === 'calculation'" class="calc-preview">
                             <FunctionOutlined style="margin-right: 4px; color: #722ed1" />
                             <span class="calc-formula">{{ field.formula || '未配置公式' }}</span>
@@ -180,20 +184,60 @@
                 </a-select>
               </a-form-item>
               <a-form-item label="列定义">
-                <div v-for="(col, cIdx) in (selectedField.columns || [])" :key="cIdx"
-                  style="display: flex; gap: 4px; margin-bottom: 4px; align-items: center;">
-                  <a-input v-model:value="col.fieldKey" placeholder="标识" style="width: 30%" size="small" />
-                  <a-input v-model:value="col.label" placeholder="标签" style="width: 30%" size="small" />
-                  <a-select v-model:value="col.type" placeholder="类型" style="width: 25%" size="small">
-                    <a-select-option value="text">文本</a-select-option>
-                    <a-select-option value="number">数字</a-select-option>
-                    <a-select-option value="amount">金额</a-select-option>
-                    <a-select-option value="date">日期</a-select-option>
-                    <a-select-option value="select">下拉</a-select-option>
-                  </a-select>
-                  <a-button type="text" size="small" danger @click="removeSubTableColumn(selectedField, cIdx)">
-                    <DeleteOutlined />
-                  </a-button>
+                <div v-for="(col, cIdx) in (selectedField.columns || [])" :key="cIdx" class="subtable-col-item">
+                  <div style="display: flex; gap: 4px; align-items: center;">
+                    <a-input v-model:value="col.fieldKey" placeholder="标识" style="width: 30%" size="small" />
+                    <a-input v-model:value="col.label" placeholder="标签" style="width: 30%" size="small" />
+                    <a-select v-model:value="col.type" placeholder="类型" style="width: 25%" size="small"
+                      @change="(v) => handleSubTableColTypeChange(col, v)">
+                      <a-select-option value="text">文本</a-select-option>
+                      <a-select-option value="number">数字</a-select-option>
+                      <a-select-option value="amount">金额</a-select-option>
+                      <a-select-option value="date">日期</a-select-option>
+                      <a-select-option value="select">下拉</a-select-option>
+                    </a-select>
+                    <a-button type="text" size="small" danger @click="removeSubTableColumn(selectedField, cIdx)">
+                      <DeleteOutlined />
+                    </a-button>
+                  </div>
+                  <!-- 下拉列选项配置 -->
+                  <div v-if="col.type === 'select'" class="subtable-col-select-config">
+                    <div class="config-row">
+                      <span class="config-label">选择模式</span>
+                      <a-radio-group v-model:value="col.selectMode" size="small">
+                        <a-radio value="single">单选</a-radio>
+                        <a-radio value="multiple">多选</a-radio>
+                      </a-radio-group>
+                    </div>
+                    <div class="config-row">
+                      <span class="config-label">选项来源</span>
+                      <a-radio-group v-model:value="col.optionsSource" size="small" @change="() => handleSubTableColTypeChange(col, 'select')">
+                        <a-radio value="custom">自定义</a-radio>
+                        <a-radio value="dict">数据字典</a-radio>
+                        <a-radio value="api">接口</a-radio>
+                      </a-radio-group>
+                    </div>
+                    <a-textarea v-if="col.optionsSource === 'custom'" v-model:value="col.optionsText"
+                      :rows="2" size="small" placeholder="每行 value:text&#10;1:选项1&#10;2:选项2" />
+                    <a-select v-if="col.optionsSource === 'dict'" v-model:value="col.dictCode"
+                      placeholder="选择数据字典" size="small" style="width: 100%" allow-clear>
+                      <a-select-option v-for="dt in dictTypeList" :key="dt.dictCode" :value="dt.dictCode">{{ dt.dictName }}</a-select-option>
+                    </a-select>
+                    <template v-if="col.optionsSource === 'api'">
+                      <div class="config-row">
+                        <a-select v-model:value="col.api.method" size="small" style="width: 80px">
+                          <a-select-option value="GET">GET</a-select-option>
+                          <a-select-option value="POST">POST</a-select-option>
+                        </a-select>
+                        <a-input v-model:value="col.api.url" placeholder="接口地址 /api/v1/xxx" size="small" style="flex: 1" />
+                      </div>
+                      <div class="config-row">
+                        <a-input v-model:value="col.api.dataPath" placeholder="数据路径 data" size="small" />
+                        <a-input v-model:value="col.api.valueField" placeholder="值字段 value" size="small" />
+                        <a-input v-model:value="col.api.labelField" placeholder="标签字段 label" size="small" />
+                      </div>
+                    </template>
+                  </div>
                 </div>
                 <a-button type="dashed" size="small" block @click="addSubTableColumn(selectedField)">
                   + 添加列
@@ -325,6 +369,7 @@
                     style="width:100%" :tree-data="deptTreeData" show-search tree-node-filter-prop="title" allow-clear />
                   <a-cascader v-else-if="field.type==='cascader'" v-model:value="previewData[field.field]" :options="getCascaderOptions(field)" style="width:100%" change-on-select />
                   <a-upload v-else-if="field.type==='file'"><a-button>上传文件</a-button></a-upload>
+                  <RichTextEditor v-else-if="field.type==='richtext'" v-model:value="previewData[field.field]" :placeholder="field.placeholder||'请输入内容'" />
                   <div v-else-if="field.type==='calculation'" class="calc-result-preview">
                     <FunctionOutlined style="margin-right: 4px; color: #722ed1" />
                     <span>{{ computeFormula(field, previewData) }}</span>
@@ -359,13 +404,14 @@ import {
   DollarOutlined, CalendarOutlined, ClockCircleOutlined,
   CheckCircleOutlined, CheckSquareOutlined,
   UploadOutlined, SelectOutlined, UserOutlined, TeamOutlined, ApartmentOutlined,
-  FunctionOutlined, TableOutlined, ApiOutlined
+  FunctionOutlined, TableOutlined, ApiOutlined, EditOutlined
 } from '@ant-design/icons-vue'
 import { getForm, updateForm } from '../../../api/form'
 import { getDataModelList } from '../../../api/model'
 import { getDictTypes, getDictItemsByCode } from '../../../api/dict'
 import { getUsersPage, getDeptTree } from '../../../api/system'
 import DataRefRenderer from '../../../components/DataRefRenderer.vue'
+import RichTextEditor from '../../../components/RichTextEditor.vue'
 
 const route = useRoute()
 const formKey = ref(route.query.formKey || '')
@@ -384,6 +430,7 @@ const componentTypes = [
   { type: 'radio', label: '单选框', icon: CheckCircleOutlined },
   { type: 'checkbox', label: '复选框', icon: CheckSquareOutlined },
   { type: 'file', label: '文件上传', icon: UploadOutlined },
+  { type: 'richtext', label: '富文本', icon: EditOutlined },
   { type: 'user', label: '人员选择', icon: UserOutlined },
   { type: 'dept', label: '部门选择', icon: TeamOutlined },
   { type: 'calculation', label: '计算控件', icon: FunctionOutlined },
@@ -453,6 +500,16 @@ function addSubTableColumn(field) {
 }
 function removeSubTableColumn(field, idx) {
   if (field.columns) field.columns.splice(idx, 1)
+}
+/** 子表列类型切换：下拉类型初始化选项配置默认值 */
+function handleSubTableColTypeChange(col, type) {
+  if (type === 'select') {
+    if (!col.selectMode) col.selectMode = 'single'
+    if (!col.optionsSource) col.optionsSource = 'custom'
+    if (col.optionsText === undefined) col.optionsText = '1:选项1\n2:选项2'
+    if (col.dictCode === undefined) col.dictCode = null
+    if (!col.api) col.api = { url: '', method: 'GET', dataPath: 'data', valueField: 'value', labelField: 'label' }
+  }
 }
 
 // --- DataRef helpers ---
@@ -784,6 +841,12 @@ onMounted(() => { loadModelList(); loadDictTypes(); loadForm() })
 .formula-help-title { font-weight: 600; color: #333; margin-bottom: 4px; }
 .formula-help code { background: #e8e8e8; padding: 1px 4px; border-radius: 2px; font-size: 11px; color: #722ed1; }
 .subtable-preview { display: flex; align-items: center; font-size: 12px; color: #1677ff; padding: 6px 8px; background: #e6f4ff; border: 1px dashed #91caff; border-radius: 4px; }
+.richtext-preview { display: flex; align-items: center; font-size: 12px; color: #eb2f96; padding: 6px 8px; background: #fff0f6; border: 1px dashed #ffadd2; border-radius: 4px; }
+.subtable-col-item { margin-bottom: 6px; padding-bottom: 4px; }
+.subtable-col-item:not(:last-of-type) { border-bottom: 1px dashed #f0f0f0; }
+.subtable-col-select-config { margin: 6px 0 2px 8px; padding: 8px; background: #f8fafc; border: 1px dashed #dbe4ee; border-radius: 4px; display: flex; flex-direction: column; gap: 6px; }
+.subtable-col-select-config .config-row { display: flex; align-items: center; gap: 6px; }
+.subtable-col-select-config .config-label { font-size: 12px; color: #666; white-space: nowrap; min-width: 52px; }
 .dataref-preview { display: flex; align-items: center; font-size: 12px; color: #13c2c2; padding: 6px 8px; background: #e6fffb; border: 1px dashed #87e8de; border-radius: 4px; }
 .dataref-render-area { padding: 4px 0; }
 </style>

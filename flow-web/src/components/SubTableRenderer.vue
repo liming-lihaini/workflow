@@ -31,6 +31,12 @@
               :value="record[column.dataIndex]" size="small" style="width: 100%"
               @change="(_, ds) => updateCell(index, column.dataIndex, ds)"
               value-format="YYYY-MM-DD" />
+            <a-select v-else-if="column.fieldType === 'select'"
+              :value="record[column.dataIndex]" size="small" style="width: 100%"
+              :mode="column.selectMode === 'multiple' ? 'multiple' : undefined"
+              :options="optionsCache[column.dataIndex] || []"
+              :placeholder="column.title" allow-clear show-search option-filter-prop="label"
+              @change="(v) => updateCell(index, column.dataIndex, v)" />
             <a-input v-else
               :value="record[column.dataIndex]" size="small"
               @change="(e) => updateCell(index, column.dataIndex, e.target.value)" />
@@ -45,7 +51,9 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
+import { getDictItemsByCode } from '../api/dict'
+import request from '../api/request'
 
 const props = defineProps({
   field: { type: Object, required: true },
@@ -63,6 +71,7 @@ const tableColumns = computed(() => {
     dataIndex: col.fieldKey,
     key: col.fieldKey,
     fieldType: col.type || 'text',
+    selectMode: col.selectMode || 'single',
     width: col.width || undefined
   }))
   if (!readonly.value) {
@@ -70,6 +79,61 @@ const tableColumns = computed(() => {
   }
   return cols
 })
+
+// --- 下拉列选项加载：{ fieldKey: [{value, label}] } ---
+const optionsCache = reactive({})
+
+function parseCustomOptions(text) {
+  return (text || '').split('\n').filter(Boolean).map(line => {
+    const [v, ...r] = line.split(':')
+    return { value: v.trim(), label: r.join(':').trim() || v.trim() }
+  })
+}
+
+function resolvePath(obj, path) {
+  if (!obj || !path) return obj
+  let cur = obj
+  for (const p of path.split('.')) {
+    if (cur === null || cur === undefined) return undefined
+    cur = cur[p]
+  }
+  return cur
+}
+
+async function loadColumnOptions(col) {
+  const source = col.optionsSource || 'custom'
+  if (source === 'custom') {
+    optionsCache[col.fieldKey] = parseCustomOptions(col.optionsText)
+  } else if (source === 'dict' && col.dictCode) {
+    try {
+      const res = await getDictItemsByCode(col.dictCode)
+      const items = res.data || res
+      optionsCache[col.fieldKey] = (Array.isArray(items) ? items : []).map(it => ({
+        value: it.itemValue ?? it.value, label: it.itemText ?? it.label ?? it.itemValue
+      }))
+    } catch { optionsCache[col.fieldKey] = [] }
+  } else if (source === 'api' && col.api?.url) {
+    try {
+      const method = (col.api.method || 'GET').toUpperCase()
+      const res = await request({ url: col.api.url, method })
+      let data = resolvePath(res, col.api.dataPath || 'data')
+      if (data === undefined) data = resolvePath(res, 'data') ?? res
+      const valueField = col.api.valueField || 'value'
+      const labelField = col.api.labelField || 'label'
+      optionsCache[col.fieldKey] = (Array.isArray(data) ? data : []).map(it => ({
+        value: it[valueField], label: it[labelField] ?? String(it[valueField])
+      }))
+    } catch { optionsCache[col.fieldKey] = [] }
+  } else {
+    optionsCache[col.fieldKey] = []
+  }
+}
+
+watch(() => props.field.columns, (cols) => {
+  for (const col of (cols || [])) {
+    if (col.type === 'select' && col.fieldKey) loadColumnOptions(col)
+  }
+}, { immediate: true, deep: true })
 
 const tableData = computed(() => {
   return Array.isArray(props.modelValue) ? props.modelValue : []
@@ -84,7 +148,12 @@ function updateCell(rowIdx, fieldKey, value) {
 function addRow() {
   const emptyRow = {}
   for (const col of (props.field.columns || [])) {
-    emptyRow[col.fieldKey] = col.defaultValue || ''
+    // 多选下拉列默认值为数组
+    if (col.type === 'select' && col.selectMode === 'multiple') {
+      emptyRow[col.fieldKey] = []
+    } else {
+      emptyRow[col.fieldKey] = col.defaultValue || ''
+    }
   }
   emit('update:modelValue', [...tableData.value, emptyRow])
 }
@@ -96,7 +165,14 @@ function removeRow(idx) {
 }
 
 function getCellDisplayValue(column, val) {
-  if (val === undefined || val === null || val === '') return '-'
+  if (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0)) return '-'
+  // 下拉列：值转译为选项标签
+  if (column.fieldType === 'select') {
+    const opts = optionsCache[column.dataIndex] || []
+    const toLabel = (v) => opts.find(o => String(o.value) === String(v))?.label ?? String(v)
+    return Array.isArray(val) ? val.map(toLabel).join(', ') : toLabel(val)
+  }
+  if (Array.isArray(val)) return val.join(', ')
   return String(val)
 }
 </script>

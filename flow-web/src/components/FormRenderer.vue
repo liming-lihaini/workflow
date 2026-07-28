@@ -45,7 +45,8 @@
                     >
                       <!-- 只读模式（含权限覆盖） -->
                       <template v-if="mode === 'readonly' || isFieldReadonly(field)">
-                        <span class="readonly-value">{{ getDisplayValue(field) }}</span>
+                        <div v-if="field.type === 'richtext'" class="richtext-readonly" v-html="localValues[field.field || field.key] || '-'"></div>
+                        <span v-else class="readonly-value">{{ getDisplayValue(field) }}</span>
                       </template>
                       <!-- 可编辑模式 -->
                       <template v-else>
@@ -88,7 +89,8 @@
               />
             </template>
             <template v-else-if="mode === 'readonly' || isFieldReadonly(field)">
-              <span class="readonly-value">{{ getDisplayValue(field) }}</span>
+              <div v-if="field.type === 'richtext'" class="richtext-readonly" v-html="localValues[field.field || field.key] || '-'"></div>
+              <span v-else class="readonly-value">{{ getDisplayValue(field) }}</span>
             </template>
             <template v-else>
               <div v-if="field.type === 'calculation'" class="calc-display">
@@ -118,6 +120,7 @@ import {
 } from 'ant-design-vue'
 import SubTableRenderer from './SubTableRenderer.vue'
 import DataRefRenderer from './DataRefRenderer.vue'
+import RichTextEditor from './RichTextEditor.vue'
 
 const props = defineProps({
   /** formJson 字符串或对象（sections 嵌套结构或旧 fields 结构） */
@@ -233,6 +236,7 @@ function getComponent(field) {
     radio: Radio.Group,
     checkbox: Checkbox.Group,
     file: Upload,
+    richtext: RichTextEditor,
   }
   return markRaw(map[type] || Input)
 }
@@ -269,6 +273,7 @@ function getComponentProps(field) {
     return { options: options.map(o => ({ value: o.value, label: o.text })) }
   }
   if (type === 'file') return {}
+  if (type === 'richtext') return { placeholder: field.placeholder || '请输入内容' }
   return base
 }
 
@@ -296,6 +301,13 @@ function getFieldOptions(field) {
 
 // 只读模式显示值
 function getDisplayValue(field) {
+  if (field.type === 'richtext') {
+    const val = localValues.value[field.field || field.key]
+    // 去掉 HTML 标签后显示纯文本摘要
+    if (!val) return '-'
+    const text = String(val).replace(/<[^>]+>/g, '').trim()
+    return text || '-'
+  }
   if (field.type === 'subTable') {
     const arr = localValues.value[field.field || field.key]
     return Array.isArray(arr) ? `${arr.length} 行数据` : '-'
@@ -376,6 +388,15 @@ function isDateStr(str) {
   display: inline-block;
   line-height: 1.6;
 }
+.richtext-readonly {
+  color: #333;
+  font-size: 14px;
+  line-height: 1.7;
+  padding: 4px 0;
+  word-break: break-word;
+}
+.richtext-readonly :deep(p) { margin: 4px 0; }
+.richtext-readonly :deep(ul), .richtext-readonly :deep(ol) { padding-left: 22px; margin: 4px 0; }
 .calc-display {
   display: flex;
   align-items: center;
