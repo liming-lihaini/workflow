@@ -3,22 +3,12 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-27T08:27:09Z"
+exported_at: "2026-07-27T09:55:25Z"
 modules:
     "":
-        dir_name: 自定义流程引擎（Flow Engine）多模块项目
-        title: 自定义流程引擎（Flow Engine）多模块项目
+        dir_name: 自定义流程引擎项目（后端+前端设计器+管理后台）
+        title: 自定义流程引擎项目（后端+前端设计器+管理后台）
         scope: []
-        source_files: []
-        children:
-            - flow_web
-        depends_on: []
-        related_to: []
-    flow_web:
-        dir_name: 工作流前端管理界面（Vue3 + Ant Design Vue）
-        title: 工作流前端管理界面（Vue3 + Ant Design Vue）
-        scope:
-            - flow-web/
         source_files: []
         children: []
         depends_on: []
