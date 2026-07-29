@@ -325,19 +325,27 @@ public class TripleAdminService {
             user.setCreateTime(LocalDateTime.now());
             user.setUpdateTime(LocalDateTime.now());
             userMapper.insert(user);
-            
-            // 分配角色
-            Role role = roleMapper.selectOne(
-                    new LambdaQueryWrapper<Role>().eq(Role::getRoleKey, adminType.getRoleKey())
+            existingUser = user;
+            log.info("[TripleAdminService] 创建三员账号: username={}, type={}", username, adminType.getName());
+        }
+        
+        // 补齐角色绑定（角色被删除重建后旧绑定失效，此处自愈修复）
+        Role role = roleMapper.selectOne(
+                new LambdaQueryWrapper<Role>().eq(Role::getRoleKey, adminType.getRoleKey())
+        );
+        if (role != null) {
+            UserRole existingBinding = userRoleMapper.selectOne(
+                    new LambdaQueryWrapper<UserRole>()
+                            .eq(UserRole::getUserId, existingUser.getId())
+                            .eq(UserRole::getRoleId, role.getId())
             );
-            if (role != null) {
+            if (existingBinding == null) {
                 UserRole userRole = new UserRole();
-                userRole.setUserId(user.getId());
+                userRole.setUserId(existingUser.getId());
                 userRole.setRoleId(role.getId());
                 userRoleMapper.insert(userRole);
+                log.info("[TripleAdminService] 修复三员账号角色绑定: username={}, roleKey={}", username, adminType.getRoleKey());
             }
-            
-            log.info("[TripleAdminService] 创建三员账号: username={}, type={}", username, adminType.getName());
         }
     }
 }

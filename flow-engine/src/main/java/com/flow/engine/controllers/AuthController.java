@@ -3,8 +3,10 @@ package com.flow.engine.controllers;
 import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
 import com.flow.engine.entity.Role;
+import com.flow.engine.entity.User;
 import com.flow.engine.service.AuthService;
 import com.flow.engine.service.RolePermissionService;
+import com.flow.engine.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +23,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final RolePermissionService rolePermissionService;
+    private final UserService userService;
 
     @PostMapping("/login")
     @OpLog(module = "认证管理", operation = "用户登录", recordParams = false)
@@ -53,6 +56,10 @@ public class AuthController {
         Long userId = session.getUserId();
         String username = session.getUsername();
 
+        // 查询用户姓名
+        User user = userService.getUserByUsername(username);
+        String realName = user != null ? user.getRealName() : null;
+
         // 查询角色
         List<Role> roles = rolePermissionService.getUserRoles(userId);
         List<Map<String, String>> roleList = roles.stream().map(r -> {
@@ -69,6 +76,7 @@ public class AuthController {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("userId", userId);
         result.put("username", username);
+        result.put("realName", realName);
         result.put("roles", roleList);
         result.put("permissions", permissions);
         result.put("isAdmin", isAdmin);

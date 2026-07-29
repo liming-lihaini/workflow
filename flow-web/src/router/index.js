@@ -173,8 +173,15 @@ const router = createRouter({
 })
 
 // 路由守卫（含权限检查）
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('token')
+  // 自愈：老会话 localStorage 缺少 userId/realName（后加字段），进入页面前补齐
+  if (token && !localStorage.getItem('userId')) {
+    try {
+      const { useUserStore } = await import('../stores/user')
+      await useUserStore().fetchUserInfo()
+    } catch { /* 忽略，正常流程继续 */ }
+  }
   if (to.meta.requiresAuth === false) {
     if (token && to.path === '/login') {
       next('/dashboard')

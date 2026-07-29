@@ -29,6 +29,11 @@ spring:
     type: caffeine
     caffeine:
       spec: maximumSize=10000,expireAfterWrite=1h
+  # 附件上传大小限制（AttachmentController）
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
 
 mybatis-plus:
   configuration:

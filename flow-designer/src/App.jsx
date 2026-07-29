@@ -405,6 +405,8 @@ function Designer() {
     const processModel = {
       processKey: pk,
       processName: definitionName,
+      // 保留流程级关联表单（流程配置页写入），避免保存流程图时丢失
+      ...(processFormKey ? { formKey: processFormKey } : {}),
       nodes: nodes.map((n) => ({
         id: n.data.nodeId,
         type: n.data.nodeType,
@@ -454,7 +456,7 @@ function Designer() {
     } catch (err) {
       showToast(err.message || '保存失败，请检查后端服务', 'error')
     }
-  }, [definitionId, definitionName, processKey, nodes, edges, validateProcess, showToast])
+  }, [definitionId, definitionName, processKey, processFormKey, nodes, edges, validateProcess, showToast])
 
   // 键盘事件
   const handleKeyDown = useCallback(

@@ -240,7 +240,7 @@ async function loadAll() {
       flowNodesRaw.value = pj.nodes || []
       flowEdgesRaw.value = pj.edges || []
 
-      // 提取 formKey
+      // 提取 formKey：节点级优先，回退流程级（流程配置页绑定的表单存于顶层 formKey）
       let formKey = null
       for (const n of (pj.nodes || [])) {
         if (n.type === 'userTask') {
@@ -248,6 +248,7 @@ async function loadAll() {
           if (formKey) break
         }
       }
+      if (!formKey && pj.formKey) formKey = pj.formKey
 
       // 加载表单
       if (formKey) {

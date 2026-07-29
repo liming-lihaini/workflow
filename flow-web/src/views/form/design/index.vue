@@ -248,7 +248,15 @@
             <template v-if="selectedField.type === 'data-ref'">
               <a-divider orientation="left" style="margin: 8px 0; font-size: 12px">数据源</a-divider>
               <a-form-item label="接口地址">
-                <a-input v-model:value="selectedField.dataSource.url" placeholder="/api/v1/xxx" />
+                <a-input v-model:value="selectedField.dataSource.url" placeholder="/api/v1/xxx/${userId}" />
+                <div class="formula-help" style="margin-top: 4px">
+                  <div class="formula-help-title">支持路径参数（请求参数值同样适用）：</div>
+                  <div>• <code>${字段标识}</code> 引用表单字段值，如 <code>/api/v1/dept/${deptId}</code></div>
+                  <div class="formula-help-title" style="margin-top: 4px">当前用户信息变量（取自登录后 /auth/info 接口返回并缓存的会话信息）：</div>
+                  <div>• <code>${userId}</code> 用户ID（数据库用户主键）</div>
+                  <div>• <code>${userAccount}</code> 用户登录账号（username）</div>
+                  <div>• <code>${userName}</code> 用户姓名（realName）</div>
+                </div>
               </a-form-item>
               <a-form-item label="请求方法">
                 <a-select v-model:value="selectedField.dataSource.method" size="small">
@@ -339,8 +347,8 @@
       </div>
     </div>
 
-    <!-- 预览弹窗 -->
-    <a-modal v-model:open="showPreview" title="表单预览" :width="720" :footer="null" @after-open="onPreviewOpen">
+    <!-- 预览抽屉 -->
+    <a-drawer v-model:open="showPreview" title="表单预览" placement="right" :width="1000" @after-open-change="onPreviewOpen">
       <a-form :model="previewData" layout="vertical" class="preview-form">
         <template v-for="section in sections" :key="section.id">
           <a-divider orientation="left">{{ section.title || '分栏' }}</a-divider>
@@ -389,7 +397,7 @@
           </template>
         </template>
       </a-form>
-    </a-modal>
+    </a-drawer>
   </div>
 </template>
 

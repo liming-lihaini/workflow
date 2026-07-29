@@ -5,6 +5,8 @@ import { login as loginApi, getUserInfo } from '../api/auth'
 export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem('token') || '')
   const username = ref(localStorage.getItem('username') || '')
+  const userId = ref(localStorage.getItem('userId') || '')
+  const realName = ref(localStorage.getItem('realName') || '')
   const permissions = ref(JSON.parse(localStorage.getItem('permissions') || '[]'))
   const isAdmin = ref(localStorage.getItem('isAdmin') === 'true')
   const roles = ref(JSON.parse(localStorage.getItem('roles') || '[]'))
@@ -23,9 +25,13 @@ export const useUserStore = defineStore('user', () => {
       permissions.value = data.permissions || []
       isAdmin.value = !!data.isAdmin
       roles.value = data.roles || []
+      userId.value = data.userId !== undefined && data.userId !== null ? String(data.userId) : ''
+      realName.value = data.realName || ''
       localStorage.setItem('permissions', JSON.stringify(permissions.value))
       localStorage.setItem('isAdmin', String(isAdmin.value))
       localStorage.setItem('roles', JSON.stringify(roles.value))
+      localStorage.setItem('userId', userId.value)
+      localStorage.setItem('realName', realName.value)
     } catch (e) {
       console.warn('获取用户信息失败', e)
     }
@@ -44,15 +50,19 @@ export const useUserStore = defineStore('user', () => {
   function logout() {
     token.value = ''
     username.value = ''
+    userId.value = ''
+    realName.value = ''
     permissions.value = []
     isAdmin.value = false
     roles.value = []
     localStorage.removeItem('token')
     localStorage.removeItem('username')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('realName')
     localStorage.removeItem('permissions')
     localStorage.removeItem('isAdmin')
     localStorage.removeItem('roles')
   }
 
-  return { token, username, permissions, isAdmin, roles, hasPermission, login, logout, fetchUserInfo }
+  return { token, username, userId, realName, permissions, isAdmin, roles, hasPermission, login, logout, fetchUserInfo }
 })

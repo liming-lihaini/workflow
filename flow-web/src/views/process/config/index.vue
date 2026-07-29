@@ -52,23 +52,16 @@
                   </a-select>
                 </a-form-item>
                 <a-form-item v-if="selectedFormKey" label="已选表单">
-                  <a-tag color="blue">{{ selectedForm?.formName }}</a-tag>
-                  <span style="color: var(--text-secondary); font-size: 12px">{{ selectedFormKey }}</span>
+                  <a-space>
+                    <a-tag color="blue">{{ selectedForm?.formName }}</a-tag>
+                    <span style="color: var(--text-secondary); font-size: 12px">{{ selectedFormKey }}</span>
+                    <a-button size="small" @click="showFormPreview = true">
+                      <template #icon><EyeOutlined /></template>
+                      预览
+                    </a-button>
+                  </a-space>
                 </a-form-item>
               </a-form>
-            </a-col>
-            <a-col :span="14">
-              <div v-if="selectedForm" class="form-preview">
-                <div class="form-preview-title">表单字段预览</div>
-                <a-table
-                  :columns="formFieldColumns"
-                  :data-source="formFields"
-                  :pagination="false"
-                  size="small"
-                  row-key="key"
-                />
-              </div>
-              <a-empty v-else description="请选择表单以预览字段" />
             </a-col>
           </a-row>
         </a-card>
@@ -106,6 +99,17 @@
         </a-card>
       </a-spin>
     </div>
+
+    <!-- 表单预览抽屉（与表单设计预览一致） -->
+    <a-drawer v-model:open="showFormPreview" title="表单预览" placement="right" :width="1000">
+      <FormRenderer
+        v-if="selectedForm?.formJson"
+        :form-json="selectedForm.formJson"
+        v-model="formPreviewValues"
+        mode="editable"
+      />
+      <a-empty v-else description="表单暂无内容" />
+    </a-drawer>
   </div>
 </template>
 
@@ -113,9 +117,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { RollbackOutlined } from '@ant-design/icons-vue'
+import { RollbackOutlined, EyeOutlined } from '@ant-design/icons-vue'
 import { getProcessDefinitionByKey, updateProcessDefinition } from '../../../api/process'
 import { getFormAll, getForm } from '../../../api/form'
+import FormRenderer from '../../../components/FormRenderer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -126,7 +131,8 @@ const processDef = ref(null)
 const formList = ref([])
 const selectedFormKey = ref(null)
 const selectedForm = ref(null)
-const formFields = ref([])
+const showFormPreview = ref(false)
+const formPreviewValues = ref({})
 
 const processKey = computed(() => route.query.processKey)
 
@@ -143,14 +149,6 @@ function getTypeName(type) {
 function getTypeColor(type) {
   return typeMap[type]?.color || 'default'
 }
-
-const formFieldColumns = [
-  { title: '字段Key', dataIndex: 'key', key: 'key' },
-  { title: '字段名称', dataIndex: 'label', key: 'label' },
-  { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
-  { title: '必填', dataIndex: 'required', key: 'required', width: 60,
-    customRender: ({ text }) => text ? '是' : '否' }
-]
 
 const nodeColumns = [
   { title: '节点ID', dataIndex: 'id', key: 'id' },
@@ -214,28 +212,11 @@ async function loadFormList() {
 async function handleFormChange(formKey) {
   if (!formKey) {
     selectedForm.value = null
-    formFields.value = []
     return
   }
   try {
     const res = await getForm(formKey)
     selectedForm.value = res.data || res
-    // 解析表单字段
-    if (selectedForm.value?.formJson) {
-      try {
-        const formJson = JSON.parse(selectedForm.value.formJson)
-        formFields.value = (formJson.components || formJson.fields || []).map(c => ({
-          key: c.key || c.id || c.name,
-          label: c.label || c.title || c.key,
-          type: c.type || c.component,
-          required: c.required || false
-        }))
-      } catch {
-        formFields.value = []
-      }
-    } else {
-      formFields.value = []
-    }
   } catch {
     message.error('加载表单详情失败')
   }
@@ -243,6 +224,11 @@ async function handleFormChange(formKey) {
 
 async function handleSaveConfig() {
   if (!processDef.value) return
+  // 表单绑定依赖 processJson 存储，流程图未设计时无法持久化
+  if (selectedFormKey.value && !processDef.value.processJson) {
+    message.warning('请先点击「设计流程图」完成流程设计并保存，再关联表单')
+    return
+  }
   saveLoading.value = true
   try {
     // 将表单绑定信息写入 processJson
@@ -292,18 +278,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.form-preview {
-  border: 1px solid var(--border-color, #f0f0f0);
-  border-radius: 6px;
-  padding: 12px;
-  background: var(--bg-color-container, #fafafa);
-}
-.form-preview-title {
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 8px;
-  color: var(--text-secondary, #666);
-}
 .section-subtitle {
   font-size: 13px;
   font-weight: 500;

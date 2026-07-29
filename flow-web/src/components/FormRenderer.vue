@@ -37,6 +37,32 @@
                         />
                       </a-form-item>
                     </template>
+                    <!-- 附件上传：上传至服务器，表单值记录 {name, path, size} -->
+                    <template v-else-if="field.type === 'file'">
+                      <a-form-item :label="field.label || field.field" :required="field.required" style="margin-bottom: 12px">
+                        <template v-if="mode === 'readonly' || isFieldReadonly(field)">
+                          <div v-if="(localValues[field.field || field.key] || []).length" class="file-readonly-list">
+                            <a
+                              v-for="(f, i) in localValues[field.field || field.key]"
+                              :key="i"
+                              class="file-link"
+                              @click="handleFileDownload(f)"
+                            >{{ f.name }}</a>
+                          </div>
+                          <span v-else class="readonly-value">-</span>
+                        </template>
+                        <a-upload
+                          v-else
+                          :file-list="getFileList(field)"
+                          :before-upload="makeBeforeUpload(field)"
+                          @remove="(file) => handleFileRemove(field, file)"
+                          @preview="(file) => handleFilePreview(field, file)"
+                        >
+                          <a-button :loading="fileUploading">选择文件</a-button>
+                          <span class="file-tip">单个文件不超过 20MB</span>
+                        </a-upload>
+                      </a-form-item>
+                    </template>
                     <a-form-item
                       v-else
                       :label="field.label || field.field"
@@ -88,6 +114,29 @@
                 @update-value="(val) => { if (field.bindToForm) { localValues[field.field || field.key] = val; emit('update:modelValue', { ...localValues }) } }"
               />
             </template>
+            <template v-else-if="field.type === 'file'">
+              <template v-if="mode === 'readonly' || isFieldReadonly(field)">
+                <div v-if="(localValues[field.field || field.key] || []).length" class="file-readonly-list">
+                  <a
+                    v-for="(f, i) in localValues[field.field || field.key]"
+                    :key="i"
+                    class="file-link"
+                    @click="handleFileDownload(f)"
+                  >{{ f.name }}</a>
+                </div>
+                <span v-else class="readonly-value">-</span>
+              </template>
+              <a-upload
+                v-else
+                :file-list="getFileList(field)"
+                :before-upload="makeBeforeUpload(field)"
+                @remove="(file) => handleFileRemove(field, file)"
+                @preview="(file) => handleFilePreview(field, file)"
+              >
+                <a-button :loading="fileUploading">选择文件</a-button>
+                <span class="file-tip">单个文件不超过 20MB</span>
+              </a-upload>
+            </template>
             <template v-else-if="mode === 'readonly' || isFieldReadonly(field)">
               <div v-if="field.type === 'richtext'" class="richtext-readonly" v-html="localValues[field.field || field.key] || '-'"></div>
               <span v-else class="readonly-value">{{ getDisplayValue(field) }}</span>
@@ -116,11 +165,12 @@
 import { ref, computed, watch, h, markRaw, nextTick } from 'vue'
 import {
   Input, Textarea, InputNumber, DatePicker, TimePicker,
-  Select, Radio, Checkbox, TreeSelect, Cascader, Upload, Button, Tag
+  Select, Radio, Checkbox, TreeSelect, Cascader, Upload, Button, Tag, message
 } from 'ant-design-vue'
 import SubTableRenderer from './SubTableRenderer.vue'
 import DataRefRenderer from './DataRefRenderer.vue'
 import RichTextEditor from './RichTextEditor.vue'
+import { uploadAttachment, downloadAttachment } from '../api/attachment'
 
 const props = defineProps({
   /** formJson 字符串或对象（sections 嵌套结构或旧 fields 结构） */
@@ -218,6 +268,73 @@ function normalizeField(f) {
   }
 }
 
+// --- 附件上传：上传至服务器（ISSUE-021），表单值记录 [{ name, path, size }]，兼容旧 base64 数据 ---
+const FILE_MAX_SIZE = 20 * 1024 * 1024
+const fileUploading = ref(false)
+
+function getFileList(field) {
+  const arr = localValues.value[field.field || field.key]
+  if (!Array.isArray(arr)) return []
+  return arr.map((f, i) => ({ uid: String(i), name: f.name, status: 'done' }))
+}
+
+function makeBeforeUpload(field) {
+  return async (file) => {
+    if (file.size > FILE_MAX_SIZE) {
+      message.warning(`文件 ${file.name} 超过 20MB，无法上传`)
+      return Upload.LIST_IGNORE
+    }
+    fileUploading.value = true
+    try {
+      const res = await uploadAttachment(file)
+      const info = res.data || res
+      const key = field.field || field.key
+      const arr = Array.isArray(localValues.value[key]) ? [...localValues.value[key]] : []
+      arr.push({ name: info.name, path: info.path, size: info.size })
+      localValues.value[key] = arr
+      emit('update:modelValue', { ...localValues.value })
+      message.success(`${info.name} 上传成功`)
+    } catch {
+      message.error(`文件 ${file.name} 上传失败`)
+    } finally {
+      fileUploading.value = false
+    }
+    // 已手动上传并写入表单值，阻止 a-upload 内部处理
+    return Upload.LIST_IGNORE
+  }
+}
+
+function handleFileRemove(field, file) {
+  const key = field.field || field.key
+  const arr = Array.isArray(localValues.value[key]) ? [...localValues.value[key]] : []
+  const idx = Number(file.uid)
+  if (idx >= 0) arr.splice(idx, 1)
+  localValues.value[key] = arr
+  emit('update:modelValue', { ...localValues.value })
+}
+
+function handleFilePreview(field, file) {
+  const arr = localValues.value[field.field || field.key]
+  const f = Array.isArray(arr) ? arr[Number(file.uid)] : null
+  if (f) handleFileDownload(f)
+}
+
+async function handleFileDownload(f) {
+  if (f.path) {
+    try {
+      await downloadAttachment(f.path, f.name)
+    } catch {
+      message.error('附件下载失败')
+    }
+  } else if (f.base64) {
+    // 兼容历史 base64 数据：直接触发浏览器保存
+    const a = document.createElement('a')
+    a.href = f.base64
+    a.download = f.name || 'attachment'
+    a.click()
+  }
+}
+
 // 根据字段类型返回 Ant Design 组件
 function getComponent(field) {
   const type = field.type || 'text'
@@ -312,6 +429,10 @@ function getDisplayValue(field) {
     const arr = localValues.value[field.field || field.key]
     return Array.isArray(arr) ? `${arr.length} 行数据` : '-'
   }
+  if (field.type === 'file') {
+    const arr = localValues.value[field.field || field.key]
+    return Array.isArray(arr) && arr.length ? arr.map(f => f.name).join(', ') : '-'
+  }
   if (field.type === 'data-ref') {
     const val = localValues.value[field.field || field.key]
     if (val === undefined || val === null || val === '') return '-'
@@ -397,6 +518,22 @@ function isDateStr(str) {
 }
 .richtext-readonly :deep(p) { margin: 4px 0; }
 .richtext-readonly :deep(ul), .richtext-readonly :deep(ol) { padding-left: 22px; margin: 4px 0; }
+.file-tip {
+  margin-left: 8px;
+  color: #999;
+  font-size: 12px;
+}
+.file-readonly-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.file-link {
+  font-size: 13px;
+  color: #1677ff;
+  word-break: break-all;
+  cursor: pointer;
+}
 .calc-display {
   display: flex;
   align-items: center;

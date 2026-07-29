@@ -36,15 +36,14 @@
       </a-table>
     </div>
 
-    <!-- 新建/编辑弹窗 -->
-    <a-modal
+    <!-- 新建/编辑抽屉 -->
+    <a-drawer
       v-model:open="modalVisible"
       :title="editingRecord ? '编辑数据模型' : '新建数据模型'"
-      @ok="handleSubmit"
-      :confirm-loading="submitLoading"
-      width="720px"
+      placement="right"
+      :width="1000"
+      :body-style="{ paddingBottom: '64px' }"
     >
-      <div class="modal-body-scroll">
       <a-form :model="formState" layout="vertical">
         <a-row :gutter="16">
           <a-col :span="12">
@@ -83,7 +82,7 @@
           :data-source="formState.mainTable.fields"
           :pagination="false"
           size="small"
-          row-key="fieldKey"
+          :row-key="(_, idx) => idx"
           :bordered="true"
         >
           <template #bodyCell="{ column, record, index }">
@@ -150,7 +149,7 @@
               :data-source="subTable.fields"
               :pagination="false"
               size="small"
-              row-key="fieldKey"
+              :row-key="(_, idx) => idx"
               :bordered="true"
             >
               <template #bodyCell="{ column, record, index }">
@@ -186,8 +185,15 @@
           </a-collapse-panel>
         </a-collapse>
       </a-form>
-      </div>
-    </a-modal>
+      <template #footer>
+        <div style="text-align: right;">
+          <a-space>
+            <a-button @click="modalVisible = false">取消</a-button>
+            <a-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</a-button>
+          </a-space>
+        </div>
+      </template>
+    </a-drawer>
   </div>
 </template>
 
@@ -415,9 +421,4 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.modal-body-scroll {
-  max-height: calc(80vh - 140px);
-  overflow-y: auto;
-  padding-right: 4px;
-}
 </style>

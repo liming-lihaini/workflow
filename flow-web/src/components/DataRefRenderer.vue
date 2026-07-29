@@ -17,7 +17,7 @@
     </template>
     <!-- text 模式：单文本 -->
     <template v-else-if="display.mode === 'text'">
-      <span class="dataref-text">{{ escapeHtml(textValue) }}</span>
+      <span class="dataref-text">{{ escapeHtml(textValue) || '-' }}</span>
     </template>
     <!-- texts 模式：多文本平铺 -->
     <template v-else-if="display.mode === 'texts'">
@@ -79,34 +79,39 @@ function resolvePath(obj, path) {
 }
 
 // --- Template parameter substitution ---
+function resolveTemplate(str) {
+  if (typeof str !== 'string') return str
+  const fv = props.formValues || {}
+  const user = getUserInfo()
+  return str.replace(/\$\{(\w+)\}/g, (_, name) => {
+    // Fixed user variables
+    if (name === 'userId') return user.userId || ''
+    if (name === 'userAccount') return user.userAccount || ''
+    if (name === 'userName') return user.userName || ''
+    // Form field values
+    return fv[name] !== undefined ? String(fv[name]) : ''
+  })
+}
+
 function resolveParams(params) {
   if (!params || typeof params !== 'object') return {}
   const result = {}
-  const fv = props.formValues || {}
-  const user = getUserInfo()
   for (const [key, rawVal] of Object.entries(params)) {
-    if (typeof rawVal !== 'string') { result[key] = rawVal; continue }
-    let val = rawVal
-    // Replace ${fieldName} with form values
-    val = val.replace(/\$\{(\w+)\}/g, (_, name) => {
-      // Fixed user variables
-      if (name === 'userId') return user.userId || ''
-      if (name === 'userAccount') return user.userAccount || ''
-      if (name === 'userName') return user.userName || ''
-      // Form field values
-      return fv[name] !== undefined ? String(fv[name]) : ''
-    })
-    result[key] = val
+    result[key] = resolveTemplate(rawVal)
   }
   return result
 }
 
+/**
+ * 当前用户信息取值：登录后 /auth/info 返回的 userId(用户ID)、username(登录账号)、
+ * realName(用户姓名) 由 user store 写入 localStorage，此处直接读取
+ */
 function getUserInfo() {
   try {
     return {
-      userId: localStorage.getItem('userId') || localStorage.getItem('username') || '',
+      userId: localStorage.getItem('userId') || '',
       userAccount: localStorage.getItem('username') || '',
-      userName: localStorage.getItem('realName') || localStorage.getItem('username') || ''
+      userName: localStorage.getItem('realName') || ''
     }
   } catch { return { userId: '', userAccount: '', userName: '' } }
 }
@@ -129,8 +134,10 @@ function processData(res) {
 }
 
 async function fetchData() {
-  const url = dataSource.value.url
-  if (!url) { isEmpty.value = true; return }
+  const rawUrl = dataSource.value.url
+  if (!rawUrl) { isEmpty.value = true; return }
+  // 接口路径参数替换：支持 ${字段标识} 及 ${userId}/${userAccount}/${userName}
+  const url = resolveTemplate(rawUrl)
 
   loading.value = true
   error.value = ''
@@ -249,10 +256,10 @@ let debounceTimer = null
 
 watch(
   () => {
-    // Build a reactive key from watch fields + params
+    // Build a reactive key from watch fields + resolved url (path params react to form changes)
     const watchKeys = dataSource.value.watch || []
     const fv = props.formValues || {}
-    return watchKeys.map(k => fv[k]).join('|') + '||' + dataSource.value.url
+    return watchKeys.map(k => fv[k]).join('|') + '||' + resolveTemplate(dataSource.value.url || '')
   },
   () => {
     if (!dataSource.value.url) return

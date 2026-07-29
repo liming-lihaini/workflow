@@ -5,3 +5,6 @@ dist/
 # Dependencies
 node_modules/
 .qoder/
+
+# 流程附件本地存储目录（AttachmentController）
+flow-engine/upload/

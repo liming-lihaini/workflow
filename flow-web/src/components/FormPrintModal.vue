@@ -166,11 +166,12 @@ async function loadData() {
       const def = defRes.data || defRes
       if (def?.processJson) {
         const pj = typeof def.processJson === 'string' ? JSON.parse(def.processJson) : def.processJson
-        // Extract formKey from userTask nodes
+        // Extract formKey from userTask nodes, fallback to process-level formKey
         let formKey = null
         for (const n of (pj.nodes || [])) {
           if (n.type === 'userTask' && n.properties?.formKey) { formKey = n.properties.formKey; break }
         }
+        if (!formKey && pj.formKey) formKey = pj.formKey
         if (formKey) {
           const formRes = await getForm(formKey)
           const formDef = formRes.data || formRes

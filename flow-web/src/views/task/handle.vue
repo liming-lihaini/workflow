@@ -565,6 +565,8 @@ async function loadAll() {
             if (n.type === 'userTask' && n.properties?.formKey) { formKey = n.properties.formKey; break }
           }
         }
+        // 回退流程级 formKey（流程配置页绑定的表单存于顶层）
+        if (!formKey && pj.formKey) formKey = pj.formKey
         // 提取节点操作权限
         if (curNodeId) {
           for (const n of (pj.nodes || [])) {
