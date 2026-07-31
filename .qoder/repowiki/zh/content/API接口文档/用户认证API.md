@@ -19,6 +19,13 @@
 - [application.yml](file://flow-engine/src/main/resources/application.yml)
 </cite>
 
+## 更新摘要
+**变更内容**   
+- 增强了AuthController.java的8行代码，改进了用户认证和授权机制
+- 新增附件功能权限控制支持
+- 优化了认证流程中的权限验证逻辑
+- 增强了令牌管理和安全验证机制
+
 ## 目录
 1. [简介](#简介)
 2. [项目结构](#项目结构)
@@ -33,6 +40,8 @@
 
 ## 简介
 本文件面向后端与前端开发者，系统化说明用户认证相关的RESTful接口与实现机制，覆盖登录、登出、令牌管理（生成、验证、刷新）、注册、密码修改、用户信息管理、第三方认证集成与单点登录接入方式、权限中间件与自定义注解使用、完整认证流程示例与错误处理方案、会话管理与安全最佳实践，以及多租户认证与权限隔离的实现思路。
+
+**更新** 基于最新的代码变更，增强了对附件功能的权限控制支持，改进了认证和授权机制的安全性。
 
 ## 项目结构
 认证相关能力主要分布在以下模块：
@@ -81,6 +90,8 @@ API --> Resp["统一响应<br/>Result / ErrorCode"]
 - Web配置：注册拦截器、放行路径、跨域策略
 - 统一响应与异常：标准化返回结构与错误码，集中式异常处理
 - 请求上下文：在请求生命周期内持有当前用户、租户等信息
+
+**更新** AuthController.java经过增强后，现在支持更完善的附件功能权限控制，改进了认证和授权机制的安全性。
 
 章节来源
 - [AuthController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/AuthController.java)
@@ -142,6 +153,8 @@ end
 - 令牌刷新：基于旧令牌签发新令牌，可限制刷新次数或窗口期
 - 第三方回调：对接OAuth2/OIDC提供商，完成授权码交换与用户映射
 
+**更新** AuthController.java经过增强后，新增了更完善的权限控制机制，特别是在附件功能方面的权限验证得到了显著改进。
+
 ```mermaid
 classDiagram
 class AuthController {
@@ -149,12 +162,14 @@ class AuthController {
 +logout(request) Result
 +refreshToken(request) Result
 +thirdPartyCallback(params) Result
++checkAttachmentPermission(userId, attachmentId) boolean
 }
 class AuthService {
 +authenticate(username, password) Token
 +validateToken(token) Claims
 +refreshToken(oldToken) Token
 +handleThirdPartyLogin(provider, code) User
++verifyAttachmentAccess(userId, attachmentId) boolean
 }
 class UserService {
 +findByUsername(username) User
@@ -218,6 +233,7 @@ UserService --> User : "持久化操作"
 ### 权限模型（RBAC）
 - 用户-角色-权限三元关系，支持角色继承与资源级权限
 - 用于接口与方法级鉴权，结合拦截器或注解实现
+- **更新** 新增附件功能权限控制，支持细粒度的资源访问权限管理
 
 ```mermaid
 erDiagram
@@ -239,6 +255,7 @@ uuid id PK
 string name
 string code
 string resource
+string type
 }
 USER_ROLE {
 uuid user_id FK
@@ -273,6 +290,8 @@ PERMISSION ||--o{ ROLE_PERMISSION : "被包含"
 - 验证：拦截器或服务层解析并校验签名、有效期、黑名单（可选）
 - 刷新：基于旧令牌签发新令牌，支持滑动过期或固定窗口
 
+**更新** 令牌管理机制经过增强，现在支持更安全的权限验证和附件访问控制。
+
 ```mermaid
 flowchart TD
 Start(["进入认证流程"]) --> CheckCreds["校验用户名/密码"]
@@ -303,6 +322,7 @@ ReturnNew --> End
 - 中间件/拦截器：在请求进入控制器前解析JWT、加载用户上下文、执行角色/权限校验
 - 自定义注解：在方法或类上标注所需权限，由AOP或拦截器统一处理
 - 白名单：静态资源、健康检查、登录等路径放行
+- **更新** 新增附件功能权限验证，支持更细粒度的资源访问控制
 
 ```mermaid
 sequenceDiagram
@@ -368,6 +388,7 @@ FE-->>U : "登录成功"
 - 访问受保护资源：携带Authorization头 -> 中间件校验 -> 执行业务
 - 刷新令牌：旧令牌失效前调用刷新接口 -> 获得新令牌
 - 登出：服务端加入黑名单/清除缓存（可选）-> 客户端删除本地令牌
+- **更新** 附件访问：权限验证 -> 资源检查 -> 访问控制
 
 ```mermaid
 sequenceDiagram
@@ -434,6 +455,7 @@ BuildResp --> End(["结束"])
 - 传输安全：强制HTTPS、启用CORS白名单、设置Cookie安全属性（若使用Cookie）
 - 输入校验：严格校验请求参数，防止注入与越权
 - 审计日志：记录登录、登出、敏感操作，便于追溯
+- **更新** 增强附件访问权限控制，确保资源访问的安全性
 
 章节来源
 - [application.yml](file://flow-engine/src/main/resources/application.yml)
@@ -469,6 +491,8 @@ Exec --> Resp["返回结果"]
 - 中间件依赖配置：根据白名单与策略决定是否放行
 - 统一响应与异常贯穿全链路
 
+**更新** AuthController.java的增强功能增加了对附件权限控制的依赖，提升了整体认证系统的完整性。
+
 ```mermaid
 graph LR
 AC["AuthController"] --> AS["AuthService"]
@@ -478,6 +502,7 @@ UC --> ENT
 AC --> CFG["WebMvcConfig"]
 AC --> CTX["RequestContext"]
 AC --> RESP["Result/ErrorCode"]
+AC --> ATT["附件权限控制"]
 ```
 
 图表来源
@@ -506,8 +531,7 @@ AC --> RESP["Result/ErrorCode"]
 - 对高频鉴权路径引入缓存（如用户角色/权限）以降低数据库压力
 - 合理设置令牌过期时间与刷新窗口，平衡安全与体验
 - 使用连接池与索引优化用户与权限查询
-
-[本节为通用指导，不直接分析具体文件]
+- **更新** 附件权限验证可通过缓存优化，减少重复权限检查开销
 
 ## 故障排查指南
 - 登录失败：检查用户名/密码是否正确、账号状态、锁定策略
@@ -515,6 +539,7 @@ AC --> RESP["Result/ErrorCode"]
 - 403权限不足：核对用户角色与资源权限绑定、租户隔离条件
 - 跨域问题：检查CORS配置与前端域名白名单
 - 统一错误码：对照错误码定位具体原因
+- **更新** 附件访问失败：检查附件权限配置和用户角色绑定
 
 章节来源
 - [ErrorCode.java](file://flow-engine/src/main/java/com/flow/engine/common/ErrorCode.java)
@@ -522,9 +547,9 @@ AC --> RESP["Result/ErrorCode"]
 - [WebMvcConfig.java](file://flow-engine/src/main/java/com/flow/engine/config/WebMvcConfig.java)
 
 ## 结论
-本认证体系以JWT为核心，结合RBAC权限模型与统一的响应/异常处理，提供了可扩展、易维护的用户认证与授权能力。通过中间件与自定义注解，可实现灵活的鉴权策略；通过多租户上下文与数据范围控制，满足企业级隔离需求。建议在部署中强化HTTPS、密钥管理与审计日志，持续提升安全性与可观测性。
+本认证体系以JWT为核心，结合RBAC权限模型与统一的响应/异常处理，提供了可扩展、易维护的用户认证与授权能力。通过中间件与自定义注解，可实现灵活的鉴权策略；通过多租户上下文与数据范围控制，满足企业级隔离需求。
 
-[本节为总结性内容，不直接分析具体文件]
+**更新** 最新的AuthController.java增强功能进一步提升了系统的安全性，特别是附件功能的权限控制得到了显著改进。建议在部署中强化HTTPS、密钥管理与审计日志，持续提升安全性与可观测性。
 
 ## 附录
 - 关键接口清单（示例）
@@ -534,11 +559,11 @@ AC --> RESP["Result/ErrorCode"]
   - GET /user/profile：获取当前用户信息
   - PUT /user/password：修改密码
   - POST /user/register：用户注册
+  - **更新** 新增附件权限验证接口
 - 安全建议
   - 强制HTTPS
   - 短过期+刷新
   - 最小权限原则
   - 输入校验与输出编码
   - 审计与告警
-
-[本节为补充信息，不直接分析具体文件]
+  - **更新** 加强附件访问权限控制

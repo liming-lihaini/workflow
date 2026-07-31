@@ -62,6 +62,12 @@ const routes = [
         meta: { title: '数据模型', permKey: 'data-model' }
       },
       {
+        path: 'model-data/:modelKey',
+        name: 'ModelDataManage',
+        component: () => import('../views/model-data/manage.vue'),
+        meta: { title: '业务数据', dynamicModelPerm: true }
+      },
+      {
         path: 'task/start',
         name: 'TaskStart',
         component: () => import('../views/task/start.vue'),
@@ -193,7 +199,11 @@ router.beforeEach(async (to, from, next) => {
       next('/login')
     } else {
       // 权限检查（工作台作为兜底页，跳过权限校验避免无限重定向）
-      const permKey = to.meta.permKey
+      let permKey = to.meta.permKey
+      // 模型数据页按 modelKey 动态计算权限 Key
+      if (to.meta.dynamicModelPerm && to.params.modelKey) {
+        permKey = `model-data:${to.params.modelKey}`
+      }
       if (permKey && to.path !== '/dashboard') {
         const isAdmin = localStorage.getItem('isAdmin') === 'true'
         const permissions = JSON.parse(localStorage.getItem('permissions') || '[]')

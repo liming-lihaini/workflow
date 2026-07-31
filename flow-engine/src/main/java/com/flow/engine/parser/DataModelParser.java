@@ -84,6 +84,24 @@ public class DataModelParser {
             }
         }
 
+        // 校验模型内表名唯一性（主表与子表表名不可重复）
+        Set<String> tableNames = new HashSet<>();
+        if (model.getMainTable() != null && model.getMainTable().getTableName() != null
+                && !model.getMainTable().getTableName().isBlank()) {
+            tableNames.add(model.getMainTable().getTableName());
+        }
+        if (model.getSubTables() != null) {
+            for (DataModelRequest.TableDefinition sub : model.getSubTables()) {
+                String name = sub.getTableName();
+                if (name == null || name.isBlank()) {
+                    continue;
+                }
+                if (!tableNames.add(name)) {
+                    errors.add("表名重复: " + name);
+                }
+            }
+        }
+
         return errors;
     }
 

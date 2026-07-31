@@ -5,6 +5,7 @@ import com.flow.engine.entity.ProcessInstance;
 import com.flow.engine.event.ProcessCompletedEvent;
 import com.flow.engine.event.ProcessStartedEvent;
 import com.flow.engine.mapper.ProcessInstanceMapper;
+import com.flow.engine.service.FormDataWriteBackService;
 import com.flow.engine.service.ModelInstanceManager;
 import com.flow.engine.service.VariableService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class DataModelProcessListener {
     private final ModelInstanceManager modelInstanceManager;
     private final VariableService variableService;
     private final ProcessInstanceMapper instanceMapper;
+    private final FormDataWriteBackService formDataWriteBackService;
 
     /**
      * 流程启动时，检查流程变量中是否有 modelKey，如果有则自动创建模型实例
@@ -63,6 +65,10 @@ public class DataModelProcessListener {
     @EventListener
     public void onProcessCompleted(ProcessCompletedEvent event) {
         log.info("[DataModel] 流程完成事件: instanceId={}, processKey={}", 
+                event.getProcessInstanceId(), event.getProcessKey());
+
+        // 表单数据回填：表单绑定的数据模型已生成物理表时，自动写入表单数据
+        formDataWriteBackService.writeBackOnProcessCompleted(
                 event.getProcessInstanceId(), event.getProcessKey());
 
         try {

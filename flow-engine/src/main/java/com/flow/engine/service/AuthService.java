@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AuthService {
 
     private final UserService userService;
+    private final ApiTokenService apiTokenService;
 
     /** 内存会话：token -> SessionInfo */
     private final Map<String, SessionInfo> sessions = new ConcurrentHashMap<>();
@@ -80,12 +81,47 @@ public class AuthService {
         }
         SessionInfo session = sessions.get(token);
         if (session == null) {
+            // 会话未命中时尝试 API Token 鉴权（ftk_ 前缀的个人Token）
+            SessionInfo apiSession = tryApiToken(token);
+            if (apiSession != null) {
+                return apiSession;
+            }
             throw new BusinessException(ErrorCode.TOKEN_INVALID);
         }
         if (LocalDateTime.now().isAfter(session.getExpireTime())) {
             sessions.remove(token);
             throw new BusinessException(ErrorCode.TOKEN_EXPIRED);
         }
+        return session;
+    }
+
+    /**
+     * API Token 方式鉴权：校验个人Token并构造会话信息（不落内存会话）
+     */
+    private SessionInfo tryApiToken(String token) {
+        if (!token.startsWith("ftk_")) {
+            return null;
+        }
+        com.flow.engine.entity.ApiToken apiToken = apiTokenService.findValidToken(token);
+        if (apiToken == null) {
+            return null;
+        }
+        User user;
+        try {
+            user = userService.getUser(apiToken.getUserId());
+        } catch (BusinessException e) {
+            return null;
+        }
+        if (user.getStatus() == null || user.getStatus() != 1) {
+            return null;
+        }
+        SessionInfo session = new SessionInfo();
+        session.setUserId(user.getId());
+        session.setUsername(user.getUsername());
+        session.setToken(token);
+        session.setCreateTime(apiToken.getCreateTime());
+        session.setExpireTime(apiToken.getExpireTime() != null
+                ? apiToken.getExpireTime() : LocalDateTime.now().plusYears(100));
         return session;
     }
 

@@ -56,8 +56,27 @@
           </a-breadcrumb>
         </div>
         <div class="header-right">
-          <span class="username">{{ userStore.username || '管理员' }}</span>
-          <a-button type="link" @click="handleLogout">退出</a-button>
+          <a-dropdown>
+            <span class="user-trigger">
+              <UserOutlined />
+              <span class="username">{{ userStore.username || '管理员' }}</span>
+              <DownOutlined class="down-icon" />
+            </span>
+            <template #overlay>
+              <a-menu @click="handleUserMenu">
+                <a-menu-item key="profile">
+                  <EditOutlined /> 修改个人信息
+                </a-menu-item>
+                <a-menu-item key="token">
+                  <KeyOutlined /> 个人Token管理
+                </a-menu-item>
+                <a-menu-divider />
+                <a-menu-item key="logout">
+                  <LogoutOutlined /> 退出登录
+                </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
         </div>
       </a-layout-header>
 
@@ -66,21 +85,35 @@
         <router-view />
       </a-layout-content>
     </a-layout>
+
+    <!-- 个人信息编辑 -->
+    <ProfileModal v-model:open="profileOpen" />
+    <!-- 个人Token管理 -->
+    <TokenManageModal v-model:open="tokenOpen" />
   </a-layout>
 </template>
 
 <script setup>
-import { ref, computed, watch, h, markRaw } from 'vue'
+import { ref, computed, watch, h, markRaw, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
+import { getModelMenus } from '../api/modelData'
+import ProfileModal from '../components/ProfileModal.vue'
+import TokenManageModal from '../components/TokenManageModal.vue'
 import {
   DashboardOutlined,
   ApartmentOutlined,
   ScheduleOutlined,
   SettingOutlined,
   MonitorOutlined,
+  DatabaseOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined
+  MenuUnfoldOutlined,
+  UserOutlined,
+  DownOutlined,
+  EditOutlined,
+  KeyOutlined,
+  LogoutOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -149,9 +182,31 @@ const menuConfig = [
   }
 ]
 
+// 模型数据动态菜单（数据模型生成表后同步产生）
+const modelMenus = ref([])
+
+async function loadModelMenus() {
+  try {
+    const res = await getModelMenus()
+    modelMenus.value = res.data || res || []
+  } catch {
+    modelMenus.value = []
+  }
+}
+
+onMounted(() => {
+  loadModelMenus()
+  // 生成表成功后由数据模型页派发事件，刷新动态菜单
+  window.addEventListener('model-menus-changed', loadModelMenus)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('model-menus-changed', loadModelMenus)
+})
+
 // 按权限过滤菜单
 const visibleMenuItems = computed(() => {
-  return menuConfig
+  const items = menuConfig
     .filter(item => userStore.hasPermission(item.permKey))
     .map(item => {
       if (!item.children) return item
@@ -160,6 +215,26 @@ const visibleMenuItems = computed(() => {
       return { ...item, children: visibleChildren }
     })
     .filter(Boolean)
+
+  // 业务数据动态菜单组
+  const bizChildren = modelMenus.value
+    .filter(menu => userStore.hasPermission(menu.permKey))
+    .map(menu => ({
+      key: `model-data-${menu.modelKey}`,
+      title: menu.permName,
+      path: menu.resourcePath,
+      permKey: menu.permKey
+    }))
+  if (bizChildren.length > 0 && userStore.hasPermission('model-data')) {
+    items.push({
+      key: 'biz-data',
+      title: '业务数据',
+      permKey: 'model-data',
+      icon: markRaw(DatabaseOutlined),
+      children: bizChildren
+    })
+  }
+  return items
 })
 
 // 根据路由同步菜单选中状态
@@ -191,9 +266,15 @@ watch(() => route.path, (path) => {
   }
   selectedKeys.value = pathMap[path] || []
 
+  // 模型数据管理页：/model-data/{modelKey} 选中对应动态菜单
+  if (path.startsWith('/model-data/')) {
+    selectedKeys.value = [`model-data-${path.split('/')[2]}`]
+  }
+
   // 自动展开父菜单（累加式，不折叠已展开的其他菜单）
   let parentKey = null
-  if (path.startsWith('/process') || path.startsWith('/form') || path.startsWith('/data-model')) parentKey = 'process'
+  if (path.startsWith('/model-data/')) parentKey = 'biz-data'
+  else if (path.startsWith('/process') || path.startsWith('/form') || path.startsWith('/data-model')) parentKey = 'process'
   else if (path.startsWith('/task')) parentKey = 'task'
   else if (path.startsWith('/system')) parentKey = 'system'
 
@@ -208,6 +289,16 @@ watch(() => route.path, (path) => {
 function handleLogout() {
   userStore.logout()
   router.push('/login')
+}
+
+// 用户下拉菜单
+const profileOpen = ref(false)
+const tokenOpen = ref(false)
+
+function handleUserMenu({ key }) {
+  if (key === 'profile') profileOpen.value = true
+  else if (key === 'token') tokenOpen.value = true
+  else if (key === 'logout') handleLogout()
 }
 </script>
 
@@ -274,6 +365,23 @@ function handleLogout() {
 .username {
   color: var(--text-content);
   font-size: 14px;
+}
+
+.user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 0 8px;
+  color: var(--text-content);
+}
+
+.user-trigger:hover {
+  color: var(--color-primary);
+}
+
+.down-icon {
+  font-size: 10px;
 }
 
 .content {

@@ -11,13 +11,17 @@ import com.flow.engine.mapper.DataModelMapper;
 import com.flow.engine.parser.DataModelParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -32,8 +36,13 @@ public class DataModelService {
 
     private final DataModelMapper dataModelMapper;
     private final DataModelParser dataModelParser;
+    private final JdbcTemplate jdbcTemplate;
+    private final ModelMenuPermissionService modelMenuPermissionService;
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    /** 合法数据库标识符（防 SQL 注入，表名/字段名清洗后必须匹配） */
+    private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
 
     /**
      * 创建数据模型
@@ -46,6 +55,9 @@ public class DataModelService {
         if (dataModelMapper.selectCount(wrapper) > 0) {
             throw new BusinessException(ErrorCode.MODEL_KEY_DUPLICATE);
         }
+
+        // 校验模型名称唯一性
+        validateModelNameUnique(request.getModelName(), null);
 
         // 校验模型结构
         List<String> errors = dataModelParser.validate(request);
@@ -114,6 +126,9 @@ public class DataModelService {
             throw new BusinessException(ErrorCode.MODEL_ALREADY_PUBLISHED);
         }
 
+        // 校验模型名称唯一性（排除自身）
+        validateModelNameUnique(request.getModelName(), entity.getId());
+
         // 校验模型结构
         List<String> errors = dataModelParser.validate(request);
         if (!errors.isEmpty()) {
@@ -178,6 +193,23 @@ public class DataModelService {
     }
 
     /**
+     * 校验模型名称唯一性（excludeId 非空时排除自身，用于更新场景）
+     */
+    private void validateModelNameUnique(String modelName, Long excludeId) {
+        if (modelName == null || modelName.isBlank()) {
+            return;
+        }
+        LambdaQueryWrapper<DataModel> nameWrapper = new LambdaQueryWrapper<>();
+        nameWrapper.eq(DataModel::getModelName, modelName);
+        if (excludeId != null) {
+            nameWrapper.ne(DataModel::getId, excludeId);
+        }
+        if (dataModelMapper.selectCount(nameWrapper) > 0) {
+            throw new BusinessException(ErrorCode.MODEL_NAME_DUPLICATE);
+        }
+    }
+
+    /**
      * 根据模型定义生成表单字段（表单绑定数据模型）
      */
     public List<FieldMapping> generateFormFields(String modelKey) {
@@ -216,6 +248,128 @@ public class DataModelService {
         }
 
         return mappings;
+    }
+
+    /**
+     * 依据模型定义生成数据库表（主表 + 子表，ISSUE-010 扩展）
+     * <p>
+     * 表命名：dm_{modelKey}_{tableName}（非法字符替换为下划线）；
+     * 采用 CREATE TABLE IF NOT EXISTS 幂等执行，子表附加 main_id 关联列与索引。
+     *
+     * @return 生成结果：每张表的物理表名、是否已存在、字段数及执行的 DDL
+     */
+    @Transactional
+    public Map<String, Object> generateTables(String modelKey) {
+        DataModel entity = getByModelKey(modelKey);
+        DataModelRequest model = dataModelParser.parse(entity.getModelJson());
+        if (model.getMainTable() == null) {
+            throw new BusinessException(ErrorCode.MODEL_VALIDATION_FAILED, "主表定义不能为空");
+        }
+
+        List<Map<String, Object>> tables = new ArrayList<>();
+        List<String> ddlList = new ArrayList<>();
+
+        // 主表：id 主键 + 模型字段 + 审计时间列
+        String mainTable = physicalTableName(modelKey, model.getMainTable().getTableName());
+        buildAndExecute(mainTable, model.getMainTable(), null, tables, ddlList);
+
+        // 子表：附加 main_id 关联主表，并建索引
+        if (model.getSubTables() != null) {
+            for (DataModelRequest.TableDefinition sub : model.getSubTables()) {
+                String subTable = physicalTableName(modelKey, sub.getTableName());
+                buildAndExecute(subTable, sub, mainTable, tables, ddlList);
+            }
+        }
+
+        log.info("[DataModelService] 生成数据库表: modelKey={}, tables={}", modelKey,
+                tables.stream().map(t -> String.valueOf(t.get("tableName"))).collect(Collectors.joining(",")));
+
+        // 同步生成菜单项与按钮权限（幂等）
+        List<String> createdPerms = modelMenuPermissionService.syncMenuAndPermissions(modelKey, entity.getModelName());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("modelKey", modelKey);
+        result.put("tables", tables);
+        result.put("ddl", ddlList);
+        result.put("createdPermissions", createdPerms);
+        return result;
+    }
+
+    /** 生成单张表的 DDL 并执行，记录结果 */
+    private void buildAndExecute(String tableName, DataModelRequest.TableDefinition table,
+                                 String parentTable, List<Map<String, Object>> tables, List<String> ddlList) {
+        boolean existed = tableExists(tableName);
+
+        StringBuilder ddl = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (\n");
+        ddl.append("    id INTEGER PRIMARY KEY AUTOINCREMENT");
+        if (parentTable != null) {
+            ddl.append(",\n    main_id INTEGER");
+        }
+        int fieldCount = 0;
+        if (table.getFields() != null) {
+            for (DataModelRequest.FieldDefinition field : table.getFields()) {
+                String column = sanitizeIdentifier(field.getFieldKey());
+                ddl.append(",\n    ").append(column).append(" ").append(sqlType(field.getType()));
+                if (Boolean.TRUE.equals(field.getRequired())) {
+                    ddl.append(" NOT NULL");
+                }
+                fieldCount++;
+            }
+        }
+        ddl.append(",\n    create_time TEXT,\n    update_time TEXT\n)");
+
+        jdbcTemplate.execute(ddl.toString());
+        ddlList.add(ddl.toString());
+
+        if (parentTable != null) {
+            String indexDdl = "CREATE INDEX IF NOT EXISTS idx_" + tableName + "_main_id ON " + tableName + "(main_id)";
+            jdbcTemplate.execute(indexDdl);
+            ddlList.add(indexDdl);
+        }
+
+        Map<String, Object> info = new LinkedHashMap<>();
+        info.put("tableName", tableName);
+        info.put("label", table.getLabel());
+        info.put("existed", existed);
+        info.put("fieldCount", fieldCount);
+        tables.add(info);
+    }
+
+    /** 物理表名：dm_{modelKey}_{tableName}，非法字符替换为下划线 */
+    public String physicalTableName(String modelKey, String tableName) {
+        String name = "dm_" + sanitizeIdentifier(modelKey) + "_" + sanitizeIdentifier(tableName);
+        if (!IDENTIFIER_PATTERN.matcher(name).matches()) {
+            throw new BusinessException(ErrorCode.MODEL_VALIDATION_FAILED, "非法表名: " + name);
+        }
+        return name;
+    }
+
+    /** 标识符清洗：非字母数字下划线替换为下划线，并校验合法性 */
+    public String sanitizeIdentifier(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new BusinessException(ErrorCode.MODEL_VALIDATION_FAILED, "表名/字段名不能为空");
+        }
+        String cleaned = raw.trim().replaceAll("[^A-Za-z0-9_]", "_");
+        if (!IDENTIFIER_PATTERN.matcher(cleaned).matches()) {
+            throw new BusinessException(ErrorCode.MODEL_VALIDATION_FAILED, "非法标识符: " + raw);
+        }
+        return cleaned;
+    }
+
+    /** 模型字段类型 → SQLite 列类型 */
+    private String sqlType(String type) {
+        if (type == null) return "TEXT";
+        return switch (type) {
+            case "number", "amount", "computed" -> "NUMERIC";
+            default -> "TEXT"; // text/date/datetime/file/person/department 均以 TEXT 存储
+        };
+    }
+
+    /** 判断 SQLite 表是否已存在 */
+    private boolean tableExists(String tableName) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?", Integer.class, tableName);
+        return count != null && count > 0;
     }
 
     private DataModelResponse toResponse(DataModel entity, DataModelRequest parsed) {

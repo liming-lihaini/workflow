@@ -28,6 +28,8 @@
             <a-divider type="vertical" />
             <span class="action-link" @click="handlePublish(record)" v-if="record.status !== 1">发布</span>
             <a-divider type="vertical" v-if="record.status !== 1" />
+            <span class="action-link" @click="handleGenerateTables(record)">生成表</span>
+            <a-divider type="vertical" />
             <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
               <span class="action-link danger">删除</span>
             </a-popconfirm>
@@ -194,19 +196,49 @@
         </div>
       </template>
     </a-drawer>
+
+    <!-- 生成数据库表结果 -->
+    <a-modal v-model:open="genResultVisible" title="生成数据库表结果" :width="720" :footer="null">
+      <template v-if="genResult">
+        <a-table
+          :columns="genTableColumns"
+          :data-source="genResult.tables"
+          :pagination="false"
+          size="small"
+          row-key="tableName"
+          :bordered="true"
+          style="margin-bottom: 16px;"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'existed'">
+              <a-tag :color="record.existed ? 'orange' : 'green'">
+                {{ record.existed ? '已存在（跳过）' : '新建成功' }}
+              </a-tag>
+            </template>
+          </template>
+        </a-table>
+        <div style="font-weight: 600; margin-bottom: 8px;">DDL 语句</div>
+        <pre class="ddl-pre">{{ (genResult.ddl || []).join('\n\n') }}</pre>
+      </template>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, reactive, onMounted, createVNode } from 'vue'
+import { message, Modal } from 'ant-design-vue'
+import { ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import {
   getDataModelList,
   createDataModel,
   updateDataModel,
   deleteDataModel,
-  publishDataModel
+  publishDataModel,
+  generateDataModelTables
 } from '../../api/model'
+import { useUserStore } from '../../stores/user'
+
+const userStore = useUserStore()
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -214,6 +246,8 @@ const dataList = ref([])
 const modalVisible = ref(false)
 const editingRecord = ref(null)
 const activeSubTables = ref([])
+const genResultVisible = ref(false)
+const genResult = ref(null)
 
 const pagination = reactive({
   current: 1,
@@ -239,6 +273,13 @@ const fieldColumns = [
   { title: '类型', key: 'type', width: 120 },
   { title: '必填', key: 'required', width: 60, align: 'center' },
   { title: '操作', key: 'action', width: 70, align: 'center' }
+]
+
+const genTableColumns = [
+  { title: '物理表名', dataIndex: 'tableName', key: 'tableName' },
+  { title: '表标签', dataIndex: 'label', key: 'label', width: 120 },
+  { title: '字段数', dataIndex: 'fieldCount', key: 'fieldCount', width: 80, align: 'center' },
+  { title: '结果', key: 'existed', width: 130, align: 'center' }
 ]
 
 function createEmptyField() {
@@ -401,6 +442,34 @@ async function handlePublish(record) {
   }
 }
 
+function handleGenerateTables(record) {
+  Modal.confirm({
+    title: '生成数据库表',
+    icon: createVNode(ExclamationCircleOutlined),
+    content: `将依据模型「${record.modelName}」的定义创建数据库表（主表+子表），已存在的表会跳过。是否继续？`,
+    async onOk() {
+      try {
+        const res = await generateDataModelTables(record.modelKey)
+        genResult.value = res.data || res
+        genResultVisible.value = true
+        message.success('数据库表生成完成')
+        // 权限与菜单已在后端同步生成，刷新前端权限与动态菜单
+        try {
+          await userStore.fetchUserInfo()
+        } catch { /* 忽略刷新失败 */ }
+        window.dispatchEvent(new Event('model-menus-changed'))
+        // 权限与菜单已在后端同步生成，刷新前端权限与动态菜单
+        try {
+          await userStore.fetchUserInfo()
+        } catch { /* 忽略刷新失败 */ }
+        window.dispatchEvent(new Event('model-menus-changed'))
+      } catch {
+        // ignore
+      }
+    }
+  })
+}
+
 async function handleDelete(record) {
   try {
     await deleteDataModel(record.modelKey)
@@ -421,4 +490,16 @@ onMounted(loadData)
 </script>
 
 <style scoped>
+.ddl-pre {
+  background: #f6f8fa;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
 </style>

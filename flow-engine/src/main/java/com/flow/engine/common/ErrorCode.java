@@ -66,6 +66,7 @@ public enum ErrorCode {
     FORM_KEY_DUPLICATE(1051, "表单Key已存在"),
     FORM_NOT_FOUND(1052, "表单不存在"),
     FORM_VALIDATION_FAILED(1053, "表单校验失败"),
+    MODEL_NAME_DUPLICATE(1054, "数据模型名称已存在"),
     PARAM_ERROR(400, "参数错误");
 
     private final int code;

@@ -28,3 +28,8 @@ export function publishDataModel(modelKey) {
 export function getDataModelFormFields(modelKey) {
   return request.get(`/data-models/${modelKey}/form-fields`)
 }
+
+// 依据模型定义生成数据库表（主表+子表）
+export function generateDataModelTables(modelKey) {
+  return request.post(`/data-models/${modelKey}/to-table`)
+}

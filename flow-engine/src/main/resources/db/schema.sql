@@ -366,6 +366,19 @@ CREATE TABLE IF NOT EXISTS wf_delegation (
     update_time   TEXT
 );
 
+-- 个人API Token表（支持APItoken方式鉴权）
+CREATE TABLE IF NOT EXISTS sys_api_token (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL,
+    token_name      TEXT,
+    token_value     TEXT,
+    expire_time     TEXT,            -- 为空则永久有效
+    last_used_time  TEXT,
+    create_time     TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_api_token_value ON sys_api_token(token_value);
+
 -- =====================================================================
 -- 迁移脚本：为旧表添加缺失列（已存在时会报错但 continue-on-error=true 会跳过）
 -- =====================================================================

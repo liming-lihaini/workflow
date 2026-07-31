@@ -89,6 +89,16 @@ public class DataModelController {
     }
 
     /**
+     * 依据数据模型定义生成数据库表（主表+子表）
+     * POST /api/v1/data-models/{modelKey}/to-table
+     */
+    @PostMapping("/{modelKey}/to-table")
+    @OpLog(module = "数据模型", operation = "生成数据库表")
+    public Result<Map<String, Object>> toTable(@PathVariable String modelKey) {
+        return Result.ok(dataModelService.generateTables(modelKey));
+    }
+
+    /**
      * 根据模型生成表单字段映射
      * GET /api/v1/data-models/{modelKey}/form-fields
      */

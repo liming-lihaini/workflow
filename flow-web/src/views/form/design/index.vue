@@ -186,7 +186,16 @@
               <a-form-item label="列定义">
                 <div v-for="(col, cIdx) in (selectedField.columns || [])" :key="cIdx" class="subtable-col-item">
                   <div style="display: flex; gap: 4px; align-items: center;">
-                    <a-input v-model:value="col.fieldKey" placeholder="标识" style="width: 30%" size="small" />
+                    <!-- 已绑定模型子表：从子表字段中选取，选中后继承标签与类型 -->
+                    <a-select v-if="getBoundSubTableFields(selectedField).length > 0"
+                      v-model:value="col.fieldKey" placeholder="选择字段" style="width: 30%" size="small"
+                      show-search allow-clear
+                      @change="(v) => handleSubTableColFieldChange(col, v, selectedField)">
+                      <a-select-option v-for="sf in getBoundSubTableFields(selectedField)" :key="sf.fieldKey" :value="sf.fieldKey">
+                        {{ sf.label || sf.fieldKey }} ({{ sf.fieldKey }})
+                      </a-select-option>
+                    </a-select>
+                    <a-input v-else v-model:value="col.fieldKey" placeholder="标识" style="width: 30%" size="small" />
                     <a-input v-model:value="col.label" placeholder="标签" style="width: 30%" size="small" />
                     <a-select v-model:value="col.type" placeholder="类型" style="width: 25%" size="small"
                       @change="(v) => handleSubTableColTypeChange(col, v)">
@@ -497,10 +506,27 @@ function handleSubTableBindChange(tableName, field) {
   if (!tableName) { field.columns = []; return }
   const subTable = modelSubTables.value.find(st => st.tableName === tableName)
   if (subTable && subTable.fields) {
-    field.columns = subTable.fields.filter(f => f.fieldKey).map(f => ({
-      fieldKey: f.fieldKey, label: f.label || f.fieldKey, type: fieldTypeMap[f.type] || 'text'
-    }))
+    field.columns = subTable.fields.filter(f => f.fieldKey).map(f => makeColumnFromModelField(f))
   }
+}
+/** 获取当前子表组件绑定的模型子表字段列表（未绑定返回空数组） */
+function getBoundSubTableFields(field) {
+  if (!field?.subTableKey) return []
+  const subTable = modelSubTables.value.find(st => st.tableName === field.subTableKey)
+  return (subTable?.fields || []).filter(f => f.fieldKey)
+}
+/** 模型子表字段 → 列定义（继承标识/标签/类型，记录来源） */
+function makeColumnFromModelField(f) {
+  return {
+    fieldKey: f.fieldKey, label: f.label || f.fieldKey,
+    type: fieldTypeMap[f.type] || 'text', fromModel: true, modelFieldType: f.type
+  }
+}
+/** 列定义选中模型子表字段：继承该字段的标签与类型 */
+function handleSubTableColFieldChange(col, fieldKey, field) {
+  if (!fieldKey) { col.fromModel = false; col.modelFieldType = undefined; return }
+  const mf = getBoundSubTableFields(field).find(f => f.fieldKey === fieldKey)
+  if (mf) Object.assign(col, makeColumnFromModelField(mf))
 }
 function addSubTableColumn(field) {
   if (!field.columns) field.columns = []
