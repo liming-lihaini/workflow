@@ -1,0 +1,163 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.flow:flow-engine >------------------------
+[INFO] Building flow-engine 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.2.0:run (default-cli) > test-compile @ flow-engine >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ flow-engine ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ flow-engine ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 259 source files with javac [debug release 17] to target\classes
+[INFO] /D:/source_code/workflow/flow-engine/src/main/java/com/flow/engine/common/utils/ExpressionUtils.java: D:\source_code\workflow\flow-engine\src\main\java\com\flow\engine\common\utils\ExpressionUtils.java使用了未经检查或不安全的操作。
+[INFO] /D:/source_code/workflow/flow-engine/src/main/java/com/flow/engine/common/utils/ExpressionUtils.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ flow-engine ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ flow-engine ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 36 source files with javac [debug release 17] to target\test-classes
+[INFO] /D:/source_code/workflow/flow-engine/src/test/java/com/flow/engine/controller/TaskApiTest.java: D:\source_code\workflow\flow-engine\src\test\java\com\flow\engine\controller\TaskApiTest.java使用了未经检查或不安全的操作。
+[INFO] /D:/source_code/workflow/flow-engine/src/test/java/com/flow/engine/controller/TaskApiTest.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 
+[INFO] <<< spring-boot:3.2.0:run (default-cli) < test-compile @ flow-engine <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.2.0:run (default-cli) @ flow-engine ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2026-08-01T21:23:10.298+08:00  INFO 24868 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : Starting FlowEngineApplication using Java 17.0.20 with PID 24868 (D:\source_code\workflow\flow-engine\target\classes started by chengJin-huawei in D:\source_code\workflow\flow-engine)
+2026-08-01T21:23:10.305+08:00  INFO 24868 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-08-01T21:23:16.697+08:00  INFO 24868 --- [flow-engine] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-08-01T21:23:16.726+08:00  INFO 24868 --- [flow-engine] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-08-01T21:23:16.728+08:00  INFO 24868 --- [flow-engine] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.16]
+2026-08-01T21:23:16.956+08:00  INFO 24868 --- [flow-engine] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-08-01T21:23:16.958+08:00  INFO 24868 --- [flow-engine] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 5844 ms
+2026-08-01T21:23:17.664+08:00  INFO 24868 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-01T21:23:17.935+08:00  INFO 24868 --- [flow-engine] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.sqlite.jdbc4.JDBC4Connection@3e4afd10
+2026-08-01T21:23:17.941+08:00  INFO 24868 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.5 
+2026-08-01T21:23:23.199+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=dummy, class=com.flow.engine.node.DummyNodeHandler
+2026-08-01T21:23:23.236+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=customDemo, class=com.flow.engine.node.impl.CustomDemoNodeHandler
+2026-08-01T21:23:23.238+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=end, class=com.flow.engine.node.impl.EndNodeHandler
+2026-08-01T21:23:23.239+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=exclusiveGateway, class=com.flow.engine.node.impl.ExclusiveGatewayNodeHandler
+2026-08-01T21:23:23.240+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=inclusiveGateway, class=com.flow.engine.node.impl.InclusiveGatewayNodeHandler
+2026-08-01T21:23:23.241+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=parallelGateway, class=com.flow.engine.node.impl.ParallelGatewayNodeHandler
+2026-08-01T21:23:23.242+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=scriptTask, class=com.flow.engine.node.impl.ScriptTaskNodeHandler
+2026-08-01T21:23:23.243+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=serviceTask, class=com.flow.engine.node.impl.ServiceTaskNodeHandler
+2026-08-01T21:23:23.244+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=start, class=com.flow.engine.node.impl.StartNodeHandler
+2026-08-01T21:23:23.245+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=subProcess, class=com.flow.engine.node.impl.SubProcessNodeHandler
+2026-08-01T21:23:23.246+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=userTask, class=com.flow.engine.node.impl.UserTaskNodeHandler
+2026-08-01T21:23:24.999+08:00  WARN 24868 --- [flow-engine] [           main] .b.a.g.t.GroovyTemplateAutoConfiguration : Cannot find template location: classpath:/templates/ (please add some templates, check your Groovy configuration, or set spring.groovy.template.check-template-location=false)
+2026-08-01T21:23:26.000+08:00  INFO 24868 --- [flow-engine] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-08-01T21:23:26.401+08:00  INFO 24868 --- [flow-engine] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2026-08-01T21:23:26.442+08:00  INFO 24868 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : Started FlowEngineApplication in 17.062 seconds (process running for 17.988)
+2026-08-01T21:23:26.551+08:00  INFO 24868 --- [flow-engine] [           main] c.f.engine.config.DictDataInitializer    : [DictDataInitializer] 开始初始化系统内置字典数据...
+2026-08-01T21:23:27.187+08:00  INFO 24868 --- [flow-engine] [           main] c.f.engine.config.DictDataInitializer    : [DictDataInitializer] 系统内置字典数据初始化完成
+2026-08-01T21:23:27.188+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.config.TripleAdminInitializer      : [TripleAdminInitializer] 开始初始化三员账号...
+2026-08-01T21:23:27.189+08:00  INFO 24868 --- [flow-engine] [           main] c.f.engine.service.TripleAdminService    : [TripleAdminService] 开始初始化三员账号...
+2026-08-01T21:23:27.228+08:00  INFO 24868 --- [flow-engine] [           main] c.f.engine.service.TripleAdminService    : [TripleAdminService] 三员账号初始化完成
+2026-08-01T21:23:27.230+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.config.TripleAdminInitializer      : [TripleAdminInitializer] 三员账号初始化完成
+2026-08-01T21:23:27.231+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 开始初始化权限数据...
+2026-08-01T21:23:27.261+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 权限数据已存在且完整，跳过初始化
+2026-08-01T21:23:27.404+08:00  INFO 24868 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 权限数据初始化完成
+2026-08-01T21:23:41.833+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-08-01T21:23:41.834+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-08-01T21:23:41.837+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2026-08-01T21:23:41.955+08:00 ERROR 24868 --- [flow-engine] [nio-8080-exec-1] c.f.e.common.GlobalExceptionHandler      : 系统异常: JSON parse error: Unexpected character ('\' (code 92)): was expecting double-quote to start field name
+
+org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected character ('\' (code 92)): was expecting double-quote to start field name
+	at org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter.readJavaType(AbstractJackson2HttpMessageConverter.java:406) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter.read(AbstractJackson2HttpMessageConverter.java:354) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.mvc.method.annotation.AbstractMessageConverterMethodArgumentResolver.readWithMessageConverters(AbstractMessageConverterMethodArgumentResolver.java:184) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor.readWithMessageConverters(RequestResponseBodyMethodProcessor.java:159) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor.resolveArgument(RequestResponseBodyMethodProcessor.java:134) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at org.springframework.web.method.support.HandlerMethodArgumentResolverComposite.resolveArgument(HandlerMethodArgumentResolverComposite.java:122) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.springframework.web.method.support.InvocableHandlerMethod.getMethodArgumentValues(InvocableHandlerMethod.java:218) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:171) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:917) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:829) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:914) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:590) ~[tomcat-embed-core-10.1.16.jar:6.0]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885) ~[spring-webmvc-6.1.1.jar:6.1.1]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658) ~[tomcat-embed-core-10.1.16.jar:6.0]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51) ~[tomcat-embed-websocket-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:109) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at com.flow.engine.common.RequestIdFilter.doFilterInternal(RequestIdFilter.java:40) ~[classes/:na]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.1.1.jar:6.1.1]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) ~[tomcat-embed-core-10.1.16.jar:10.1.16]
+	at java.base/java.lang.Thread.run(Thread.java:840) ~[na:na]
+Caused by: com.fasterxml.jackson.core.JsonParseException: Unexpected character ('\' (code 92)): was expecting double-quote to start field name
+ at [Source: (org.springframework.util.StreamUtils$NonClosingInputStream); line: 1, column: 3]
+	at com.fasterxml.jackson.core.JsonParser._constructError(JsonParser.java:2477) ~[jackson-core-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.core.base.ParserMinimalBase._reportError(ParserMinimalBase.java:750) ~[jackson-core-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.core.base.ParserMinimalBase._reportUnexpectedChar(ParserMinimalBase.java:674) ~[jackson-core-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.core.json.UTF8StreamJsonParser._handleOddName(UTF8StreamJsonParser.java:2144) ~[jackson-core-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.core.json.UTF8StreamJsonParser._parseName(UTF8StreamJsonParser.java:1794) ~[jackson-core-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.core.json.UTF8StreamJsonParser.nextFieldName(UTF8StreamJsonParser.java:1081) ~[jackson-core-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.databind.deser.std.MapDeserializer._readAndBindStringKeyMap(MapDeserializer.java:596) ~[jackson-databind-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.databind.deser.std.MapDeserializer.deserialize(MapDeserializer.java:449) ~[jackson-databind-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.databind.deser.std.MapDeserializer.deserialize(MapDeserializer.java:32) ~[jackson-databind-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.databind.deser.DefaultDeserializationContext.readRootValue(DefaultDeserializationContext.java:323) ~[jackson-databind-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.databind.ObjectReader._bindAndClose(ObjectReader.java:2105) ~[jackson-databind-2.15.3.jar:2.15.3]
+	at com.fasterxml.jackson.databind.ObjectReader.readValue(ObjectReader.java:1481) ~[jackson-databind-2.15.3.jar:2.15.3]
+	at org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter.readJavaType(AbstractJackson2HttpMessageConverter.java:395) ~[spring-web-6.1.1.jar:6.1.1]
+	... 59 common frames omitted
+

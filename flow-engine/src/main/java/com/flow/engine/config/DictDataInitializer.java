@@ -70,6 +70,28 @@ public class DictDataInitializer implements CommandLineRunner {
         
         // 11. 表单分类
         createDictTypeIfNotExists("表单分类", "form_category", 1, "表单的分类");
+
+        // ===== 环境监测管理（ISSUE-022）业务字典 =====
+        // 12. 监测类别（PRD 1.3 业务范围）
+        createDictTypeIfNotExists("监测类别", "moni_monitor_type", 2, "环境监测业务监测类别枚举（地表水/废水/废气/土壤等）");
+        // 13. 委托分类（TRD 5.1 t_entrust.type）
+        createDictTypeIfNotExists("委托分类", "moni_entrust_type", 2, "委托单监测分类：常规/监督/应急/信访");
+        // 14. 委托状态（TRD 5.1 t_entrust.status）
+        createDictTypeIfNotExists("委托状态", "moni_entrust_status", 2, "委托单状态机：草稿/待技术确认/已确认/已退回");
+        // 15. 点位类型（TRD 5.1 t_monitor_point.point_type）
+        createDictTypeIfNotExists("点位类型", "moni_point_type", 2, "监测点位类型枚举");
+        // 16. 样品类型（TRD 5.4 t_sample.type）
+        createDictTypeIfNotExists("样品类型", "moni_sample_type", 2, "样品分样类型：原样/检测样/平行样/留样/质控样");
+        // 17. 样品状态（TRD 5.4 t_sample.status）
+        createDictTypeIfNotExists("样品状态", "moni_sample_status", 2, "样品状态机：待检/检测中/待复测/已完成/过期作废");
+        // 18. 质控类型（TRD 5.3/5.6 qc_type）
+        createDictTypeIfNotExists("质控类型", "moni_qc_type", 2, "现场/实验室质控类型枚举");
+        // 19. 预警类型（TRD 4.3 t_alert.type）
+        createDictTypeIfNotExists("预警类型", "moni_alert_type", 2, "预警类型：校准/标物/试剂/留样/超标");
+        // 20. 车辆状态（TRD 4.3 t_vehicle.status）
+        createDictTypeIfNotExists("车辆状态", "moni_vehicle_status", 2, "采样车辆状态：可用/占用/维修");
+        // 21. 委托来源（TRD 5.1 t_entrust.source）
+        createDictTypeIfNotExists("委托来源", "moni_entrust_source", 2, "委托单来源渠道：电话/网站/上门/代理");
     }
 
     private void initDictItems() {
@@ -174,6 +196,110 @@ public class DictDataInitializer implements CommandLineRunner {
             createDictItemIfNotExists(formCategoryType.getId(), "报销表单", "reimbursement", 3);
             createDictItemIfNotExists(formCategoryType.getId(), "考勤表单", "attendance", 4);
             createDictItemIfNotExists(formCategoryType.getId(), "其他", "other", 5);
+        }
+
+        // ===== 环境监测管理（ISSUE-022）业务字典项 =====
+        // 监测类别（PRD 1.3 业务范围）
+        DictType monitorType = getDictTypeByCode("moni_monitor_type");
+        if (monitorType != null) {
+            createDictItemIfNotExists(monitorType.getId(), "地表水", "surface_water", 1);
+            createDictItemIfNotExists(monitorType.getId(), "地下水", "groundwater", 2);
+            createDictItemIfNotExists(monitorType.getId(), "生活污水", "domestic_sewage", 3);
+            createDictItemIfNotExists(monitorType.getId(), "工业废水", "industrial_wastewater", 4);
+            createDictItemIfNotExists(monitorType.getId(), "有组织废气", "organized_exhaust", 5);
+            createDictItemIfNotExists(monitorType.getId(), "无组织废气", "unorganized_exhaust", 6);
+            createDictItemIfNotExists(monitorType.getId(), "土壤", "soil", 7);
+            createDictItemIfNotExists(monitorType.getId(), "沉积物", "sediment", 8);
+            createDictItemIfNotExists(monitorType.getId(), "固废", "solid_waste", 9);
+            createDictItemIfNotExists(monitorType.getId(), "噪声", "noise", 10);
+            createDictItemIfNotExists(monitorType.getId(), "振动", "vibration", 11);
+            createDictItemIfNotExists(monitorType.getId(), "底泥", "bottom_sediment", 12);
+        }
+
+        // 委托分类（TRD 5.1 t_entrust.type）
+        DictType entrustType = getDictTypeByCode("moni_entrust_type");
+        if (entrustType != null) {
+            createDictItemIfNotExists(entrustType.getId(), "常规监测", "routine", 1);
+            createDictItemIfNotExists(entrustType.getId(), "监督监测", "supervision", 2);
+            createDictItemIfNotExists(entrustType.getId(), "应急监测", "emergency", 3);
+            createDictItemIfNotExists(entrustType.getId(), "信访专项", "petition", 4);
+        }
+
+        // 委托状态（TRD 5.1 t_entrust.status）
+        DictType entrustStatus = getDictTypeByCode("moni_entrust_status");
+        if (entrustStatus != null) {
+            createDictItemIfNotExists(entrustStatus.getId(), "草稿", "draft", 1);
+            createDictItemIfNotExists(entrustStatus.getId(), "待技术确认", "pending_review", 2);
+            createDictItemIfNotExists(entrustStatus.getId(), "已确认", "confirmed", 3);
+            createDictItemIfNotExists(entrustStatus.getId(), "已退回", "returned", 4);
+        }
+
+        // 点位类型（TRD 5.1 t_monitor_point.point_type）
+        DictType pointType = getDictTypeByCode("moni_point_type");
+        if (pointType != null) {
+            createDictItemIfNotExists(pointType.getId(), "排污口", "discharge_outlet", 1);
+            createDictItemIfNotExists(pointType.getId(), "地表水断面", "surface_section", 2);
+            createDictItemIfNotExists(pointType.getId(), "土壤点位", "soil_point", 3);
+            createDictItemIfNotExists(pointType.getId(), "地下水井", "groundwater_well", 4);
+            createDictItemIfNotExists(pointType.getId(), "噪声点位", "noise_point", 5);
+            createDictItemIfNotExists(pointType.getId(), "废气排气筒", "exhaust_stack", 6);
+        }
+
+        // 样品类型（TRD 5.4 t_sample.type）
+        DictType sampleType = getDictTypeByCode("moni_sample_type");
+        if (sampleType != null) {
+            createDictItemIfNotExists(sampleType.getId(), "原样", "original", 1);
+            createDictItemIfNotExists(sampleType.getId(), "检测样", "detect", 2);
+            createDictItemIfNotExists(sampleType.getId(), "平行样", "parallel", 3);
+            createDictItemIfNotExists(sampleType.getId(), "留样", "retain", 4);
+            createDictItemIfNotExists(sampleType.getId(), "质控样", "qc", 5);
+        }
+
+        // 样品状态（TRD 5.4 t_sample.status）
+        DictType sampleStatus = getDictTypeByCode("moni_sample_status");
+        if (sampleStatus != null) {
+            createDictItemIfNotExists(sampleStatus.getId(), "待检", "pending", 1);
+            createDictItemIfNotExists(sampleStatus.getId(), "检测中", "testing", 2);
+            createDictItemIfNotExists(sampleStatus.getId(), "待复测", "retest", 3);
+            createDictItemIfNotExists(sampleStatus.getId(), "已完成", "completed", 4);
+            createDictItemIfNotExists(sampleStatus.getId(), "过期作废", "expired", 5);
+        }
+
+        // 质控类型（TRD 5.3 现场空白/平行/运输空白；5.6 实验室质控）
+        DictType qcType = getDictTypeByCode("moni_qc_type");
+        if (qcType != null) {
+            createDictItemIfNotExists(qcType.getId(), "现场空白", "field_blank", 1);
+            createDictItemIfNotExists(qcType.getId(), "平行样", "parallel", 2);
+            createDictItemIfNotExists(qcType.getId(), "运输空白", "transport_blank", 3);
+            createDictItemIfNotExists(qcType.getId(), "加标回收", "spiked_recovery", 4);
+            createDictItemIfNotExists(qcType.getId(), "空白对照", "blank_control", 5);
+        }
+
+        // 预警类型（TRD 4.3 t_alert.type）
+        DictType alertType = getDictTypeByCode("moni_alert_type");
+        if (alertType != null) {
+            createDictItemIfNotExists(alertType.getId(), "校准", "calibration", 1);
+            createDictItemIfNotExists(alertType.getId(), "标物", "reference_material", 2);
+            createDictItemIfNotExists(alertType.getId(), "试剂", "reagent", 3);
+            createDictItemIfNotExists(alertType.getId(), "留样", "retain", 4);
+            createDictItemIfNotExists(alertType.getId(), "超标", "over_standard", 5);
+        }
+
+        // 车辆状态（TRD 4.3 t_vehicle.status）
+        DictType vehicleStatus = getDictTypeByCode("moni_vehicle_status");
+        if (vehicleStatus != null) {
+            createDictItemIfNotExists(vehicleStatus.getId(), "可用", "available", 1);
+            createDictItemIfNotExists(vehicleStatus.getId(), "占用", "occupied", 2);
+            createDictItemIfNotExists(vehicleStatus.getId(), "维修", "repair", 3);
+        }
+
+        // 委托来源（TRD 5.1 t_entrust.source）
+        DictType entrustSource = getDictTypeByCode("moni_entrust_source");
+        if (entrustSource != null) {
+            createDictItemIfNotExists(entrustSource.getId(), "电话委托", "phone", 1);
+            createDictItemIfNotExists(entrustSource.getId(), "网站委托", "web", 2);
+            createDictItemIfNotExists(entrustSource.getId(), "上门委托", "visit", 3);
+            createDictItemIfNotExists(entrustSource.getId(), "代理委托", "agent", 4);
         }
     }
 

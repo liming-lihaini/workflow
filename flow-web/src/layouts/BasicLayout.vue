@@ -107,6 +107,7 @@ import {
   SettingOutlined,
   MonitorOutlined,
   DatabaseOutlined,
+  EnvironmentOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   UserOutlined,
@@ -171,6 +172,22 @@ const menuConfig = [
       { key: 'system-log', title: '日志管理', path: '/system/log', permKey: 'system:log' },
       { key: 'system-dict', title: '数据字典', path: '/system/dict', permKey: 'system:dict' },
       { key: 'system-admin', title: '三员管理', path: '/system/admin', permKey: 'system:admin' }
+    ]
+  },
+  {
+    key: 'ems',
+    title: '环境监测LIMS',
+    permKey: 'ems',
+    icon: markRaw(EnvironmentOutlined),
+    children: [
+      { key: 'ems-customer', title: '客户管理', path: '/ems/base/customer', permKey: 'ems:customer' },
+      { key: 'ems-entrust', title: '委托管理', path: '/ems/base/entrust', permKey: 'ems:entrust' },
+      { key: 'ems-vehicle', title: '车辆台账', path: '/ems/base/vehicle', permKey: 'ems:vehicle' },
+      { key: 'ems-instrument', title: '设备台账', path: '/ems/base/instrument', permKey: 'ems:instrument' },
+      { key: 'ems-dispatch', title: '采样调度', path: '/ems/base/dispatch', permKey: 'ems:dispatch' },
+      { key: 'ems-receive', title: '收样工作台', path: '/ems/base/receive', permKey: 'ems:sample' },
+      { key: 'ems-sample', title: '样品管理', path: '/ems/base/sample', permKey: 'ems:sample' },
+      { key: 'ems-retain', title: '留样库管理', path: '/ems/base/retain', permKey: 'ems:sample' }
     ]
   },
   {
@@ -262,6 +279,14 @@ watch(() => route.path, (path) => {
     '/system/log': ['system-log'],
     '/system/dict': ['system-dict'],
     '/system/admin': ['system-admin'],
+    '/ems/base/customer': ['ems-customer'],
+    '/ems/base/entrust': ['ems-entrust'],
+    '/ems/base/vehicle': ['ems-vehicle'],
+    '/ems/base/instrument': ['ems-instrument'],
+    '/ems/base/dispatch': ['ems-dispatch'],
+    '/ems/base/receive': ['ems-receive'],
+    '/ems/base/sample': ['ems-sample'],
+    '/ems/base/retain': ['ems-retain'],
     '/monitor': ['monitor']
   }
   selectedKeys.value = pathMap[path] || []
@@ -277,6 +302,7 @@ watch(() => route.path, (path) => {
   else if (path.startsWith('/process') || path.startsWith('/form') || path.startsWith('/data-model')) parentKey = 'process'
   else if (path.startsWith('/task')) parentKey = 'task'
   else if (path.startsWith('/system')) parentKey = 'system'
+  else if (path.startsWith('/ems')) parentKey = 'ems'
 
   if (parentKey && !openKeys.value.includes(parentKey)) {
     openKeys.value = [...openKeys.value, parentKey]

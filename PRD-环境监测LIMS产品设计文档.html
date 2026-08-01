@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>环境监测 LIMS 系统 PRD 产品设计文档 V1.0</title>
+<style>
+:root{
+  --primary:#0e9f6e; --primary-dark:#0b3d33; --primary-light:#e6f7f0;
+  --blue:#2563eb; --orange:#f59e0b; --red:#e02424; --purple:#7c3aed;
+  --ink:#1f2937; --sub:#6b7280; --line:#e5e7eb; --bg:#f5f7fa;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.7;}
+a{color:var(--primary);text-decoration:none;}
+.layout{display:flex;max-width:1360px;margin:0 auto;}
+/* ------- TOC ------- */
+.toc{width:230px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;background:#fff;border-right:1px solid var(--line);padding:20px 0;}
+.toc h3{font-size:13px;color:var(--sub);padding:0 18px 10px;letter-spacing:1px;}
+.toc a{display:block;padding:6px 18px;font-size:13px;color:#374151;border-left:3px solid transparent;}
+.toc a:hover{background:var(--primary-light);color:var(--primary);border-left-color:var(--primary);}
+.toc a.lv2{padding-left:34px;font-size:12px;color:var(--sub);}
+/* ------- MAIN ------- */
+.main{flex:1;min-width:0;padding:28px 36px 80px;}
+.cover{background:linear-gradient(135deg,#0b3d33 0%,#0e9f6e 100%);color:#fff;border-radius:14px;padding:44px 40px;margin-bottom:28px;}
+.cover .tag-line{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:20px;padding:2px 14px;font-size:12px;margin-bottom:16px;}
+.cover h1{font-size:30px;margin-bottom:10px;letter-spacing:1px;}
+.cover p{color:rgba(255,255,255,.85);font-size:14px;max-width:760px;}
+.cover .meta{display:flex;gap:28px;margin-top:22px;flex-wrap:wrap;}
+.cover .meta div{font-size:12px;color:rgba(255,255,255,.75);}
+.cover .meta b{display:block;font-size:14px;color:#fff;margin-top:2px;}
+section{background:#fff;border:1px solid var(--line);border-radius:12px;padding:28px 32px;margin-bottom:24px;}
+h2{font-size:21px;margin-bottom:16px;padding-left:12px;border-left:5px solid var(--primary);line-height:1.3;}
+h3{font-size:16px;margin:22px 0 10px;color:#111827;}
+h3 .no{color:var(--primary);margin-right:6px;}
+h4{font-size:14px;margin:16px 0 8px;color:#374151;}
+p.desc{color:var(--sub);margin-bottom:10px;}
+ul.pts{margin:8px 0 8px 20px;color:#374151;}
+ul.pts li{margin-bottom:4px;}
+/* doc tables */
+table.doc{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0;}
+table.doc th{background:#f0fdf6;color:#065f46;font-weight:600;text-align:left;}
+table.doc th,table.doc td{border:1px solid var(--line);padding:8px 12px;vertical-align:top;}
+table.doc tr:nth-child(even) td{background:#fafafa;}
+.pri{display:inline-block;font-size:11px;border-radius:4px;padding:0 8px;line-height:20px;font-weight:600;}
+.p0{background:#fde8e8;color:#c81e1e;} .p1{background:#fef3c7;color:#b45309;} .p2{background:#e0e7ff;color:#4338ca;}
+/* callout */
+.callout{background:var(--primary-light);border-left:4px solid var(--primary);border-radius:6px;padding:12px 16px;font-size:13px;color:#065f46;margin:12px 0;}
+.callout.warn{background:#fdf3e7;border-left-color:var(--orange);color:#92400e;}
+.callout.risk{background:#fdecec;border-left-color:var(--red);color:#9b1c1c;}
+/* flow steps */
+.flow{display:flex;flex-wrap:wrap;gap:0;align-items:center;margin:14px 0;}
+.flow .step{background:#fff;border:1.5px solid var(--primary);color:#065f46;border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:600;white-space:nowrap;margin:4px 0;}
+.flow .step.gray{border-color:#cbd5e1;color:#64748b;}
+.flow .arrow{color:var(--primary);margin:0 7px;font-weight:700;}
+/* role cards */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:14px 0;}
+.rcard{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:#fafcfb;}
+.rcard b{display:block;color:#065f46;margin-bottom:4px;font-size:14px;}
+.rcard span{font-size:12px;color:var(--sub);}
+/* architecture blocks */
+.arch{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;}
+.arch .band{display:flex;align-items:stretch;border-bottom:1px solid var(--line);}
+.arch .band:last-child{border-bottom:none;}
+.arch .band-title{width:120px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;padding:10px 6px;text-align:center;}
+.arch .band-body{flex:1;display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:#fbfdfc;}
+.arch .blk{background:#fff;border:1px solid #d1e7dd;border-radius:6px;padding:5px 12px;font-size:12px;color:#334155;}
+/* ============ MOCKUP UI ============ */
+.figure{margin:20px 0 8px;}
+.figure .fig-title{font-size:13px;font-weight:700;color:#065f46;margin-bottom:8px;}
+.figure .fig-title::before{content:"◈ ";color:var(--primary);}
+.screen{border:1px solid #dbe2ea;border-radius:12px;overflow:hidden;box-shadow:0 8px 26px rgba(15,42,34,.10);background:#fff;}
+.chrome{height:36px;background:#eef2f6;display:flex;align-items:center;gap:6px;padding:0 14px;border-bottom:1px solid #e2e8f0;}
+.chrome .d{width:10px;height:10px;border-radius:50%;}
+.chrome .d1{background:#f87171;} .chrome .d2{background:#fbbf24;} .chrome .d3{background:#34d399;}
+.chrome .url{flex:1;margin-left:10px;background:#fff;border-radius:6px;height:22px;display:flex;align-items:center;padding:0 12px;font-size:11px;color:#94a3b8;}
+.app{display:flex;min-height:430px;font-size:12px;}
+.aside{width:152px;flex-shrink:0;background:var(--primary-dark);color:#a7c4bc;display:flex;flex-direction:column;}
+.aside .logo{color:#fff;font-weight:700;font-size:13px;padding:14px 14px 10px;display:flex;align-items:center;gap:6px;}
+.aside .logo i{width:22px;height:22px;border-radius:6px;background:var(--primary);display:inline-flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;}
+.nav{padding:4px 0;font-size:12px;}
+.nav div{padding:8px 16px;cursor:default;display:flex;align-items:center;gap:8px;}
+.nav div.on{background:var(--primary);color:#fff;border-radius:0 20px 20px 0;margin-right:10px;}
+.amain{flex:1;background:#f4f7f6;display:flex;flex-direction:column;min-width:0;}
+.atop{height:42px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;gap:12px;}
+.atop .bc{font-size:12px;color:var(--sub);}
+.atop .sp{flex:1;}
+.atop .bell{position:relative;font-size:14px;}
+.atop .bell::after{content:"3";position:absolute;top:-6px;right:-8px;background:var(--red);color:#fff;font-size:9px;border-radius:8px;padding:0 4px;line-height:13px;}
+.atop .avatar{width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;}
+.abody{padding:14px;flex:1;}
+/* stat cards */
+.stats{display:flex;gap:10px;margin-bottom:12px;}
+.stat{flex:1;background:#fff;border-radius:10px;padding:10px 14px;border:1px solid var(--line);}
+.stat .lb{font-size:11px;color:var(--sub);}
+.stat .v{font-size:20px;font-weight:800;margin-top:2px;}
+.stat .v small{font-size:11px;font-weight:400;color:var(--sub);margin-left:2px;}
+.stat .tr{font-size:10px;margin-top:2px;}
+.up{color:var(--red);} .down{color:#059669;}
+/* toolbar */
+.tbar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+.inp{background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:11px;color:#94a3b8;min-width:150px;}
+.sel{background:#fff;border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:11px;color:#475569;}
+.sel::after{content:" ▾";color:#94a3b8;}
+.btn{border-radius:6px;padding:4.5px 13px;font-size:11px;border:1px solid var(--line);background:#fff;color:#475569;white-space:nowrap;}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;}
+.btn.warn{background:var(--orange);border-color:var(--orange);color:#fff;}
+.btn.ghost{border-color:var(--primary);color:var(--primary);}
+.tbar .sp{flex:1;}
+/* mock table */
+.mtable{width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;border-collapse:separate;border-spacing:0;overflow:hidden;font-size:11.5px;}
+.mtable th{background:#f8fafc;color:#475569;font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;}
+.mtable td{padding:7px 10px;border-bottom:1px solid #f1f5f9;color:#334155;white-space:nowrap;}
+.mtable tr:last-child td{border-bottom:none;}
+.mtable td.num{font-variant-numeric:tabular-nums;}
+.lk{color:var(--blue);}
+/* tags */
+.tg{display:inline-block;font-size:10px;border-radius:4px;padding:0 7px;line-height:18px;font-weight:600;}
+.tg.green{background:#def7ec;color:#046c4e;}
+.tg.blue{background:#e1effe;color:#1e429f;}
+.tg.orange{background:#fef3c7;color:#b45309;}
+.tg.red{background:#fde8e8;color:#c81e1e;}
+.tg.gray{background:#f3f4f6;color:#6b7280;}
+.tg.purple{background:#ede9fe;color:#6d28d9;}
+.tg.cyan{background:#cffafe;color:#0e7490;}
+/* pager */
+.pager{display:flex;justify-content:flex-end;gap:6px;margin-top:10px;font-size:11px;color:var(--sub);align-items:center;}
+.pg{width:22px;height:22px;border:1px solid var(--line);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;background:#fff;}
+.pg.on{background:var(--primary);border-color:var(--primary);color:#fff;}
+/* design notes */
+.notes{background:#fbfdfc;border:1px dashed #b7d9cb;border-radius:8px;padding:12px 16px;margin:10px 0 22px;font-size:12.5px;color:#374151;}
+.notes b{color:#065f46;}
+.notes ol{margin-left:18px;} .notes li{margin:3px 0;}
+/* modal mock */
+.modal-wrap{position:relative;}
+.dim{position:absolute;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:5;}
+.modal{background:#fff;border-radius:10px;width:400px;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden;}
+.modal .mh{padding:11px 16px;font-weight:700;font-size:13px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;}
+.modal .mb{padding:14px 16px;font-size:12px;color:#374151;}
+.modal .mf{padding:10px 16px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;}
+/* form mock */
+.form{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;}
+.frow{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+.fitem{flex:1;min-width:150px;}
+.fitem .fl{font-size:11px;color:var(--sub);margin-bottom:3px;}
+.fitem .fl.req::before{content:"* ";color:var(--red);}
+.fbox{border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:11.5px;color:#334155;background:#fff;min-height:27px;}
+.fbox.ph{color:#9ca3af;}
+/* phone mock */
+.phone-row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;}
+.phone{width:300px;border:9px solid #1f2937;border-radius:34px;overflow:hidden;background:#f4f7f6;box-shadow:0 14px 34px rgba(0,0,0,.18);flex-shrink:0;}
+.pstatus{height:26px;background:var(--primary-dark);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:10px;}
+.pnav{background:var(--primary-dark);color:#fff;padding:8px 14px 10px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:space-between;}
+.pbody{padding:10px;font-size:11px;min-height:420px;}
+.pcard{background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:9px;border:1px solid #e8eeec;}
+.pcard .t{font-weight:700;font-size:12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.pcard .l{color:var(--sub);font-size:10.5px;margin:1.5px 0;}
+.ptab{display:flex;background:#fff;border-top:1px solid var(--line);}
+.ptab div{flex:1;text-align:center;padding:7px 0 9px;font-size:10px;color:#9ca3af;}
+.ptab div.on{color:var(--primary);font-weight:700;}
+.pbtn{background:var(--primary);color:#fff;text-align:center;border-radius:8px;padding:8px 0;font-weight:700;font-size:12px;margin-top:8px;}
+.pbtn.line{background:#fff;color:var(--primary);border:1px solid var(--primary);}
+/* 微信小程序模拟 */
+.wxbar{background:var(--primary-dark);display:flex;align-items:center;justify-content:center;position:relative;padding:5px 12px 7px;}
+.wxbar .wxtitle{color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px;}
+.wxbar .wxtitle .wxbadge{background:#fff;color:var(--primary-dark);font-size:9px;font-weight:700;border-radius:4px;padding:1px 4px;line-height:1.4;}
+.wxcap{position:absolute;right:11px;top:50%;transform:translateY(-50%);display:flex;align-items:center;height:22px;width:62px;background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.55);border-radius:12px;}
+.wxcap .c1{font-size:12px;color:#fff;flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.55);line-height:1;}
+.wxcap .c2{font-size:12px;color:#fff;flex:1;text-align:center;line-height:1;}
+.wxtab{display:flex;background:#fbfdfc;border-top:1px solid var(--line);}
+.wxtab div{flex:1;text-align:center;padding:6px 0 8px;font-size:10px;color:#9ca3af;}
+.wxtab div.on{color:#07c160;font-weight:700;}
+.wxtab .ic{font-size:15px;display:block;margin-bottom:1px;}
+.photo-grid{display:flex;gap:6px;margin-top:6px;}
+.photo{width:52px;height:52px;border-radius:6px;background:linear-gradient(135deg,#cde9dd,#9ed3bc);display:flex;align-items:center;justify-content:center;color:#065f46;font-size:9px;text-align:center;}
+.photo.add{background:#fff;border:1px dashed #9ca3af;color:#9ca3af;font-size:16px;}
+/* kanban */
+.kanban{display:flex;gap:10px;}
+.kcol{flex:1;background:#eef3f1;border-radius:10px;padding:8px;min-width:0;}
+.kcol .kh{font-size:11px;font-weight:700;color:#475569;padding:2px 4px 8px;display:flex;justify-content:space-between;}
+.kcard{background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:8px;border:1px solid #e2e8f0;font-size:11px;}
+.kcard b{font-size:11.5px;display:block;margin-bottom:2px;}
+.kcard .kl{color:var(--sub);font-size:10px;margin-top:1px;}
+/* big screen */
+.bigscreen{background:#081426;padding:16px;color:#c7ddf5;font-size:11px;}
+.bs-head{text-align:center;font-size:18px;font-weight:800;color:#7dd3fc;letter-spacing:4px;padding:4px 0 14px;text-shadow:0 0 14px rgba(56,189,248,.6);}
+.bs-grid{display:grid;grid-template-columns:1.1fr 1.6fr 1.1fr;gap:10px;}
+.bs-panel{background:rgba(13,42,80,.55);border:1px solid #1e3a5f;border-radius:8px;padding:10px 12px;}
+.bs-panel .bt{font-size:11px;color:#7dd3fc;font-weight:700;margin-bottom:8px;border-left:3px solid #38bdf8;padding-left:7px;}
+.bs-num{display:flex;justify-content:space-between;text-align:center;}
+.bs-num .n{font-size:19px;font-weight:800;color:#fff;}
+.bs-num .n.rd{color:#f87171;} .bs-num .n.gn{color:#4ade80;} .bs-num .n.or{color:#fbbf24;}
+.bs-num .l{font-size:9.5px;color:#64809f;}
+.bar{display:flex;align-items:center;gap:6px;margin:5px 0;}
+.bar .bl{width:56px;font-size:9.5px;color:#8fb0d4;text-align:right;flex-shrink:0;}
+.bar .btrack{flex:1;height:8px;background:#12233d;border-radius:4px;overflow:hidden;}
+.bar .bfill{height:100%;border-radius:4px;background:linear-gradient(90deg,#0ea5e9,#38bdf8);}
+.bar .bv{font-size:9.5px;color:#cbd5e1;width:30px;}
+.map{height:200px;border-radius:6px;background:radial-gradient(circle at 30% 40%,rgba(56,189,248,.25),transparent 40%),radial-gradient(circle at 68% 60%,rgba(14,159,110,.3),transparent 45%),#0a1e38;position:relative;overflow:hidden;}
+.dotp{position:absolute;width:9px;height:9px;border-radius:50%;box-shadow:0 0 10px currentColor;}
+.dg{background:#4ade80;color:#4ade80;} .dr{background:#f87171;color:#f87171;} .dy{background:#fbbf24;color:#fbbf24;}
+.maplb{position:absolute;font-size:9px;color:#9fc2e8;}
+.tick{display:flex;justify-content:space-between;padding:4px 2px;border-bottom:1px dashed #16304f;font-size:10px;}
+.tick .rd{color:#f87171;} .tick .gn{color:#4ade80;}
+/* matrix */
+table.mx{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0;}
+table.mx th,table.mx td{border:1px solid var(--line);padding:6px 8px;text-align:center;}
+table.mx th{background:#f0fdf6;color:#065f46;}
+table.mx td:first-child{text-align:left;background:#fafafa;font-weight:600;}
+.yes{color:var(--primary);font-weight:700;} .no{color:#d1d5db;}
+.half{color:var(--orange);font-weight:700;}
+footer{color:var(--sub);font-size:12px;text-align:center;padding:20px;}
+@media (max-width:900px){.toc{display:none;}.grid3,.grid4{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc">
+  <h3>目录导航</h3>
+  <a href="#c1">1. 产品概述</a>
+  <a href="#c2">2. 用户角色与场景</a>
+  <a href="#c3">3. 总体业务流程</a>
+  <a href="#c4">4. 产品信息架构</a>
+  <a href="#c5">5. 全局设计规范</a>
+  <a href="#c6">6. 功能与界面设计</a>
+  <a class="lv2" href="#m0">6.1 工作台首页</a>
+  <a class="lv2" href="#m1">6.2 委托与订单管理</a>
+  <a class="lv2" href="#m2">6.3 采样调度派单</a>
+  <a class="lv2" href="#m3">6.4 微信小程序外勤采样</a>
+  <a class="lv2" href="#m4">6.5 收样与样品管理</a>
+  <a class="lv2" href="#m5">6.6 留样库管理</a>
+  <a class="lv2" href="#m6">6.7 检测数据与质控</a>
+  <a class="lv2" href="#m7">6.8 仪器与物资管理</a>
+  <a class="lv2" href="#m8">6.9 报告三级审核</a>
+  <a class="lv2" href="#m9">6.10 可视化大屏</a>
+  <a class="lv2" href="#m10">6.11 检测作业指导书(SOP)管理</a>
+  <a class="lv2" href="#m11">6.12 质量控制计划与能力验证</a>
+  <a href="#c7">7. 权限矩阵</a>
+  <a href="#c8">8. 非功能性需求</a>
+  <a href="#c9">9. 合规约束与验收</a>
+</nav>
+<div class="main">
+
+<div class="cover">
+  <span class="tag-line">Product Requirements Document · 含高保真界面设计图</span>
+  <h1>环境监测实验室 LIMS 系统<br>产品设计文档（PRD）</h1>
+  <p>面向第三方环境检测机构、生态环境监测站、企业环保实验室，覆盖「委托接单 → 采样外勤 → 样品流转 → 实验检测 → 全程质控 → 报告签发 → 归档上报」全业务闭环，满足 CMA 资质认定与生态环境监测技术规范要求。</p>
+  <div class="meta">
+    <div>文档版本<b>V1.0</b></div>
+    <div>关联文档<b>BRD.txt（业务需求说明书 V1.0）</b></div>
+    <div>编制日期<b>2026-07-30</b></div>
+    <div>文档状态<b>评审稿</b></div>
+    <div>合规依据<b>CMA 准则 / 环境监测技术规范</b></div>
+  </div>
+</div>
+
+<!-- ============ 1 产品概述 ============ -->
+<section id="c1">
+<h2>1. 产品概述</h2>
+<h3><span class="no">1.1</span>产品定位</h3>
+<p class="desc">环境监测 LIMS 是一套「业务全线上化 + 全程可溯源 + 合规强管控」的实验室信息管理系统。产品以<b>采样订单为业务主线</b>、以<b>样品为数据主键</b>、以<b>质控规则为流程闸门</b>，把纸质台账、Excel 记录、线下审批全部搬到线上，并沉淀为可一键导出的 CMA 评审资料。</p>
+<h3><span class="no">1.2</span>核心产品目标（对应 BRD 建设目标）</h3>
+<table class="doc">
+<tr><th style="width:180px">产品目标</th><th>可衡量指标（验收口径）</th></tr>
+<tr><td>业务全线上化</td><td>十大模块全部线上运行，全业务闭环可演示，无线下断点</td></tr>
+<tr><td>全链路溯源</td><td>任意报告可在 3 次点击内反查到原始数据、采样记录、现场照片</td></tr>
+<tr><td>合规强管控</td><td>质控不合格数据 100% 被系统锁定，无法进入报告；操作日志不可篡改</td></tr>
+<tr><td>降本增效</td><td>报告编制耗时降低 ≥60%；台账自动生成率 100%</td></tr>
+<tr><td>风险预警</td><td>校准/标物/试剂/留样到期、数据超标 5 类预警自动触发率 100%</td></tr>
+<tr><td>数据互通</td><td>支持仪器数据自动采集、监管平台标准接口上报</td></tr>
+</table>
+<h3><span class="no">1.3</span>业务范围</h3>
+<p class="desc">覆盖监测类别：地表水 / 地下水 / 生活污水 / 工业废水 / 有组织废气 / 无组织废气 / 土壤 / 沉积物 / 固废 / 噪声 / 振动 / 底泥等。</p>
+</section>
+
+<!-- ============ 2 用户角色 ============ -->
+<section id="c2">
+<h2>2. 用户角色与使用场景</h2>
+<div class="grid4">
+  <div class="rcard"><b>业务接单员</b><span>建立客户档案、创建委托单、报价合同、收费对账、生成采样订单</span></div>
+  <div class="rcard"><b>外勤采样员</b><span>微信小程序接收任务、填写现场记录、蓝牙打印样品条码、拍照存证、提交送检</span></div>
+  <div class="rcard"><b>样品管理员</b><span>扫码收样核验、分样流转、留样库管理、到期销毁审批</span></div>
+  <div class="rcard"><b>检测员</b><span>录入/采集原始数据、执行实验室质控、处理异常复测、发起报告自审</span></div>
+  <div class="rcard"><b>审核员</b><span>复核检测数据与质控记录、审核报告、驳回并填写意见</span></div>
+  <div class="rcard"><b>授权签字人</b><span>报告批准签发、电子签章、超标数据确认</span></div>
+  <div class="rcard"><b>档案/物资管理员</b><span>仪器校准、标物试剂危化品管理、电子档案与合规台账维护</span></div>
+  <div class="rcard"><b>系统管理员 / 客户账号</b><span>权限配置、字典维护、审计日志；客户在线查进度、下载报告</span></div>
+</div>
+<div class="callout">角色与权限的完整对应关系见 <a href="#c7">第 7 章权限矩阵</a>；人员资质与检测项目强绑定（无授权不可录入对应项目数据）是硬性合规约束。</div>
+</section>
+
+<!-- ============ 3 总体业务流程 ============ -->
+<section id="c3">
+<h2>3. 总体业务流程</h2>
+<h3><span class="no">3.1</span>主流程（订单状态机）</h3>
+<div class="flow">
+  <span class="step">客户委托</span><span class="arrow">→</span>
+  <span class="step">技术室确认</span><span class="arrow">→</span>
+  <span class="step">采样订单待派单</span><span class="arrow">→</span>
+  <span class="step">采样执行中</span><span class="arrow">→</span>
+  <span class="step">样品送检 / 收样</span><span class="arrow">→</span>
+  <span class="step">实验室检测中</span><span class="arrow">→</span>
+  <span class="step">报告编制</span><span class="arrow">→</span>
+  <span class="step">三级审核签发</span><span class="arrow">→</span>
+  <span class="step">归档 / 上报</span>
+</div>
+<h3><span class="no">3.2</span>关键流程规则</h3>
+<ul class="pts">
+  <li><b>状态不可跳跃：</b>订单状态只能沿状态机正向流转；审核驳回沿固定回退路径（签发→审核→检测自审），每次驳回必填意见并留痕；</li>
+  <li><b>质控闸门：</b>「实验室检测中 → 报告编制」的流转以质控判定通过为前置条件，质控不合格自动锁定相关数据；</li>
+  <li><b>资质闸门：</b>数据录入前校验「人员-项目-方法」授权关系，无授权直接拦截；</li>
+  <li><b>物资闸门：</b>过期标物/试剂、校准过期仪器在任务关联时被系统禁用；</li>
+  <li><b>双向溯源：</b>委托单号、订单号、样品条码、报告编号四级编码贯穿全程，支持正/反向一键追溯。</li>
+</ul>
+</section>
+
+<!-- ============ 4 信息架构 ============ -->
+<section id="c4">
+<h2>4. 产品信息架构</h2>
+<div class="arch">
+  <div class="band"><div class="band-title" style="background:#7c3aed;">展示层</div>
+    <div class="band-body"><span class="blk">PC Web 端</span><span class="blk">微信小程序（外勤）</span><span class="blk">平板端</span><span class="blk">管理可视化大屏</span><span class="blk">客户查询门户</span></div></div>
+  <div class="band"><div class="band-title" style="background:#0e9f6e;">业务应用层</div>
+    <div class="band-body"><span class="blk">委托与采样订单</span><span class="blk">移动外勤采样</span><span class="blk">样品全生命周期</span><span class="blk">检测数据管理</span><span class="blk">闭环质控</span><span class="blk">仪器物资管理</span><span class="blk">人员资质权限</span><span class="blk">报告三级审核</span><span class="blk">电子档案台账</span><span class="blk">统计分析大屏</span></div></div>
+  <div class="band"><div class="band-title" style="background:#2563eb;">平台支撑层</div>
+    <div class="band-body"><span class="blk">标准库/限值库</span><span class="blk">工作流引擎（审批/驳回）</span><span class="blk">规则引擎（质控判定/预警）</span><span class="blk">编号规则引擎</span><span class="blk">电子签名/签章</span><span class="blk">消息中心（站内信/短信）</span><span class="blk">操作审计日志</span><span class="blk">报表引擎</span></div></div>
+  <div class="band"><div class="band-title" style="background:#f59e0b;">集成层</div>
+    <div class="band-body"><span class="blk">仪器数据采集（色谱/光谱/分光/重金属）</span><span class="blk">环保监管平台上报接口</span><span class="blk">ERP/财务</span><span class="blk">采购库存</span><span class="blk">开放 API</span></div></div>
+  <div class="band"><div class="band-title" style="background:#64748b;">数据层</div>
+    <div class="band-body"><span class="blk">业务数据库（加密存储）</span><span class="blk">文件档案库（照片/证书/报告 PDF）</span><span class="blk">日志库（不可删改）</span><span class="blk">定时备份 / 异地备份</span></div></div>
+</div>
+</section>
+
+<!-- ============ 5 设计规范 ============ -->
+<section id="c5">
+<h2>5. 全局设计规范</h2>
+<table class="doc">
+<tr><th style="width:160px">规范项</th><th>说明</th></tr>
+<tr><td>主色</td><td>生态绿 <b style="color:#0e9f6e">#0E9F6E</b>（导航/主按钮/选中态），深绿 #0B3D33 用于侧边导航底色</td></tr>
+<tr><td>语义色</td><td>超标/异常/驳回 = 红 #E02424；预警/待办 = 橙 #F59E0B；通过/合格 = 绿 #0E9F6E；流转中 = 蓝 #2563EB</td></tr>
+<tr><td>布局</td><td>PC 端「左侧一级导航 + 顶部面包屑 + 内容区」；列表页统一为「统计卡 + 筛选工具条 + 表格 + 分页」</td></tr>
+<tr><td>状态标签</td><td>所有单据状态使用彩色标签（Tag）统一呈现，颜色语义全局一致</td></tr>
+<tr><td>超标标识</td><td>检测结果超标一律<b style="color:#e02424">标红加粗 + ▲ 符号</b>，报告中同步标注</td></tr>
+<tr><td>操作留痕</td><td>所有编辑/审批动作均带操作人+时间水印；关键页面提供「操作记录」侧滑抽屉</td></tr>
+<tr><td>微信小程序（外勤）</td><td>微信授权登录、大按钮卡片式任务流、微信订阅消息推送、微信相机拍照水印（时间/GPS）、微信扫一扫查样、离线填报缓存（弱网采样场景）</td></tr>
+</table>
+</section>
+
+<!-- ============ 6 功能与界面设计 ============ -->
+<section id="c6">
+<h2>6. 功能与界面设计</h2>
+<p class="desc">本章按模块给出「功能需求规格 + 高保真界面设计图 + 设计说明」。优先级说明：<span class="pri p0">P0 核心</span> 首期必须交付；<span class="pri p1">P1 重要</span> 首期尽量交付；<span class="pri p2">P2 增强</span> 可二期迭代。</p>
+
+<!-- 6.1 工作台 -->
+<h3 id="m0"><span class="no">6.1</span>工作台首页（全员入口）</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>待办任务中心</td><td>按角色聚合待办：待派单、待收样、待检测、待审核、待签发、待复测，点击直达处理页</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>预警聚合看板</td><td>校准到期、标物/试剂过期、留样到期、超标数据、质控异常五类预警统一展示</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>业务概览统计</td><td>本月订单量、在检样品、待发报告、超标点位数等核心指标卡</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>快捷入口</td><td>新建委托、扫码收样、数据录入、报告编制常用入口，可按角色配置</td><td><span class="pri p2">P2</span></td></tr>
+</table>
+
+<div class="figure"><div class="fig-title">界面设计图 6-1：工作台首页</div>
+<div class="screen"><div class="chrome"><span class="d d1"></span><span class="d d2"></span><span class="d d3"></span><div class="url">https://lims.envlab.com/workbench</div></div>
+<div class="app">
+  <div class="aside"><div class="logo"><i>环</i>环境监测LIMS</div>
+    <div class="nav">
+      <div class="on">◧ 工作台</div><div>▤ 委托管理</div><div>⛟ 采样订单</div><div>⚱ 样品管理</div><div>⚗ 检测管理</div><div>◉ 质控管理</div><div>⚙ 物资仪器</div><div>▦ 报告管理</div><div>▣ 档案台账</div><div>◫ 统计大屏</div><div>☰ 系统设置</div>
+    </div></div>
+  <div class="amain">
+    <div class="atop"><span class="bc">工作台</span><span class="sp"></span><span class="bell">🔔</span><span class="avatar">李</span><span style="font-size:11px;color:#475569">李明 · 检测员</span></div>
+    <div class="abody">
+      <div class="stats">
+        <div class="stat"><div class="lb">本月委托订单</div><div class="v">128<small>单</small></div><div class="tr up">↑ 12.5% 环比</div></div>
+        <div class="stat"><div class="lb">在检样品</div><div class="v" style="color:#2563eb">342<small>份</small></div><div class="tr">待检 86 / 检测中 256</div></div>
+        <div class="stat"><div class="lb">待签发报告</div><div class="v" style="color:#f59e0b">23<small>份</small></div><div class="tr">今日已签发 9 份</div></div>
+        <div class="stat"><div class="lb">本月超标点位</div><div class="v" style="color:#e02424">7<small>个</small></div><div class="tr up">较上月 +2</div></div>
+        <div class="stat"><div class="lb">质控合格率</div><div class="v" style="color:#0e9f6e">99.2<small>%</small></div><div class="tr down">目标 ≥98%</div></div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1.4;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:8px;">我的待办 <span class="tg red">14</span></div>
+          <table class="mtable" style="border:none;">
+            <tr><td><span class="tg blue">待检测</span></td><td>SP-20260730-012 · 工业废水 · COD/氨氮</td><td style="color:#e02424">今日截止</td><td><span class="lk">去处理</span></td></tr>
+            <tr><td><span class="tg orange">待复测</span></td><td>SP-20260729-118 · 平行样偏差超限</td><td>剩 1 天</td><td><span class="lk">去处理</span></td></tr>
+            <tr><td><span class="tg purple">待自审</span></td><td>RP-2026-0703 · 某化工园区季度监测报告</td><td>剩 2 天</td><td><span class="lk">去处理</span></td></tr>
+            <tr><td><span class="tg blue">待检测</span></td><td>SP-20260730-019 · 地表水 · 总磷/总氮</td><td>剩 2 天</td><td><span class="lk">去处理</span></td></tr>
+          </table>
+        </div>
+        <div style="flex:1;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:8px;">预警中心 <span class="tg orange">9</span></div>
+          <div style="font-size:11px;line-height:2.1;">
+            <div>🔴 <b style="color:#e02424">超标预警</b>：G12排污口 COD 156mg/L（限值100）</div>
+            <div>🟠 <b style="color:#b45309">校准到期</b>：原子吸收分光光度计 AA-320（8月5日）</div>
+            <div>🟠 <b style="color:#b45309">标物过期</b>：镉标准溶液 GSB-04 剩余 6 天</div>
+            <div>🟡 <b style="color:#a16207">留样到期</b>：留样 LY-0688 等 12 份 3 日内到期</div>
+            <div>🔴 <b style="color:#e02424">质控异常</b>：加标回收率 62%（要求 80–120%）</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+<div class="notes"><b>设计说明：</b><ol>
+<li>待办按「角色 + 截止时间」排序，红色标识今日截止项；点击行直达对应处理页面；</li>
+<li>预警中心五类预警统一入口，与站内信、短信通道联动（详见 §6.8 预警规则）；</li>
+<li>统计卡指标随角色可配置：检测员看任务/质控，管理层看营收/超标率。</li></ol></div>
+<!-- 6.2 委托管理 -->
+<h3 id="m1"><span class="no">6.2</span>委托与采样订单管理</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>客户档案</td><td>企业名称、联系人、排污许可编号、开票信息、客户等级；关联历史委托与欠款台账</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>委托单创建</td><td>分类：常规/监督/应急/信访专项；录入点位、类别、检测项目、执行标准、频次、工况要求</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>报价合同关联</td><td>委托单绑定报价单、合同，记录单价/总价/加急费；收款、发票、欠款对账</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>委托技术评审（实验室确认）</td><td>委托提交后进入「待技术确认」，由技术室评审检测方法适用性、实验室检测能力并出具确认意见；通过后方可生成采样订单（核心合规闸门）</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>一键生成采样订单</td><td>委托「已确认」后按点位×频次拆分批量生成采样订单，支持多企业多点位批量创建</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>订单台账</td><td>按时间/客户/类型/人员统计完成量、未完成、加急、超标点位台账，支持导出</td><td><span class="pri p1">P1</span></td></tr>
+</table>
+
+<div class="figure"><div class="fig-title">界面设计图 6-2：委托单列表页</div>
+<div class="screen"><div class="chrome"><span class="d d1"></span><span class="d d2"></span><span class="d d3"></span><div class="url">https://lims.envlab.com/entrust/list</div></div>
+<div class="app">
+  <div class="aside"><div class="logo"><i>环</i>环境监测LIMS</div>
+    <div class="nav"><div>◧ 工作台</div><div class="on">▤ 委托管理</div><div>⛟ 采样订单</div><div>⚱ 样品管理</div><div>⚗ 检测管理</div><div>◉ 质控管理</div><div>⚙ 物资仪器</div><div>▦ 报告管理</div><div>▣ 档案台账</div><div>◫ 统计大屏</div></div></div>
+  <div class="amain">
+    <div class="atop"><span class="bc">委托管理 / 委托单列表</span><span class="sp"></span><span class="bell">🔔</span><span class="avatar">王</span><span style="font-size:11px;color:#475569">王芳 · 业务接单员</span></div>
+    <div class="abody">
+      <div class="tbar">
+        <span class="inp">🔍 委托单号 / 客户名称</span>
+        <span class="sel">委托类型：全部</span><span class="sel">状态：全部</span><span class="sel">日期：2026-07</span>
+        <span class="btn">重置</span><span class="btn ghost">导出台账</span>
+        <span class="sp"></span><span class="btn pri">＋ 新建委托单</span>
+      </div>
+      <table class="mtable">
+        <tr><th>委托单号</th><th>客户名称</th><th>委托类型</th><th>监测类别</th><th>点位数</th><th>金额(¥)</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+        <tr><td class="lk">WT-20260730-006</td><td>华宇化工科技有限公司</td><td><span class="tg blue">常规监测</span></td><td>工业废水、有组织废气</td><td class="num">6</td><td class="num">28,600</td><td><span class="tg cyan">采样执行中</span></td><td>07-30 09:12</td><td><span class="lk">详情</span> · <span class="lk">生成订单</span></td></tr>
+        <tr><td class="lk">WT-20260729-011</td><td>绿源污水处理厂</td><td><span class="tg purple">监督监测</span></td><td>生活污水</td><td class="num">3</td><td class="num">9,800</td><td><span class="tg blue">检测中</span></td><td>07-29 15:40</td><td><span class="lk">详情</span></td></tr>
+        <tr><td class="lk">WT-20260729-008 <span class="tg red">急</span></td><td>市生态环境局（信访）</td><td><span class="tg red">应急监测</span></td><td>地表水、底泥</td><td class="num">4</td><td class="num">15,200</td><td><span class="tg orange">报告编制</span></td><td>07-29 08:05</td><td><span class="lk">详情</span></td></tr>
+        <tr><td class="lk">WT-20260728-014</td><td>金田电镀工业园</td><td><span class="tg blue">常规监测</span></td><td>工业废水、土壤</td><td class="num">8</td><td class="num">46,000</td><td><span class="tg green">已归档</span></td><td>07-28 11:26</td><td><span class="lk">详情</span> · <span class="lk">溯源</span></td></tr>
+        <tr><td class="lk">WT-20260728-009</td><td>宏达建材有限公司</td><td><span class="tg blue">常规监测</span></td><td>无组织废气、噪声</td><td class="num">5</td><td class="num">12,400</td><td><span class="tg gray">待派单</span></td><td>07-28 09:48</td><td><span class="lk">详情</span> · <span class="lk">派单</span></td></tr>
+      </table>
+      <div class="pager">共 128 条 <span class="pg">‹</span><span class="pg on">1</span><span class="pg">2</span><span class="pg">3</span><span class="pg">›</span></div>
+    </div>
+  </div>
+</div></div></div>
+
+<div class="figure"><div class="fig-title">界面设计图 6-3：新建委托单（关键表单）</div>
+<div class="screen"><div class="chrome"><span class="d d1"></span><span class="d d2"></span><span class="d d3"></span><div class="url">https://lims.envlab.com/entrust/create</div></div>
+<div class="app" style="min-height:0;">
+  <div class="amain">
+    <div class="atop"><span class="bc">委托管理 / 新建委托单</span><span class="sp"></span><span class="btn">暂存草稿</span><span class="btn pri">提交并送技术确认</span></div>
+    <div class="abody">
+      <div class="form">
+        <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:8px;">① 基础信息</div>
+        <div class="frow">
+          <div class="fitem"><div class="fl req">委托客户</div><div class="fbox">华宇化工科技有限公司（排污许可：91330***XK001）▾</div></div>
+          <div class="fitem"><div class="fl req">委托类型</div><div class="fbox">常规监测 ▾</div></div>
+          <div class="fitem"><div class="fl req">监测频次</div><div class="fbox">季度 · 每点位 3 天×4 次/天 ▾</div></div>
+          <div class="fitem"><div class="fl">加急</div><div class="fbox">否（标准周期 7 个工作日）▾</div></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#065f46;margin:10px 0 8px;">② 监测点位与检测项目</div>
+        <table class="mtable">
+          <tr><th>点位编号</th><th>点位名称</th><th>点位类型</th><th>监测类别</th><th>检测项目</th><th>执行标准 / 限值</th><th>操作</th></tr>
+          <tr><td>DW-01</td><td>总排口</td><td>排污口</td><td>工业废水</td><td>pH、COD、氨氮、总磷、石油类</td><td class="lk">GB 8978-1996 一级 ▾</td><td><span class="lk">编辑</span></td></tr>
+          <tr><td>DW-02</td><td>车间排口</td><td>排污口</td><td>工业废水</td><td>总铬、六价铬、总镍</td><td class="lk">GB 21900-2008 表2 ▾</td><td><span class="lk">编辑</span></td></tr>
+          <tr><td>QW-01</td><td>1#锅炉烟囱</td><td>有组织废气</td><td>废气</td><td>SO₂、NOx、颗粒物</td><td class="lk">GB 13271-2014 ▾</td><td><span class="lk">编辑</span></td></tr>
+          <tr><td colspan="7" style="color:#0e9f6e;">＋ 添加点位（支持从历史委托 / 点位库批量导入）</td></tr>
+        </table>
+        <div class="frow" style="margin-top:10px;">
+          <div class="fitem"><div class="fl">关联报价单</div><div class="fbox">BJ-2026-0331 · ¥28,600 ▾</div></div>
+          <div class="fitem"><div class="fl">关联合同</div><div class="fbox">HT-2026-HY-012（年度框架）▾</div></div>
+          <div class="fitem"><div class="fl">工况要求</div><div class="fbox ph">生产负荷 ≥75%，采样期间正常生产</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+<div class="notes"><b>设计说明：</b><ol>
+<li>选择「监测类别 + 检测项目」后，系统从标准库自动带出执行标准与限值，允许切换为企业内控限值；</li>
+<li>「提交并生成采样订单」按 点位 × 频次 自动拆单，进入采样订单池待派单；</li>
+<li>委托须经「技术室确认」状态机（草稿→待技术确认→已确认/已退回）评审通过方可生成订单，退回须填意见，修改后可重新提交（详见 TRD 5.1.3 委托确认状态机、t_entrust_review）；</li>
+<li>应急/信访类委托自动打「急」标，在所有列表和调度视图置顶显示；</li>
+<li>金额、收款、发票信息仅业务接单员及以上角色可见（权限矩阵控制）。</li></ol></div>
+
+<!-- 6.3 采样调度 -->
+<h3 id="m2"><span class="no">6.3</span>采样订单调度派单</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>调度看板</td><td>按状态列展示订单卡片（待派单/已派单/执行中/已送检），拖拽或点选派单</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>资源分配</td><td>为订单分配采样负责人、组员、车辆、采样设备；冲突检测（人/车/设备占用提示）</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>物资校验</td><td>关联采样设备时校验校准有效期，过期设备禁选（合规闸门）</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>工作量统计</td><td>按人员统计外勤任务量、完成率，支撑绩效考核</td><td><span class="pri p1">P1</span></td></tr>
+</table>
+
+<div class="figure"><div class="fig-title">界面设计图 6-4：采样调度看板 + 派单弹窗</div>
+<div class="screen"><div class="chrome"><span class="d d1"></span><span class="d d2"></span><span class="d d3"></span><div class="url">https://lims.envlab.com/sampling/dispatch</div></div>
+<div class="modal-wrap">
+<div class="app">
+  <div class="aside"><div class="logo"><i>环</i>环境监测LIMS</div>
+    <div class="nav"><div>◧ 工作台</div><div>▤ 委托管理</div><div class="on">⛟ 采样订单</div><div>⚱ 样品管理</div><div>⚗ 检测管理</div><div>◉ 质控管理</div><div>⚙ 物资仪器</div><div>▦ 报告管理</div><div>▣ 档案台账</div><div>◫ 统计大屏</div></div></div>
+  <div class="amain">
+    <div class="atop"><span class="bc">采样订单 / 调度派单</span><span class="sp"></span><span class="bell">🔔</span><span class="avatar">赵</span></div>
+    <div class="abody">
+      <div class="kanban">
+        <div class="kcol"><div class="kh">待派单 <span>4</span></div>
+          <div class="kcard" style="border-left:3px solid #e02424;"><b>CY-20260730-021 <span class="tg red">急</span></b>市生态环境局 · 信访应急<div class="kl">地表水 2 点位 · 今日必须出发</div></div>
+          <div class="kcard"><b>CY-20260730-018</b>宏达建材 · 无组织废气<div class="kl">5 点位 · 要求 8/2 前完成</div></div>
+          <div class="kcard"><b>CY-20260730-015</b>绿源污水厂 · 生活污水<div class="kl">3 点位 · 周期性季度任务</div></div>
+        </div>
+        <div class="kcol"><div class="kh">已派单 3</div>
+          <div class="kcard"><b>CY-20260729-012</b>华宇化工 · 工业废水<div class="kl">👤 张强(负责) +2 · 🚐 浙A·D1082</div><div class="kl">明日 08:00 出发</div></div>
+          <div class="kcard"><b>CY-20260729-010</b>金田电镀 · 土壤<div class="kl">👤 刘洋(负责) +1 · 🚐 浙A·F3355</div></div>
+        </div>
+        <div class="kcol"><div class="kh">采样执行中 5</div>
+          <div class="kcard"><b>CY-20260728-007</b>华宇化工 · 废气<div class="kl">进度 3/6 点位 · 📍 现场定位正常</div><div class="kl">最近记录 10:42 上传</div></div>
+          <div class="kcard"><b>CY-20260728-005</b>城东断面 · 地表水<div class="kl">进度 2/4 点位</div></div>
+        </div>
+        <div class="kcol"><div class="kh">已送检 6</div>
+          <div class="kcard"><b>CY-20260727-003</b>绿源污水厂<div class="kl">样品 12 份 · 待实验室收样</div><div class="kl"><span class="tg green">条码已生成</span></div></div>
+          <div class="kcard"><b>CY-20260727-001</b>宏达建材<div class="kl">样品 8 份 · 已收样</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="dim">
+  <div class="modal">
+    <div class="mh">派单 · CY-20260730-021 <span class="tg red">应急</span></div>
+    <div class="mb">
+      <div class="frow"><div class="fitem"><div class="fl req">采样负责人</div><div class="fbox">张强（持证：水质采样/流量测定）▾</div></div></div>
+      <div class="frow"><div class="fitem"><div class="fl">采样组员</div><div class="fbox">王磊、周婷 ▾</div></div></div>
+      <div class="frow">
+        <div class="fitem"><div class="fl req">采样车辆</div><div class="fbox">浙A·D1082（空闲）▾</div></div>
+        <div class="fitem"><div class="fl req">采样设备</div><div class="fbox">多参数水质仪 YSI-02 ▾</div></div>
+      </div>
+      <div class="callout risk" style="margin:8px 0 0;">⚠ 便携流速仪 LS-05 校准已过期（2026-07-12），已自动禁选</div>
+    </div>
+    <div class="mf"><span class="btn">取消</span><span class="btn pri">确认派单并推送微信</span></div>
+  </div>
+</div>
+</div></div></div>
+<div class="notes"><b>设计说明：</b><ol>
+<li>看板列即订单状态，应急任务红色左边线并置顶；卡片实时显示外勤进度与最近上传时间；</li>
+<li>派单弹窗内校验三类资源：人员资质（未持对应上岗证给出提示）、车辆/设备占用冲突、设备校准有效期（过期禁选）；</li>
+<li>派单成功即推送微信订阅消息 + 短信提醒采样负责人。</li></ol></div>
+
+<!-- 6.4 微信小程序 -->
+<h3 id="m3"><span class="no">6.4</span>微信小程序外勤采样</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>微信授权登录</td><td>员工通过微信手机号授权一键登录，自动绑定人员档案与检测资质，无需单独注册账号</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>任务接收</td><td>接收微信订阅消息/服务通知推送，点击直达任务详情；查看点位信息、监测项目、固定剂与保存条件要求</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>电子采样记录</td><td>填写采样时间、流量、温度、pH、现场工况、固定剂添加记录；弱网离线缓存，恢复网络自动同步</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>现场质控绑定</td><td>现场空白、现场平行样、运输空白一键添加并自动绑定订单</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>照片存证</td><td>调用微信相机拍照，点位标识、采样过程、排污工况，自动加时间+GPS水印</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>微信扫一扫查样</td><td>调用微信原生扫一扫识别样品条码/二维码，查询样品流转状态与检测进度</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>条码打印</td><td>微信连接蓝牙打印机，现场生成样品条码/二维码标签；原样/分样/留样统一编码</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>一键送检</td><td>采样完成提交送检，同步推送收样提醒到实验室（微信订阅消息+站内信）</td><td><span class="pri p0">P0</span></td></tr>
+</table>
+
+<div class="figure"><div class="fig-title">界面设计图 6-5：微信小程序 — 外勤任务列表 / 现场采样记录</div>
+<div class="phone-row">
+<div class="phone">
+  <div class="pstatus"><span>09:41</span><span>📶 5G 🔋86%</span></div>
+  <div class="wxbar"><div class="wxtitle">外勤采样助手<span class="wxbadge">微信</span></div><div class="wxcap"><span class="c1">•••</span><span class="c2">○</span></div></div>
+  <div class="pbody">
+    <div style="display:flex;gap:6px;margin-bottom:8px;">
+      <span class="tg green">今日 3</span><span class="tg gray">本周 8</span><span class="tg red">应急 1</span>
+    </div>
+    <div class="pcard" style="border-left:3px solid #e02424;">
+      <div class="t">CY-20260730-021 <span class="tg red">应急</span></div>
+      <div class="l">📍 城东河闸口断面 等 2 个点位</div>
+      <div class="l">🧪 地表水：pH、COD、氨氮、总磷…共 9 项</div>
+      <div class="l">⏰ 要求今日 14:00 前完成</div>
+      <div class="pbtn">开始采样</div>
+    </div>
+    <div class="pcard">
+      <div class="t">CY-20260729-012 <span class="tg blue">进行中</span></div>
+      <div class="l">📍 华宇化工 · 总排口 DW-01（3/6 点位）</div>
+      <div class="l">🧪 工业废水：COD、氨氮、总磷、石油类</div>
+      <div class="pbtn line">继续填报</div>
+    </div>
+    <div class="pcard">
+      <div class="t">CY-20260728-009 <span class="tg green">已送检</span></div>
+      <div class="l">📍 宏达建材 · 厂界无组织 5 点位</div>
+      <div class="l">已生成样品 8 份 · 实验室已收样</div>
+    </div>
+  </div>
+  <div class="wxtab"><div class="on"><span class="ic">📋</span>任务</div><div><span class="ic">🏷</span>扫码查样</div><div><span class="ic">🔔</span>消息</div><div><span class="ic">👤</span>我的</div></div>
+</div>
+<div class="phone">
+  <div class="pstatus"><span>10:15</span><span>📶 5G 🔋82%</span></div>
+  <div class="wxbar"><div class="wxtitle">‹ 现场采样记录</div><div class="wxcap"><span class="c1">•••</span><span class="c2">○</span></div></div>
+  <div class="pbody">
+    <div class="pcard">
+      <div class="t">现场参数 · DW-01 总排口</div>
+      <div class="frow" style="margin-bottom:6px;"><div class="fitem"><div class="fl">采样时间</div><div class="fbox">2026-07-30 10:12（自动）</div></div></div>
+      <div class="frow" style="margin-bottom:6px;">
+        <div class="fitem"><div class="fl req">流量 m³/h</div><div class="fbox">45.2</div></div>
+        <div class="fitem"><div class="fl req">水温 ℃</div><div class="fbox">26.8</div></div>
+        <div class="fitem"><div class="fl req">pH</div><div class="fbox">7.32</div></div>
+      </div>
+      <div class="frow" style="margin-bottom:0;"><div class="fitem"><div class="fl req">现场工况</div><div class="fbox">正常生产，负荷约 80%</div></div></div>
+    </div>
+    <div class="pcard">
+      <div class="t">固定剂添加</div>
+      <div class="l">☑ COD样：H₂SO₄ 至 pH&lt;2　☑ 氨氮样：H₂SO₄　☐ 石油类：盐酸</div>
+    </div>
+    <div class="pcard">
+      <div class="t">现场质控 <span class="tg green">已绑定订单</span></div>
+      <div class="l">☑ 现场空白 ×1　☑ 现场平行 ×1　☑ 运输空白 ×1</div>
+    </div>
+    <div class="pcard">
+      <div class="t">现场照片（微信相机 · 自动水印：时间+GPS）</div>
+      <div class="photo-grid"><div class="photo">点位标识牌</div><div class="photo">采样过程</div><div class="photo">排污工况</div><div class="photo add">＋</div></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <div class="pbtn line" style="flex:1;">🏷 蓝牙打印条码(6)</div>
+      <div class="pbtn" style="flex:1;">提交送检</div>
+    </div>
+  </div>
+</div>
+</div></div>
+<div class="notes"><b>设计说明（微信小程序）：</b><ol>
+<li>以<b>微信小程序</b>为载体，员工经微信手机号授权一键登录并自动绑定人员资质，无需安装独立 APP；顶部为微信原生胶囊按钮（••• / ○），页面标题居中；</li>
+<li>任务经<b>微信订阅消息 / 服务通知</b>推送，点击直达任务详情；采样时间、GPS 由系统自动采集不可改（合规留痕），照片调用微信相机强制加时间 + 坐标水印；</li>
+<li>「扫码查样」调用微信原生扫一扫识别样品条码/二维码；「蓝牙打印条码」通过微信蓝牙 API 连接便携打印机，按检测项目组合生成原样/分样/留样编码（如 SP-20260730-021-01-A）；</li>
+<li>无信号环境下全部表单<b>离线缓存</b>，恢复微信网络后自动同步；提交送检后实验室接收微信订阅消息 + 站内信 + 待收样任务。</li></ol></div>
+
+<!-- 6.5 样品管理 -->
+<h3 id="m4"><span class="no">6.5</span>收样登记与样品全生命周期</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>扫码收样</td><td>扫条码自动关联采样订单与委托信息，带出监测项目、限值标准、点位信息</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>样品核验/拒收</td><td>核对外观、体积、保存温度、固定剂、有效期；异常样品登记拒收原因并通知外勤</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>分样与流转</td><td>原样/检测样/平行样/留样/质控样拆分，记录分样人与时间；按项目自动分配到实验小组</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>状态管控</td><td>待检 → 检测中 → 待复测 → 已完成 → 过期作废，状态全程留痕</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>全链路溯源</td><td>正向（委托→报告）/ 反向（报告→照片）一键溯源视图</td><td><span class="pri p0">P0</span></td></tr>
+</table>
+
+<div class="figure"><div class="fig-title">界面设计图 6-6：扫码收样工作台</div>
+<div class="screen"><div class="chrome"><span class="d d1"></span><span class="d d2"></span><span class="d d3"></span><div class="url">https://lims.envlab.com/sample/receive</div></div>
+<div class="app">
+  <div class="aside"><div class="logo"><i>环</i>环境监测LIMS</div>
+    <div class="nav"><div>◧ 工作台</div><div>▤ 委托管理</div><div>⛟ 采样订单</div><div class="on">⚱ 样品管理</div><div>⚗ 检测管理</div><div>◉ 质控管理</div><div>⚙ 物资仪器</div><div>▦ 报告管理</div><div>▣ 档案台账</div><div>◫ 统计大屏</div></div></div>
+  <div class="amain">
+    <div class="atop"><span class="bc">样品管理 / 扫码收样</span><span class="sp"></span><span class="bell">🔔</span><span class="avatar">陈</span><span style="font-size:11px;color:#475569">陈静 · 样品管理员</span></div>
+    <div class="abody">
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <div style="flex:1;background:#fff;border:2px dashed var(--primary);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:26px;">▣</div>
+          <div style="font-weight:700;font-size:13px;margin:4px 0;">扫描样品条码 / 订单二维码</div>
+          <div style="font-size:11px;color:var(--sub);">扫码枪对准条码即可，支持整单批量收样</div>
+          <div style="margin-top:8px;"><span class="btn pri">手工输入条码</span></div>
+        </div>
+        <div style="flex:2;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px;">当前订单：CY-20260729-012 · 华宇化工（已扫 5 / 共 14 份）</div>
+          <div class="frow" style="margin-bottom:6px;">
+            <div class="fitem"><div class="fl">到样温度</div><div class="fbox">4.2 ℃（冷藏箱）✔</div></div>
+            <div class="fitem"><div class="fl">运输时长</div><div class="fbox">2 小时 15 分 ✔</div></div>
+            <div class="fitem"><div class="fl">收样人 / 时间</div><div class="fbox">陈静 · 07-30 11:26（自动）</div></div>
+          </div>
+          <div style="font-size:11px;color:var(--sub);">核验项：☑ 外观完好　☑ 体积满足　☑ 固定剂已加　☑ 保存时限内　☐ 异常拒收</div>
+        </div>
+      </div>
+      <table class="mtable">
+        <tr><th>样品条码</th><th>点位</th><th>样品类型</th><th>检测项目</th><th>保存条件</th><th>核验结果</th><th>操作</th></tr>
+        <tr><td class="lk">SP-20260729-012-01-A</td><td>DW-01 总排口</td><td><span class="tg blue">检测样</span></td><td>COD、氨氮</td><td>4℃冷藏·H₂SO₄</td><td><span class="tg green">通过</span></td><td><span class="lk">收样</span></td></tr>
+        <tr><td class="lk">SP-20260729-012-01-B</td><td>DW-01 总排口</td><td><span class="tg purple">现场平行</span></td><td>COD、氨氮</td><td>4℃冷藏·H₂SO₄</td><td><span class="tg green">通过</span></td><td><span class="lk">收样</span></td></tr>
+        <tr><td class="lk">SP-20260729-012-01-L</td><td>DW-01 总排口</td><td><span class="tg cyan">留样</span></td><td>—</td><td>4℃冷藏</td><td><span class="tg green">通过</span></td><td><span class="lk">入留样库</span></td></tr>
+        <tr><td class="lk">SP-20260729-012-02-A</td><td>DW-02 车间排口</td><td><span class="tg blue">检测样</span></td><td>总铬、六价铬</td><td>常温·NaOH</td><td><span class="tg red">拒收：瓶体破损</span></td><td><span class="lk">拒收登记</span></td></tr>
+        <tr><td class="lk">SP-20260729-012-QC1</td><td>—</td><td><span class="tg orange">运输空白</span></td><td>随行质控</td><td>4℃冷藏</td><td><span class="tg green">通过</span></td><td><span class="lk">收样</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div></div></div>
+<div class="notes"><b>设计说明：</b><ol>
+<li>扫码后系统自动带出订单、点位、项目、限值信息，收样人与时间系统自动记录不可改；</li>
+<li>拒收必须选择原因（破损/变质/超保存时限/固定剂缺失等）并可拍照，自动通知采样负责人补采；</li>
+<li>收样完成后检测样按「检测项目 → 实验小组」映射规则自动派发检测任务，留样自动生成入库任务。</li></ol></div>
+
+<!-- 6.6 留样库 -->
+<h3 id="m5"><span class="no">6.6</span>留样库管理</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>分区库位管理</td><td>留样库分区分格，记录存放位置、留样起止时间，可视化库位图</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>到期预警</td><td>留样到期前 N 天（可配置）自动提醒留样管理员</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>领用/复检</td><td>留样领用登记、复检记录关联原样品数据</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>销毁审批</td><td>到期留样发起销毁审批流，审批通过后登记销毁记录（时间/人/方式）</td><td><span class="pri p0">P0</span></td></tr>
+</table>
+<div class="figure"><div class="fig-title">界面设计图 6-7：留样库管理</div>
+<div class="screen"><div class="chrome"><span class="d d1"></span><span class="d d2"></span><span class="d d3"></span><div class="url">https://lims.envlab.com/sample/retention</div></div>
+<div class="app" style="min-height:0;">
+  <div class="amain">
+    <div class="atop"><span class="bc">样品管理 / 留样库</span><span class="sp"></span><span class="btn ghost">导出留样台账</span><span class="btn warn">批量销毁申请(12)</span></div>
+    <div class="abody">
+      <div class="stats">
+        <div class="stat"><div class="lb">在库留样</div><div class="v">486<small>份</small></div></div>
+        <div class="stat"><div class="lb">3日内到期</div><div class="v" style="color:#e02424">12<small>份</small></div></div>
+        <div class="stat"><div class="lb">待销毁审批</div><div class="v" style="color:#f59e0b">8<small>份</small></div></div>
+        <div class="stat"><div class="lb">本月复检领用</div><div class="v">5<small>次</small></div></div>
+      </div>
+      <table class="mtable">
+        <tr><th>留样编码</th><th>关联样品</th><th>监测类别</th><th>库位</th><th>留样起止</th><th>剩余天数</th><th>状态</th><th>操作</th></tr>
+        <tr><td class="lk">LY-0688</td><td>SP-20260701-008-03-L</td><td>工业废水</td><td>A区-2排-05格 (4℃)</td><td>07-01 ~ 07-31</td><td style="color:#e02424;font-weight:700;">1 天</td><td><span class="tg red">即将到期</span></td><td><span class="lk">销毁申请</span></td></tr>
+        <tr><td class="lk">LY-0702</td><td>SP-20260708-011-01-L</td><td>地表水</td><td>A区-3排-12格 (4℃)</td><td>07-08 ~ 08-07</td><td>8 天</td><td><span class="tg green">在库</span></td><td><span class="lk">领用复检</span></td></tr>
+        <tr><td class="lk">LY-0715</td><td>SP-20260712-004-02-L</td><td>土壤</td><td>B区-1排-03格 (常温避光)</td><td>07-12 ~ 10-12</td><td>74 天</td><td><span class="tg green">在库</span></td><td><span class="lk">领用复检</span></td></tr>
+        <tr><td class="lk">LY-0651</td><td>SP-20260620-009-01-L</td><td>生活污水</td><td>A区-1排-09格 (4℃)</td><td>06-20 ~ 07-20</td><td>—</td><td><span class="tg gray">销毁审批中</span></td><td><span class="lk">查看流程</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div></div></div>
+<div class="notes"><b>设计说明：</b><ol>
+<li>留样期按监测类别默认规则自动计算（可配置），到期前 3 天推送预警；</li>
+<li>销毁走审批流（留样管理员发起 → 技术负责人审批），销毁记录进入合规台账，不可删除；</li>
+<li>复检领用后新数据自动与原检测数据并列展示，供偏差比对。</li></ol></div>
+<!-- 6.7 检测数据与质控 -->
+<h3 id="m6"><span class="no">6.7</span>检测数据管理与闭环质控（CMA 核心）</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>标准库</td><td>内置水/土/气/声/固废国标行标，含检出限、限值、计算公式、稀释换算规则；支持自定义内控限值</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>原始数据录入</td><td>手动录入 + 仪器自动采集导入（色谱/光谱/分光/重金属仪），录入前校验人员项目授权</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>自动运算</td><td>浓度换算、空白扣除、稀释倍数、平行样相对偏差自动计算，公式来自标准库</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>智能异常预警</td><td>超标自动标红；平行偏差/空白异常/加标回收率超限弹窗；异常必须填写说明+复测记录方可提交</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>质控判定与锁定</td><td>现场/实验室质控规则固化判定，不合格数据自动锁定，禁止进入报告（硬约束）</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>质控台账导出</td><td>完整留存质控原始记录，评审一键导出质控台账</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>实验环境条件录入（G7）</td><td>检测员录入温度/湿度/压力/洁净度等实验环境，随原始记录一并留存，满足 CMA 原始记录完整性要求</td><td><span class="pri p0">P0</span></td></tr>
+</table>
+
+<div class="figure"><div class="fig-title">界面设计图 6-8：检测数据录入（含超标标红 + 质控异常弹窗）</div>
+<div class="screen"><div class="chrome"><span class="d d1"></span><span class="d d2"></span><span class="d d3"></span><div class="url">https://lims.envlab.com/test/data-entry</div></div>
+<div class="modal-wrap">
+<div class="app">
+  <div class="aside"><div class="logo"><i>环</i>环境监测LIMS</div>
+    <div class="nav"><div>◧ 工作台</div><div>▤ 委托管理</div><div>⛟ 采样订单</div><div>⚱ 样品管理</div><div class="on">⚗ 检测管理</div><div>◉ 质控管理</div><div>⚙ 物资仪器</div><div>▦ 报告管理</div><div>▣ 档案台账</div><div>◫ 统计大屏</div></div></div>
+  <div class="amain">
+    <div class="atop"><span class="bc">检测管理 / 数据录入 · 批次 PC-20260730-03（COD 重铬酸盐法 HJ 828-2017）</span><span class="sp"></span><span class="btn">仪器数据导入</span><span class="btn pri">提交批次</span></div>
+    <div class="abody">
+      <div class="tbar">
+        <span class="tg green">检测人：李明（已授权 COD/HJ 828）</span>
+        <span class="tg blue">仪器：滴定管 DG-12（校准有效期至 2027-01）</span>
+        <span class="tg purple">标准曲线：r=0.9996 ✔</span>
+        <span class="sp"></span><span class="btn ghost">查看计算公式</span>
+      </div>
+      <table class="mtable">
+        <tr><th>样品条码</th><th>类型</th><th>稀释倍数</th><th>测定值</th><th>空白扣除后浓度 mg/L</th><th>限值 mg/L</th><th>判定</th><th>状态</th></tr>
+        <tr><td>SP-…012-01-A</td><td><span class="tg blue">检测样</span></td><td class="num">5</td><td class="num">31.2</td><td class="num" style="color:#e02424;font-weight:800;">156.0 ▲</td><td class="num">100（GB 8978 一级）</td><td><span class="tg red">超标 1.56 倍</span></td><td><span class="tg orange">需异常说明</span></td></tr>
+        <tr><td>SP-…012-01-B</td><td><span class="tg purple">现场平行</span></td><td class="num">5</td><td class="num">33.8</td><td class="num">169.0</td><td class="num">—</td><td><span class="tg red">相对偏差 8.0% ＞5%</span></td><td><span class="tg red">质控不合格</span></td></tr>
+        <tr><td>SP-…012-03-A</td><td><span class="tg blue">检测样</span></td><td class="num">1</td><td class="num">18.6</td><td class="num">18.6</td><td class="num">100</td><td><span class="tg green">达标</span></td><td><span class="tg green">已确认</span></td></tr>
+        <tr><td>LAB-BK-0730-1</td><td><span class="tg orange">实验室空白</span></td><td class="num">1</td><td class="num">0.4</td><td class="num">＜检出限(4)</td><td class="num">—</td><td><span class="tg green">合格</span></td><td><span class="tg green">已确认</span></td></tr>
+        <tr><td>QC-JB-0730-1</td><td><span class="tg cyan">加标回收</span></td><td class="num">1</td><td class="num">—</td><td class="num">回收率 96.5%</td><td class="num">80~120%</td><td><span class="tg green">合格</span></td><td><span class="tg green">已确认</span></td></tr>
+      </table>
+      <div style="font-size:10.5px;color:var(--sub);margin-top:6px;">* 浓度、空白扣除、偏差、回收率均由系统按标准库公式自动计算，测定值一经提交不可修改（修改需走复测流程并留痕）</div>
+    </div>
+  </div>
+</div>
+<div class="dim">
+  <div class="modal" style="width:430px;">
+    <div class="mh" style="color:#c81e1e;">⚠ 质控异常拦截 · 禁止提交</div>
+    <div class="mb">
+      <p style="margin-bottom:8px;">样品 <b>SP-20260729-012-01</b>：现场平行样相对偏差 <b style="color:#e02424">8.0%</b>，超过 HJ 828-2017 允许限 <b>≤5%</b>。</p>
+      <div class="callout risk" style="margin:0 0 10px;">该组数据已被系统锁定，不会进入报告编制流程。请选择处理方式：</div>
+      <div class="frow" style="margin-bottom:6px;"><div class="fitem"><div class="fl req">处理方式</div><div class="fbox">发起复测（重新分样测定）▾</div></div></div>
+      <div class="frow" style="margin-bottom:0;"><div class="fitem"><div class="fl req">异常原因说明</div><div class="fbox ph">必填：如样品均匀性、移液操作偏差分析等…</div></div></div>
+    </div>
+    <div class="mf"><span class="btn">暂存</span><span class="btn pri" style="background:#e02424;border-color:#e02424;">提交异常说明并发起复测</span></div>
+  </div>
+</div>
+</div></div></div>
+<div class="notes"><b>设计说明：</b><ol>
+<li>进入录入页前双重校验：① 检测人是否持有该「项目 + 方法」授权；② 所用仪器校准是否在有效期。任一不满足直接拦截；</li>
+<li>超标结果红色加粗 + ▲ 标识并自动写入超标点位台账，触发站内信/短信预警；</li>
+<li>质控不合格（平行偏差、空白异常、回收率超限、曲线 r 不达标）触发强制拦截弹窗：无异常说明与复测记录无法提交——对应 BRD 合规硬约束 §5.2；</li>
+<li>仪器导入的原始谱图/数据文件作为附件随批次存档，可供评审调阅；</li>
+<li>实验环境（温度/湿度/压力/洁净度）作为原始记录的强制组成部分随批次留存（G7），检测前系统提示检测员核对环境条件，CMA 评审要求项；</li>
+<li>检测作业指导书(SOP)与质量控制计划分别见 §6.11、§6.12，检测录入时可关联对应 SOP 作为操作依据。</li></ol></div>
+
+<!-- 6.8 物资仪器 -->
+<h3 id="m7"><span class="no">6.8</span>仪器 / 标物 / 试剂 / 危化品物资管理</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>仪器台账与校准</td><td>全仪器建档；校准周期、证书上传、到期预警；使用/维修/停用登记；与检测任务自动关联统计使用率</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>标准物质</td><td>入库/领用/归还登记，配制标定记录电子化；有效期预警，过期禁止领用；证书统一存储</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>试剂与危化品</td><td>出入库申领、库存不足预警；危化品双人双锁领用登记；过期报废审批；废液处置台账</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>耗材管理</td><td>滤膜/滤筒/采样瓶等库存、采购申请、出入库、消耗统计</td><td><span class="pri p1">P1</span></td></tr>
+</table>
+
+<div class="figure"><div class="fig-title">界面设计图 6-9：仪器设备台账（含校准预警）</div>
+<div class="screen"><div class="chrome"><span class="d d1"></span><span class="d d2"></span><span class="d d3"></span><div class="url">https://lims.envlab.com/asset/instrument</div></div>
+<div class="app" style="min-height:0;">
+  <div class="amain">
+    <div class="atop"><span class="bc">物资仪器 / 仪器设备台账</span><span class="sp"></span><span class="btn ghost">导出校准台账</span><span class="btn pri">＋ 新增仪器</span></div>
+    <div class="abody">
+      <div class="stats">
+        <div class="stat"><div class="lb">在用仪器</div><div class="v">86<small>台</small></div></div>
+        <div class="stat"><div class="lb">30日内校准到期</div><div class="v" style="color:#f59e0b">5<small>台</small></div></div>
+        <div class="stat"><div class="lb">已过期停用</div><div class="v" style="color:#e02424">2<small>台</small></div></div>
+        <div class="stat"><div class="lb">本月平均使用率</div><div class="v">63<small>%</small></div></div>
+      </div>
+      <table class="mtable">
+        <tr><th>仪器编号</th><th>名称 / 型号</th><th>类别</th><th>校准有效期</th><th>校准证书</th><th>状态</th><th>本月使用率</th><th>操作</th></tr>
+        <tr><td>YQ-021</td><td>气相色谱仪 GC-2030</td><td>分析仪器</td><td>2027-03-15</td><td class="lk">📎 证书2026-118</td><td><span class="tg green">在用</span></td><td class="num">78%</td><td><span class="lk">使用记录</span></td></tr>
+        <tr><td>YQ-034</td><td>原子吸收分光光度计 AA-320</td><td>分析仪器</td><td style="color:#b45309;font-weight:700;">2026-08-05 ⏰</td><td class="lk">📎 证书2025-206</td><td><span class="tg orange">校准临期</span></td><td class="num">65%</td><td><span class="lk">发起校准</span></td></tr>
+        <tr><td>YQ-057</td><td>便携流速仪 LS-05</td><td>采样设备</td><td style="color:#c81e1e;font-weight:700;">2026-07-12 已过期</td><td class="lk">📎 证书2025-091</td><td><span class="tg red">强制停用</span></td><td class="num">—</td><td><span class="lk">校准登记</span></td></tr>
+        <tr><td>YQ-062</td><td>紫外可见分光光度计 UV-1800</td><td>分析仪器</td><td>2026-12-20</td><td class="lk">📎 证书2026-042</td><td><span class="tg green">在用</span></td><td class="num">82%</td><td><span class="lk">使用记录</span></td></tr>
+        <tr><td>YQ-070</td><td>烟尘烟气测试仪 3012H</td><td>采样设备</td><td>2027-01-08</td><td class="lk">📎 证书2026-077</td><td><span class="tg gray">维修中</span></td><td class="num">31%</td><td><span class="lk">维修记录</span></td></tr>
+      </table>
+      <div class="callout warn" style="margin-top:10px;">规则：校准到期前 30/15/7 天三级预警推送设备管理员；<b>过期仪器自动置为「强制停用」</b>，在派单、数据录入环节均不可被选用（合规闸门）。危化品领用需双人电子签名确认（领用人 + 监督人），领用台账自动生成。</div>
+    </div>
+  </div>
+</div></div></div>
+
+<!-- 6.9 报告 -->
+<h3 id="m8"><span class="no">6.9</span>报告编制与三级审核签发</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>报告自动生成</td><td>自动汇总检测数据、质控信息、点位信息，套用标准模板自动填充并标注超标项</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>模板自定义</td><td>页眉页脚、企业标识、备注说明可配置，支持多套模板</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>三级审核</td><td>检测自审 → 审核员复核 → 授权签字人签发；可驳回并必填意见，驳回退回检测环节</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>电子签章</td><td>三级电子签名 + CMA 章 / 检验检测专用章电子签章，符合 CMA 电子记录要求</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>报告档案</td><td>统一编号、PDF 自动存档、在线预览、批量导出打印、历史版本留痕</td><td><span class="pri p0">P0</span></td></tr>
+<tr><td>对外上报/客户查询</td><td>监管平台接口上报、批量数据报表导出；客户账号在线查进度、下载报告</td><td><span class="pri p1">P1</span></td></tr>
+</table>
+
+<div class="figure"><div class="fig-title">界面设计图 6-10：报告审核页（三级审核 + 溯源）</div>
+<div class="screen"><div class="chrome"><span class="d d1"></span><span class="d d2"></span><span class="d d3"></span><div class="url">https://lims.envlab.com/report/review/RP-2026-0703</div></div>
+<div class="app">
+  <div class="aside"><div class="logo"><i>环</i>环境监测LIMS</div>
+    <div class="nav"><div>◧ 工作台</div><div>▤ 委托管理</div><div>⛟ 采样订单</div><div>⚱ 样品管理</div><div>⚗ 检测管理</div><div>◉ 质控管理</div><div>⚙ 物资仪器</div><div class="on">▦ 报告管理</div><div>▣ 档案台账</div><div>◫ 统计大屏</div></div></div>
+  <div class="amain">
+    <div class="atop"><span class="bc">报告管理 / 审核 · RP-2026-0703</span><span class="sp"></span><span class="btn">操作记录</span><span class="btn ghost">一键溯源</span></div>
+    <div class="abody" style="display:flex;gap:10px;">
+      <div style="flex:1.6;background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;">
+        <div style="text-align:center;border-bottom:2px solid #1f2937;padding-bottom:10px;">
+          <div style="font-size:15px;font-weight:800;letter-spacing:2px;">监 测 报 告</div>
+          <div style="font-size:10px;color:var(--sub);margin-top:2px;">报告编号：HJ-JC-2026-0703 　CMA 资质认定证书号：2026***01Z</div>
+        </div>
+        <table class="mtable" style="margin-top:10px;border-radius:0;">
+          <tr><td style="width:90px;color:var(--sub);">委托单位</td><td>华宇化工科技有限公司</td><td style="width:80px;color:var(--sub);">监测类别</td><td>工业废水</td></tr>
+          <tr><td style="color:var(--sub);">采样日期</td><td>2026-07-29</td><td style="color:var(--sub);">分析日期</td><td>2026-07-29 ~ 07-30</td></tr>
+        </table>
+        <table class="mtable" style="margin-top:8px;">
+          <tr><th>点位</th><th>项目</th><th>结果 mg/L</th><th>限值</th><th>判定</th></tr>
+          <tr><td>DW-01 总排口</td><td>pH</td><td class="num">7.32</td><td class="num">6~9</td><td><span class="tg green">达标</span></td></tr>
+          <tr><td>DW-01 总排口</td><td>COD</td><td class="num" style="color:#e02424;font-weight:800;">156 ▲</td><td class="num">100</td><td><span class="tg red">超标</span></td></tr>
+          <tr><td>DW-01 总排口</td><td>氨氮</td><td class="num">8.6</td><td class="num">15</td><td><span class="tg green">达标</span></td></tr>
+          <tr><td>DW-02 车间排口</td><td>总铬</td><td class="num">0.42</td><td class="num">1.0</td><td><span class="tg green">达标</span></td></tr>
+        </table>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:10.5px;color:var(--sub);">
+          <span>编制：李明 ✍(已签) 07-30 14:20</span><span>审核：周敏 ✍(待签)</span><span>批准：吴国强 ✍(待签)</span>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+        <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:8px;">审核流程</div>
+          <div style="font-size:11px;line-height:2;">
+            <div>✅ <b>检测自审</b> 李明 · 07-30 14:20 <span class="tg green">通过</span></div>
+            <div>🔵 <b>审核员复核</b> 周敏 · 进行中 <span class="tg blue">当前节点</span></div>
+            <div>⚪ <b>授权签字人签发</b> 吴国强 · 待处理</div>
+          </div>
+          <div class="callout" style="margin:8px 0 0;font-size:11px;">质控核查：本批次现场空白/运输空白/平行样/加标回收共 9 项质控 <b>全部合格</b>，允许签发。</div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px;">审核意见</div>
+          <div class="fbox ph" style="min-height:52px;">超标项 COD 已核对原始记录与复测数据，建议在结论中注明超标倍数…</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <span class="btn" style="flex:1;text-align:center;color:#c81e1e;border-color:#f3b6b6;">✖ 驳回（必填意见）</span>
+            <span class="btn pri" style="flex:1;text-align:center;">✔ 复核通过并电子签名</span>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:11px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px;">溯源链</div>
+          委托 WT-20260729-011 → 订单 CY-20260729-012 → 样品 14 份 → 原始数据批次 3 个 → 质控记录 9 条 → 现场照片 18 张 <span class="lk">全部查看</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+<div class="notes"><b>设计说明：</b><ol>
+<li>审核页左侧实时预览报告 PDF 版式，右侧为流程与操作区，超标项在报告与审核页同步标红；</li>
+<li>签发前系统自动出具「质控核查结论」，存在不合格质控时签发按钮禁用（灰化 + 原因提示）；</li>
+<li>驳回必填意见，报告退回检测自审环节，全部驳回轨迹留痕；签发后自动生成盖章 PDF 归档、推送客户账号，可同步上报监管平台；</li>
+<li>报告修改需走版本变更：旧版本保留可查，新版本重新走三级审核。</li></ol></div>
+
+<!-- 6.10 大屏 -->
+<h3 id="m9"><span class="no">6.10</span>统计分析与实验室可视化大屏</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>经营/业务统计</td><td>订单总量、营收、客户占比；样品数量、项目工作量、月/季度超标率，导出 Excel/PDF</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>人员绩效</td><td>采样/检测人员任务完成量、工作量考核报表</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>物资统计</td><td>仪器使用率、试剂耗材消耗统计</td><td><span class="pri p2">P2</span></td></tr>
+<tr><td>可视化大屏</td><td>点位分布地图、在途任务、待检样品、超标实时预警、质控合格率、校准提醒、月度业务总量；支持投屏</td><td><span class="pri p1">P1</span></td></tr>
+</table>
+
+<div class="figure"><div class="fig-title">界面设计图 6-11：实验室管理可视化大屏</div>
+<div class="screen"><div class="chrome"><span class="d d1"></span><span class="d d2"></span><span class="d d3"></span><div class="url">https://lims.envlab.com/bigscreen（1920×1080 投屏模式）</div></div>
+<div class="bigscreen">
+  <div class="bs-head">环境监测实验室智慧运营中心</div>
+  <div class="bs-grid">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="bs-panel"><div class="bt">本月业务总量</div>
+        <div class="bs-num">
+          <div><div class="n">128</div><div class="l">委托订单</div></div>
+          <div><div class="n">1,462</div><div class="l">样品数</div></div>
+          <div><div class="n">5,830</div><div class="l">检测项次</div></div>
+          <div><div class="n or">23</div><div class="l">待发报告</div></div>
+        </div>
+      </div>
+      <div class="bs-panel"><div class="bt">监测类别样品分布</div>
+        <div class="bar"><span class="bl">工业废水</span><div class="btrack"><div class="bfill" style="width:86%;"></div></div><span class="bv">412</span></div>
+        <div class="bar"><span class="bl">地表水</span><div class="btrack"><div class="bfill" style="width:64%;"></div></div><span class="bv">308</span></div>
+        <div class="bar"><span class="bl">废气</span><div class="btrack"><div class="bfill" style="width:52%;"></div></div><span class="bv">246</span></div>
+        <div class="bar"><span class="bl">土壤</span><div class="btrack"><div class="bfill" style="width:40%;"></div></div><span class="bv">189</span></div>
+        <div class="bar"><span class="bl">噪声</span><div class="btrack"><div class="bfill" style="width:24%;"></div></div><span class="bv">117</span></div>
+      </div>
+      <div class="bs-panel"><div class="bt">质控合格率趋势</div>
+        <div class="bar"><span class="bl">5月</span><div class="btrack"><div class="bfill" style="width:97%;background:linear-gradient(90deg,#059669,#4ade80);"></div></div><span class="bv">98.7%</span></div>
+        <div class="bar"><span class="bl">6月</span><div class="btrack"><div class="bfill" style="width:98%;background:linear-gradient(90deg,#059669,#4ade80);"></div></div><span class="bv">98.9%</span></div>
+        <div class="bar"><span class="bl">7月</span><div class="btrack"><div class="bfill" style="width:99%;background:linear-gradient(90deg,#059669,#4ade80);"></div></div><span class="bv">99.2%</span></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="bs-panel" style="flex:1;"><div class="bt">监测点位分布 & 在途采样任务</div>
+        <div class="map">
+          <span class="dotp dg" style="top:30%;left:24%;"></span><span class="maplb" style="top:33%;left:20%;">城东断面 ✓</span>
+          <span class="dotp dr" style="top:48%;left:55%;"></span><span class="maplb" style="top:51%;left:50%;">华宇化工 G12 ▲超标</span>
+          <span class="dotp dy" style="top:66%;left:36%;"></span><span class="maplb" style="top:69%;left:31%;">绿源污水厂 采样中</span>
+          <span class="dotp dg" style="top:26%;left:70%;"></span><span class="maplb" style="top:29%;left:66%;">金田电镀 ✓</span>
+          <span class="dotp dy" style="top:74%;left:66%;"></span><span class="maplb" style="top:77%;left:61%;">宏达建材 在途</span>
+        </div>
+        <div style="display:flex;justify-content:space-around;margin-top:8px;">
+          <span>🟢 达标点位 41</span><span>🔴 超标点位 7</span><span>🟡 在途/采样中 6</span>
+        </div>
+      </div>
+      <div class="bs-panel"><div class="bt">实验室实时状态</div>
+        <div class="bs-num">
+          <div><div class="n">86</div><div class="l">待检样品</div></div>
+          <div><div class="n gn">256</div><div class="l">检测中</div></div>
+          <div><div class="n or">14</div><div class="l">待复测</div></div>
+          <div><div class="n">63%</div><div class="l">仪器使用率</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="bs-panel" style="flex:1;"><div class="bt">超标数据实时预警</div>
+        <div class="tick"><span>11:42 华宇化工 COD</span><span class="rd">156 / 限100 ▲</span></div>
+        <div class="tick"><span>10:18 城南排口 氨氮</span><span class="rd">18.2 / 限15 ▲</span></div>
+        <div class="tick"><span>09:55 3#烟囱 SO₂</span><span class="rd">312 / 限200 ▲</span></div>
+        <div class="tick"><span>09:02 绿源出水 总磷</span><span class="gn">0.38 / 限0.5 ✓复核达标</span></div>
+      </div>
+      <div class="bs-panel"><div class="bt">到期提醒</div>
+        <div class="tick"><span>仪器校准临期</span><span class="or" style="color:#fbbf24;">5 台</span></div>
+        <div class="tick"><span>标物临期/过期</span><span class="or" style="color:#fbbf24;">3 批</span></div>
+        <div class="tick"><span>留样 3 日内到期</span><span class="or" style="color:#fbbf24;">12 份</span></div>
+        <div class="tick"><span>试剂库存不足</span><span class="or" style="color:#fbbf24;">4 种</span></div>
+      </div>
+      <div class="bs-panel"><div class="bt">本月人员绩效 TOP3</div>
+        <div class="bar"><span class="bl">李明</span><div class="btrack"><div class="bfill" style="width:92%;background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div><span class="bv">386项</span></div>
+        <div class="bar"><span class="bl">周婷</span><div class="btrack"><div class="bfill" style="width:78%;background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div><span class="bv">324项</span></div>
+        <div class="bar"><span class="bl">张强</span><div class="btrack"><div class="bfill" style="width:66%;background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div><span class="bv">271项</span></div>
+      </div>
+    </div>
+  </div>
+</div></div></div>
+<div class="notes"><b>设计说明：</b><ol>
+<li>大屏为深色专用主题（区别于业务端浅色），适配 1920×1080 投屏，数据 30 秒自动轮询刷新；</li>
+<li>超标预警滚动播报并联动地图点位闪烁；点击点位可下钻至该点位历史监测曲线；</li>
+<li>所有统计报表在 PC 端均可导出 Excel / PDF。</li></ol></div>
+</section>
+
+<!-- ============ 7 权限矩阵 ============ -->
+<section id="c7">
+<h2>7. 角色权限矩阵</h2>
+<p class="desc">● 完整权限（含新增/编辑/审批）　◐ 部分权限（仅查看/仅本人相关）　— 无权限。新增、编辑、删除、查看、导出、打印、审批可在角色配置中逐项细分。</p>
+<table class="mx">
+<tr><th style="text-align:left;">功能模块</th><th>系统管理员</th><th>业务接单员</th><th>采样员</th><th>样品管理员</th><th>检测员</th><th>审核员</th><th>授权签字人</th><th>档案管理员</th><th>客户账号</th></tr>
+<tr><td>客户与委托管理</td><td class="yes">●</td><td class="yes">●</td><td class="half">◐</td><td class="no">—</td><td class="no">—</td><td class="half">◐</td><td class="half">◐</td><td class="half">◐</td><td class="half">◐本单位</td></tr>
+<tr><td>采样调度派单</td><td class="yes">●</td><td class="yes">●</td><td class="half">◐本人任务</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+<tr><td>微信小程序外勤采样</td><td class="half">◐</td><td class="no">—</td><td class="yes">●</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td></tr>
+<tr><td>收样 / 分样 / 留样</td><td class="yes">●</td><td class="no">—</td><td class="half">◐送检</td><td class="yes">●</td><td class="half">◐领样</td><td class="half">◐查看</td><td class="half">◐查看</td><td class="no">—</td><td class="no">—</td></tr>
+<tr><td>检测数据录入</td><td class="half">◐配置</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">●授权项目</td><td class="half">◐复核</td><td class="half">◐查看</td><td class="no">—</td><td class="no">—</td></tr>
+<tr><td>质控管理</td><td class="half">◐规则配置</td><td class="no">—</td><td class="half">◐现场质控</td><td class="no">—</td><td class="yes">●</td><td class="yes">●判定复核</td><td class="half">◐查看</td><td class="half">◐台账</td><td class="no">—</td></tr>
+<tr><td>仪器物资危化品</td><td class="yes">●</td><td class="no">—</td><td class="half">◐设备领用</td><td class="half">◐</td><td class="half">◐领用</td><td class="no">—</td><td class="no">—</td><td class="yes">●</td><td class="no">—</td></tr>
+<tr><td>报告编制 / 审核 / 签发</td><td class="half">◐模板配置</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">●编制自审</td><td class="yes">●复核</td><td class="yes">●签发</td><td class="half">◐归档</td><td class="half">◐下载</td></tr>
+<tr><td>电子档案 / 合规台账</td><td class="yes">●</td><td class="half">◐</td><td class="no">—</td><td class="half">◐</td><td class="half">◐</td><td class="half">◐</td><td class="half">◐</td><td class="yes">●</td><td class="no">—</td></tr>
+<tr><td>统计报表 / 大屏</td><td class="yes">●</td><td class="half">◐经营</td><td class="half">◐本人绩效</td><td class="half">◐</td><td class="half">◐本人绩效</td><td class="half">◐</td><td class="yes">●</td><td class="half">◐</td><td class="no">—</td></tr>
+<tr><td>系统设置 / 审计日志</td><td class="yes">●</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="half">◐日志查看</td><td class="no">—</td><td class="no">—</td></tr>
+<tr><td>作业指导书(SOP)管理</td><td class="yes">●</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="half">◐查看</td><td class="yes">●审核</td><td class="half">◐</td><td class="no">—</td><td class="no">—</td></tr>
+<tr><td>质控计划 / 能力验证</td><td class="yes">●</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">●登记</td><td class="yes">●</td><td class="yes">●审批</td><td class="half">◐台账</td><td class="no">—</td></tr>
+</table>
+<div class="callout">硬性规则：① 检测资质授权到「人员 × 项目 × 方法」粒度，未授权即拦截；② 审计日志任何角色不可删除修改；③ 涉密监测数据需单独授权方可查看/导出，导出动作全部留痕。</div>
+
+<!-- 6.11 SOP 管理 -->
+<h3 id="m10"><span class="no">6.11</span>检测作业指导书(SOP)管理</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>SOP 编制与维护</td><td>按「监测类别 × 检测项目 × 标准方法」组织 SOP，描述采样/检测操作步骤、仪器、试剂、质控要求；支持多版本</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>受控发布与版本管理</td><td>SOP 经技术负责人审核后发布为受控文件；旧版置作废并保留溯源，新版本发布后旧版不得被新任务引用</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>方法关联与引用</td><td>SOP 关联标准方法，采样（§6.4）与检测录入（§6.7）时可调阅对应 SOP 作为操作依据</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>SOP 受控查阅</td><td>按监测类别/项目/方法检索在用 SOP；正文文件只读防篡改，权限受控</td><td><span class="pri p2">P2</span></td></tr>
+</table>
+<div class="notes"><b>设计说明：</b><ol>
+<li>SOP 作为受控技术文件，正文落服务器文件系统（只读+哈希），修改生成新版本而非覆盖，满足受控文件不可篡改（对应 TRD 5.11）；</li>
+<li>一个标准方法可有多份 SOP（如不同介质），由类别区分；发布须经技术负责人审核，草稿不可直接用于指导检测；</li>
+<li>与标准库联动，通过方法唯一关联，避免操作依据与现行标准脱节。</li></ol></div>
+
+<!-- 6.12 质控计划与能力验证 -->
+<h3 id="m11"><span class="no">6.12</span>质量控制计划与能力验证管理</h3>
+<table class="doc">
+<tr><th style="width:170px">功能点</th><th>需求描述</th><th style="width:70px">优先级</th></tr>
+<tr><td>质量控制计划</td><td>按年度/季度编制质控计划，明确监控类型（空白/平行/加标回收/留样复测等）、覆盖项目、责任人与频次</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>监控活动登记</td><td>按计划执行监控活动并登记结果，与 §6.7 批次级质控判定联动</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>能力验证 / 比对</td><td>登记外部能力验证、实验室间比对结果（机构/项目/结果/证书），纳入能力画像</td><td><span class="pri p1">P1</span></td></tr>
+<tr><td>重复性试验</td><td>登记内部重复性试验结果（首次值/重复值/偏差/结论），支撑方法稳定性评估</td><td><span class="pri p2">P2</span></td></tr>
+<tr><td>人员/方法能力画像</td><td>汇总能力验证/比对/重复试验结果，生成人员与方法的检测能力画像，不合格触发资质复核</td><td><span class="pri p1">P1</span></td></tr>
+</table>
+<div class="notes"><b>设计说明：</b><ol>
+<li>质控计划审批后进入执行，监控活动须归属计划（临时活动可标注）；计划/活动状态机固定审批（对应 TRD 5.12）；</li>
+<li>能力验证/实验室间比对不合格触发人员资质复核（§7 权限矩阵），结果写入人员/方法能力画像，影响派单与录入资质闸门；</li>
+<li>与 §6.7 检测质控、§7 人员资质构成「计划—执行—判定—能力」闭环，满足 CMA 质量体系要求。</li></ol></div>
+
+</section>
+
+<!-- ============ 8 非功能 ============ -->
+<section id="c8">
+<h2>8. 非功能性需求</h2>
+<table class="doc">
+<tr><th style="width:110px">类别</th><th>需求</th><th style="width:220px">设计/验收口径</th></tr>
+<tr><td rowspan="3">性能</td><td>单实验室 ≥200 人同时在线</td><td>并发压测 200 用户，无错误率上升</td></tr>
+<tr><td>样品/报告/台账查询响应 ≤3 秒</td><td>百万级数据量下 P95 ≤3s</td></tr>
+<tr><td>批量导出上万条台账无卡顿</td><td>异步导出 + 进度提示 + 完成通知</td></tr>
+<tr><td rowspan="4">安全</td><td>账号分级、锁定、登录日志</td><td>连续 5 次错误锁定；登录日志可查</td></tr>
+<tr><td>原始数据修改留痕、不可物理删除</td><td>仅逻辑作废，变更前后值全留存</td></tr>
+<tr><td>涉密数据隔离，禁止随意外发</td><td>涉密标记 + 独立授权 + 导出审计</td></tr>
+<tr><td>定时备份 + 异地备份</td><td>每日自动备份，备份文件可导出</td></tr>
+<tr><td rowspan="2">易用性</td><td>贴合实验室操作习惯、减少复杂操作</td><td>高频操作 ≤3 步完成；扫码代替手输</td></tr>
+<tr><td>标准化打印模板 + 在线帮助</td><td>模板免调格式直接打印；内置操作指引</td></tr>
+<tr><td rowspan="2">兼容性</td><td>PC 主流浏览器、微信小程序（iOS/Android 微信客户端）</td><td>Chrome/Edge/国产浏览器；微信 8.0+（Android 9+ / iOS 13+）</td></tr>
+<tr><td>导出文件通用格式</td><td>Excel（xlsx）、PDF、Word 兼容 Office/WPS</td></tr>
+</table>
+</section>
+
+<!-- ============ 9 合规与验收 ============ -->
+<section id="c9">
+<h2>9. 合规硬约束与交付验收标准</h2>
+<h3><span class="no">9.1</span>合规硬约束（系统级强制，不可配置绕过）</h3>
+<ul class="pts">
+<li>全流程操作留痕，满足 CMA 数据溯源要求（日志不可删改）；</li>
+<li>质控流程不可跳过，<b style="color:#c81e1e">质控不合格数据禁止出具正式报告</b>（系统锁定）；</li>
+<li>人员资质与检测项目强绑定，无授权不可开展对应检测；</li>
+<li>仪器/标物/危化品有效期强制预警，过期物资禁止投入业务使用；</li>
+<li>采样、收样、检测、审核、批准流程不可逆驳回，所有修改记录可查；</li>
+<li>电子记录、电子签名完整可追溯，可直接用于资质评审、环保督查。</li>
+</ul>
+<h3><span class="no">9.2</span>交付验收标准</h3>
+<table class="doc">
+<tr><th style="width:60px">序号</th><th>验收项</th><th>验收方式</th></tr>
+<tr><td>1</td><td>覆盖十大模块功能，无核心能力缺失</td><td>对照 BRD 功能清单逐项核验</td></tr>
+<tr><td>2</td><td>委托 → 报告归档全业务闭环演示</td><td>端到端流程演示（含微信小程序采样）</td></tr>
+<tr><td>3</td><td>自动生成全套合规台账、一键导出 CMA 评审资料</td><td>按年度/类别筛选导出打包验证</td></tr>
+<tr><td>4</td><td>仪器数据采集、微信小程序采样、监管平台对接可用</td><td>实际仪器/平台联调验证</td></tr>
+<tr><td>5</td><td>各类到期、超标预警机制正常触发</td><td>构造临期/超标数据触发验证</td></tr>
+<tr><td>6</td><td>全链路溯源正常，报告可反查现场采样记录</td><td>抽样报告执行反向溯源</td></tr>
+</table>
+<h3><span class="no">9.3</span>迭代规划建议</h3>
+<div class="flow">
+  <span class="step">一期（P0）<br><small style="font-weight:400;">委托订单 / 移动采样 / 样品 / 检测质控 / 报告三审 / 权限审计</small></span><span class="arrow">→</span>
+  <span class="step">二期（P1）<br><small style="font-weight:400;">物资全模块 / 台账档案 / 统计报表 / 客户门户 / 大屏</small></span><span class="arrow">→</span>
+  <span class="step gray">三期（P2）<br><small style="font-weight:400;">仪器深度对接 / 监管平台上报 / ERP集成 / 开放API</small></span>
+</div>
+</section>
+
+<footer>环境监测实验室 LIMS 系统 · PRD 产品设计文档 V1.0 · 界面图均为设计示意，最终以高保真交互稿为准</footer>
+</div>
+</div>
+</body>
+</html>

@@ -384,3 +384,307 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_api_token_value ON sys_api_token(token_val
 -- =====================================================================
 ALTER TABLE wf_task ADD COLUMN reason TEXT;
 ALTER TABLE wf_task ADD COLUMN actual_operator_id TEXT;
+
+-- =====================================================================
+-- 环境监测 LIMS 基础数据（ISSUE-022）—— 独立业务域，表前缀 t_
+-- 与既有 wf_/sys_ 流程引擎表互不耦合
+-- =====================================================================
+
+-- 客户档案（TRD 5.1）
+CREATE TABLE IF NOT EXISTS t_customer (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    cust_no       TEXT,
+    cust_name     TEXT NOT NULL,
+    credit_code   TEXT,
+    contact       TEXT,
+    tel           TEXT,
+    invoice_title TEXT,
+    tax_no        TEXT,
+    qual_file_id  INTEGER,
+    city          TEXT,               -- 所在城市
+    address       TEXT,               -- 办公地址
+    status        INTEGER DEFAULT 1,   -- 1-启用 0-停用
+    create_time   TEXT,
+    update_time   TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_unique ON t_customer(cust_name, credit_code);
+
+-- 监测点位（TRD 5.1）
+CREATE TABLE IF NOT EXISTS t_monitor_point (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    cust_id          INTEGER,
+    entrust_id       INTEGER,
+    point_no         TEXT,
+    point_name       TEXT NOT NULL,
+    lng              REAL,
+    lat              REAL,
+    point_type       TEXT,
+    condition        TEXT,
+    history_over_flag INTEGER DEFAULT 0,
+    create_time      TEXT,
+    update_time      TEXT
+);
+
+-- 委托单主数据框架（TRD 5.1，完整状态机见 ISSUE-023）
+CREATE TABLE IF NOT EXISTS t_entrust (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    entrust_no   TEXT,
+    cust_id      INTEGER,
+    entrust_name TEXT,
+    source       TEXT,
+    status       TEXT DEFAULT '草稿',  -- 草稿/待技术确认/已确认/已退回
+    description   TEXT,                -- 委托说明（富文本）
+    submit_by    TEXT,
+    create_time  TEXT,
+    update_time  TEXT
+);
+
+-- ===== ISSUE-023 监测任务管理（TRD 5.1 委托 / 5.2 采样调度） =====
+-- 委托明细（监测项目/执行标准/频次/样品要求/限值）
+CREATE TABLE IF NOT EXISTS t_entrust_detail (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    entrust_id   INTEGER,
+    item         TEXT,
+    standard_id  INTEGER,
+    freq         TEXT,
+    sample_req   TEXT,
+    limit_val    TEXT,
+    create_time  TEXT,
+    update_time  TEXT
+);
+-- 技术确认记录（BR-023-01）
+CREATE TABLE IF NOT EXISTS t_entrust_review (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    entrust_id   INTEGER,
+    reviewer_id  INTEGER,
+    opinion      TEXT,
+    result       TEXT,   -- PASS-通过 / REJECT-退回
+    review_at    TEXT
+);
+-- 采样订单（BR-023-02 拆单生成，状态机核心）
+CREATE TABLE IF NOT EXISTS t_sampling_order (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_no     TEXT,
+    entrust_id   INTEGER,
+    point_id     INTEGER,
+    plan_date    TEXT,
+    sampler_lead TEXT,
+    status       TEXT DEFAULT '待派单',  -- 待派单/已派单/采样执行中/样品送检/实验室检测中/报告编制/归档完成
+    create_time  TEXT,
+    update_time  TEXT
+);
+-- 调度派单主表（TRD 5.2）
+CREATE TABLE IF NOT EXISTS t_dispatch (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id     INTEGER,
+    status       TEXT DEFAULT '待派单',  -- 待派单/已派单/采样执行中/样品送检
+    dispatch_time TEXT,
+    plan_start   TEXT,
+    plan_end     TEXT,
+    vehicle_id   INTEGER,
+    note         TEXT,
+    create_time  TEXT,
+    update_time  TEXT
+);
+CREATE TABLE IF NOT EXISTS t_dispatch_member (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    dispatch_id  INTEGER,
+    emp_id       INTEGER,
+    role         TEXT    -- LEAD-负责 / MEMBER-组员
+);
+CREATE TABLE IF NOT EXISTS t_dispatch_device (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    dispatch_id  INTEGER,
+    instrument_id INTEGER
+);
+-- 采样人员（ISSUE-023 派单资源；030 人员体系基础）
+CREATE TABLE IF NOT EXISTS t_employee (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT,
+    phone        TEXT,
+    qual_file_id INTEGER,
+    qual_due     TEXT,   -- 资质有效期（闸门校验）
+    status       INTEGER DEFAULT 1,
+    create_time  TEXT,
+    update_time  TEXT
+);
+-- 采样设备/仪器（校准有效期闸门）
+CREATE TABLE IF NOT EXISTS t_instrument (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    code           TEXT,   -- 仪器编号(YQ前缀)
+    name           TEXT,
+    model          TEXT,
+    manufacturer   TEXT,   -- 生产厂商
+    purchase_date  TEXT,   -- 购置日期
+    calib_due      TEXT,   -- 校准到期日（物资闸门：过期强制停用）
+    last_calib_date TEXT,  -- 上次校准日期
+    cert_no        TEXT,   -- 校准证书编号
+    status         TEXT DEFAULT '在用',  -- 在用/临期/停用/维修/报废
+    remark         TEXT,
+    create_time    TEXT,
+    update_time    TEXT
+);
+
+-- 组织机构/部门（TRD 5.10）
+CREATE TABLE IF NOT EXISTS t_department (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    dept_no     TEXT,
+    dept_name   TEXT NOT NULL,
+    parent_id   INTEGER DEFAULT 0,
+    leader_id   INTEGER,
+    leader_name TEXT,
+    status      INTEGER DEFAULT 1,
+    create_time TEXT,
+    update_time TEXT
+);
+
+-- 集成配置（TRD 5.10，密钥 AES 密文）
+CREATE TABLE IF NOT EXISTS t_integration_cfg (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    cfg_key     TEXT NOT NULL,
+    cfg_value   TEXT,
+    encrypt_flag INTEGER DEFAULT 0,
+    remark      TEXT,
+    create_time TEXT,
+    update_time TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_integration_cfg_key ON t_integration_cfg(cfg_key);
+
+-- 文件元信息（TRD 4.4 共享实体，WORM 受控）
+CREATE TABLE IF NOT EXISTS t_file_meta (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    biz_type  TEXT,
+    biz_id    INTEGER,
+    file_name TEXT,
+    file_path TEXT,
+    hash      TEXT,
+    size      INTEGER,
+    upload_by TEXT,
+    create_time TEXT
+);
+
+-- 采样车辆（TRD 4.4 共享实体）
+CREATE TABLE IF NOT EXISTS t_vehicle (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    plate_no TEXT,
+    model    TEXT,
+    status   INTEGER DEFAULT 1,   -- 1-可用 2-维修 0-停用（字典 moni_vehicle_status）
+    remark   TEXT,
+    create_time TEXT,
+    update_time TEXT
+);
+
+-- 预警（TRD 4.4 共享实体）
+CREATE TABLE IF NOT EXISTS t_alert (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_type TEXT,
+    biz_id     INTEGER,
+    level      TEXT,
+    msg        TEXT,
+    status     INTEGER DEFAULT 0,   -- 0-待处理 1-已处理
+    create_time TEXT
+);
+
+-- 站内信（TRD 4.4 共享实体）
+CREATE TABLE IF NOT EXISTS t_message (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    to_user   TEXT,
+    title     TEXT,
+    content   TEXT,
+    read_flag INTEGER DEFAULT 0,
+    create_time TEXT
+);
+
+-- 设备校准历史记录（TRD 5.5.5 校准登记台账）
+CREATE TABLE IF NOT EXISTS t_instrument_calib (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    instrument_id INTEGER,
+    calib_date    TEXT,   -- 校准日期
+    calib_due     TEXT,   -- 下次校准到期日
+    cert_no       TEXT,   -- 校准证书编号
+    create_time   TEXT
+);
+
+-- ============ ISSUE-024 采样与样品管理 ============
+
+CREATE TABLE IF NOT EXISTS t_sampling_record (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id      INTEGER,      -- 采样订单ID
+    dispatch_id   INTEGER,      -- 派单ID
+    point_id      INTEGER,      -- 监测点位ID
+    sampler       TEXT,         -- 采样人
+    sample_time   TEXT,         -- 采样时间
+    weather       TEXT,         -- 天气
+    status        TEXT,         -- 采样中/采样完成/已收样
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+CREATE TABLE IF NOT EXISTS t_photo (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    biz_type      TEXT,         -- sampling_record / sample
+    biz_id        INTEGER,      -- 关联业务ID
+    url           TEXT,         -- 图片地址
+    create_time   TEXT
+);
+
+CREATE TABLE IF NOT EXISTS t_sample (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    barcode       TEXT,         -- 样品条码（YP前缀）
+    sampling_id   INTEGER,      -- 采样记录ID
+    order_id      INTEGER,      -- 采样订单ID
+    point_id      INTEGER,      -- 监测点位ID
+    name          TEXT,         -- 样品名称
+    type          TEXT,         -- 样品类型（水样/气样/土壤等）
+    source        TEXT,         -- 样品来源（点位）
+    amount        TEXT,         -- 数量/规格
+    container     TEXT,         -- 容器
+    preserve      TEXT,         -- 保存条件/固定剂
+    status        TEXT,         -- 待收样/已收样/留样中/已处置
+    receive_time  TEXT,         -- 收样时间
+    receive_by    TEXT,         -- 收样人
+    retain_flag   INTEGER,      -- 是否留样（0/1）
+    retain_days   INTEGER,      -- 留样天数
+    retain_until  TEXT,         -- 留样到期日
+    dispatch_time TEXT,         -- 送检/检测下发时间
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+CREATE TABLE IF NOT EXISTS t_sample_qc_binding (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    sample_id     INTEGER,      -- 样品ID
+    sample_no     TEXT,         -- 样品编号
+    qc_type       TEXT,         -- 全程序空白/现场空白/平行样/加标回收/密码样
+    remark        TEXT
+);
+
+CREATE TABLE IF NOT EXISTS t_sample_log (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    sample_id     INTEGER,      -- 样品ID
+    action        TEXT,         -- 收样/留样/送检/处置
+    operator      TEXT,         -- 操作人
+    detail        TEXT,         -- 操作详情
+    create_time   TEXT
+);
+
+CREATE TABLE IF NOT EXISTS t_retain (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    sample_id     INTEGER,      -- 样品ID
+    barcode       TEXT,         -- 样品条码
+    name          TEXT,         -- 样品名称
+    point_id      INTEGER,      -- 点位ID
+    retain_by     TEXT,         -- 留样人
+    retain_time   TEXT,         -- 留样时间
+    retain_days   INTEGER,      -- 留样天数
+    retain_until  TEXT,         -- 留样到期日
+    dispose_time  TEXT,         -- 处置时间
+    dispose_by    TEXT,         -- 处置人
+    status        TEXT,         -- 留样中/已处置
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+

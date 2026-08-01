@@ -16,15 +16,20 @@
             >
               <template #renderItem="{ item }">
                 <a-list-item
-                  :class="{ 'active-item': selectedType?.id === item.id }"
+                  :class="['type-item', { 'active-item': selectedType?.id === item.id, 'locked-item': item.dictType === 1 }]"
                   @click="selectType(item)"
                 >
                   <a-list-item-meta :title="item.dictName" :description="item.dictCode" />
                   <template #actions>
-                    <span class="action-link" @click.stop="showTypeModal(item, 'edit')">编辑</span>
-                    <a-popconfirm title="确定删除？" @confirm="handleDeleteType(item)">
-                      <span class="action-link danger" @click.stop>删除</span>
-                    </a-popconfirm>
+                    <a-tag v-if="item.dictType === 1" class="lock-tag" color="default">
+                      <span class="lock-icon">🔒</span>内置
+                    </a-tag>
+                    <template v-else>
+                      <span class="action-link" @click.stop="showTypeModal(item, 'edit')">编辑</span>
+                      <a-popconfirm title="确定删除？" @confirm="handleDeleteType(item)">
+                        <span class="action-link danger" @click.stop>删除</span>
+                      </a-popconfirm>
+                    </template>
                   </template>
                 </a-list-item>
               </template>
@@ -39,6 +44,9 @@
           <div class="page-header">
             <span class="page-title">
               字典项 {{ selectedType ? `（${selectedType.dictName}）` : '' }}
+              <a-tag v-if="selectedType?.dictType === 1" class="lock-tag" color="default">
+                <span class="lock-icon">🔒</span>内置（锁定）
+              </a-tag>
             </span>
             <a-button v-if="hasPerm('system:dict:create-item')" type="primary" size="small" @click="showItemModal()" :disabled="!selectedType">
               新建
@@ -290,5 +298,29 @@ onMounted(loadTypes)
 }
 .active-item {
   background: var(--color-primary-light);
+}
+/* 系统内置字典：锁定样式 */
+.locked-item {
+  background: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+.locked-item :deep(.ant-list-item-meta-title),
+.locked-item :deep(.ant-list-item-meta-description) {
+  color: #8c8c8c;
+}
+.locked-item.active-item {
+  background: #ececec;
+  box-shadow: inset 3px 0 0 #bfbfbf;
+}
+.lock-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+}
+.lock-icon {
+  font-size: 12px;
+  line-height: 1;
 }
 </style>

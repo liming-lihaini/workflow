@@ -39,6 +39,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Void>> handleOther(Exception ex) {
         log.error("系统异常: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Result.fail(ErrorCode.SYSTEM_ERROR.getCode(), ErrorCode.SYSTEM_ERROR.getMessage()));
+                .body(Result.fail(ErrorCode.SYSTEM_ERROR.getCode(), ex.getMessage() != null ? ex.getMessage() : ErrorCode.SYSTEM_ERROR.getMessage()));
     }
 }

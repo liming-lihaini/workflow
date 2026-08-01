@@ -168,7 +168,57 @@ const routes = [
         name: 'Monitor',
         component: () => import('../views/monitor/index.vue'),
         meta: { title: '流程监控', permKey: 'monitor' }
-      }
+      },
+      // ===== 环境监测 LIMS（ISSUE-022）=====
+      {
+        path: 'ems/base/customer',
+        name: 'EmsCustomer',
+        component: () => import('../views/ems/base/Customer.vue'),
+        meta: { title: '客户管理', permKey: 'ems:customer' }
+      },
+      {
+        path: 'ems/base/entrust',
+        name: 'EmsEntrust',
+        component: () => import('../views/ems/base/Entrust.vue'),
+        meta: { title: '委托管理', permKey: 'ems:entrust' }
+      },
+      {
+        path: 'ems/base/vehicle',
+        name: 'EmsVehicle',
+        component: () => import('../views/ems/base/Vehicle.vue'),
+        meta: { title: '车辆台账', permKey: 'ems:vehicle' }
+      },
+      {
+        path: 'ems/base/instrument',
+        name: 'EmsInstrument',
+        component: () => import('../views/ems/base/Instrument.vue'),
+        meta: { title: '设备台账', permKey: 'ems:instrument' }
+      },
+      {
+        path: 'ems/base/dispatch',
+        name: 'EmsDispatch',
+        component: () => import('../views/ems/base/DispatchBoard.vue'),
+        meta: { title: '采样调度', permKey: 'ems:dispatch' }
+      },
+      // ===== 采样与样品管理（ISSUE-024）=====
+      {
+        path: 'ems/base/receive',
+        name: 'EmsReceive',
+        component: () => import('../views/ems/base/ReceiveWorkbench.vue'),
+        meta: { title: '收样工作台', permKey: 'ems:sample' }
+      },
+      {
+        path: 'ems/base/sample',
+        name: 'EmsSample',
+        component: () => import('../views/ems/base/Sample.vue'),
+        meta: { title: '样品管理', permKey: 'ems:sample' }
+      },
+      {
+        path: 'ems/base/retain',
+        name: 'EmsRetain',
+        component: () => import('../views/ems/base/Retain.vue'),
+        meta: { title: '留样库管理', permKey: 'ems:sample' }
+      },
     ]
   }
 ]

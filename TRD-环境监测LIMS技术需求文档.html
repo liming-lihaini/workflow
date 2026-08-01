@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>环境监测实验室 LIMS 系统 · 技术需求文档（TRD）</title>
+<style>
+:root{--primary:#0E9F6E;--primary-dark:#0B3D33;--sub:#64748b;--line:#e2e8f0;--bg:#f7faf9;--red:#E02424;--orange:#F59E0B;--blue:#2563EB;--cyan:#0891b2;--purple:#7c3aed;--gray:#94a3b8;}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;color:#1f2937;background:var(--bg);font-size:14px;line-height:1.6;}
+.nav-left{position:fixed;top:0;left:0;width:240px;height:100vh;background:var(--primary-dark);color:#cbd5e1;overflow-y:auto;padding:18px 14px;font-size:12.5px;}
+.nav-left .brand{color:#fff;font-weight:800;font-size:14px;margin-bottom:4px;letter-spacing:.5px;}
+.nav-left .sub{color:#7dd3c0;font-size:10.5px;margin-bottom:14px;}
+.nav-left a{display:block;color:#cbd5e1;text-decoration:none;padding:5px 8px;border-radius:6px;margin:1px 0;}
+.nav-left a:hover{background:rgba(255,255,255,.12);color:#fff;}
+.nav-left .grp{color:#5eead4;font-weight:700;font-size:11px;margin:12px 0 2px;letter-spacing:.5px;}
+.content{margin-left:240px;padding:34px 46px 80px;max-width:1180px;}
+h1{font-size:26px;margin:0 0 4px;color:var(--primary-dark);}
+h2{font-size:20px;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--primary);color:var(--primary-dark);}
+h3{font-size:16px;margin:26px 0 8px;color:#0f766e;}
+h4{font-size:14px;margin:18px 0 6px;color:#334155;background:#ecfdf5;border-left:4px solid var(--primary);padding:6px 10px;border-radius:0 6px 6px 0;}
+p{margin:6px 0;}
+.desc{color:#475569;background:#eef6f2;border-left:4px solid var(--primary);padding:10px 14px;border-radius:0 8px 8px 0;margin:8px 0;}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12.5px;}
+table.doc th,table.doc td{border:1px solid var(--line);padding:7px 9px;vertical-align:top;text-align:left;}
+table.doc th{background:#ecfdf5;color:#065f46;font-weight:700;}
+table.doc tr:nth-child(even) td{background:#fafdfb;}
+.smtable th{background:#0b3d33;color:#fff;}
+.smtable td{border:1px solid var(--line);padding:6px 8px;}
+code,.mono{font-family:"SFMono-Regular",Consolas,Menlo,monospace;font-size:12px;}
+pre.code{background:#0f172a;color:#e2e8f0;padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:11.5px;line-height:1.5;}
+.fig{margin:14px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;}
+.fig-title{background:#0b3d33;color:#fff;font-size:12.5px;font-weight:600;padding:7px 12px;}
+.fig-body{padding:14px;}
+.notes{border-left:4px solid var(--blue);background:#f0f7ff;padding:8px 12px;margin:0 0 6px;font-size:12px;color:#334155;border-radius:0 8px 8px 0;}
+.callout{border-left:4px solid var(--primary);background:#effcf5;padding:8px 12px;margin:8px 0;font-size:12px;color:#375;}
+.callout.warn{border-color:var(--orange);background:#fff8ec;}
+.callout.risk{border-color:var(--red);background:#fef2f2;color:#9a1c1c;}
+.callout.info{border-color:var(--blue);background:#eff6ff;color:#1e40af;}
+.tag{display:inline-block;padding:1px 8px;border-radius:11px;font-size:10.5px;font-weight:600;color:#fff;white-space:nowrap;}
+.green{background:var(--primary);}.red{background:var(--red);}.blue{background:var(--blue);}.orange{background:var(--orange);}.cyan{background:var(--cyan);}.purple{background:var(--purple);}.gray{background:var(--gray);}
+.pri{display:inline-block;padding:1px 7px;border-radius:6px;font-size:10.5px;font-weight:700;}
+.p0{background:#dcfce7;color:#15803d;}.p1{background:#fef9c3;color:#a16207;}.p2{background:#e2e8f0;color:#475569;}
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin:12px 0;}
+.step{background:#ecfdf5;border:1px solid var(--primary);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#065f46;min-width:90px;text-align:center;}
+.step.gray{background:#f1f5f9;border-color:#cbd5e1;color:#64748b;}
+.arrow{display:flex;align-items:center;color:var(--primary);font-size:18px;font-weight:700;}
+.arch{margin:12px 0;}
+.band{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:8px;}
+.band-title{background:#0e9f6e;color:#fff;font-size:12.5px;font-weight:700;padding:7px 12px;}
+.band-body{background:#fff;padding:9px 12px;display:flex;flex-wrap:wrap;gap:7px;}
+.blk{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;padding:5px 10px;font-size:11.5px;color:#166534;}
+.kv{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0;}
+.kvcard{flex:1;min-width:150px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 12px;}
+.kvcard .t{font-size:11px;color:var(--sub);}
+.kvcard .v{font-size:13px;font-weight:700;color:var(--primary-dark);margin-top:2px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+.card h4{margin-top:0;}
+ul.pts{margin:6px 0;padding-left:20px;}
+ul.pts li{margin:4px 0;font-size:12.5px;}
+.sm{font-size:11px;color:var(--sub);}
+.mod{background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:18px 0;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.mod>.mhead{background:var(--primary-dark);color:#fff;margin:0 -18px 12px;padding:10px 18px;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between;}
+.mod>.mhead .no{font-size:13px;background:rgba(255,255,255,.15);padding:2px 10px;border-radius:10px;}
+footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--line);color:var(--sub);font-size:11.5px;text-align:center;}
+@media print{body{font-size:11px;}.nav-left{display:none;}.content{margin-left:0;}}
+.note-sm{font-size:12px;color:var(--sub);background:#f4f8f6;border-left:3px solid var(--primary);padding:8px 12px;margin:10px 0 2px;border-radius:0 6px 6px 0;line-height:1.7;}
+.note-sm code{background:#e8f0ec;padding:1px 5px;border-radius:4px;font-size:11.5px;color:#0b3d33;}
+</style>
+</head>
+<body>
+<div class="nav-left">
+  <div class="brand">环境监测 LIMS</div>
+  <div class="sub">技术需求文档 TRD V1.1</div>
+  <div class="grp">引言与架构</div>
+  <a href="#c0">0. 文档信息</a>
+  <a href="#c1">1. 引言与范围</a>
+  <a href="#c2">2. 总体技术架构</a>
+  <a href="#c3">3. 技术栈选型</a>
+  <a href="#c4">4. 部署与数据架构</a>
+  <div class="grp">模块与流程设计</div>
+  <a href="#c5">5. 模块功能技术设计</a>
+  <a href="#c6">6. 流程设计</a>
+  <div class="grp">验收与实施</div>
+  <a href="#c7">7. 非功能技术需求</a>
+  <a href="#c8">8. 功能验收标准</a>
+  <a href="#c9">9. 开发规范与交付</a>
+  <a href="#c10">10. 实施计划</a>
+  <a href="#c11">11. 自检与审查报告</a>
+</div>
+
+<div class="content">
+<h1>环境监测实验室 LIMS 系统<br>技术需求文档（TRD）</h1>
+<p class="desc">本文档在《BRD 业务需求说明书》与《PRD 产品设计文档》基础上，定义系统的<b>技术架构、功能技术设计、流程设计、状态机、数据模型、接口规范与功能验收标准</b>。第 5 章按业务模块逐一定义 <b>功能说明 / 业务规则 / 状态机设计 / 界面设计 / 接口设计 / 数据模型设计</b> 六要素，可直接指导开发；状态流转采用<b>固定状态机硬编码实现</b>，不引入工作流引擎。</p>
+
+<!-- ============ 0 文档信息 ============ -->
+<section id="c0">
+<h2>0. 文档信息</h2>
+<table class="doc">
+<tr><th style="width:160px">项目</th><th>内容</th></tr>
+<tr><td>文档名称</td><td>环境监测实验室信息管理系统（LIMS）技术需求文档</td></tr>
+<tr><td>文档版本</td><td>V1.1（精简技术栈版：固定状态机 / SQLite / 服务器文件存储 / 无 MQ·无 Redis·无工作流引擎·无电子签章·无仪器自动对接）</td></tr>
+<tr><td>上游文档</td><td>BRD V1.0（业务需求）、PRD V1.0（产品设计）</td></tr>
+<tr><td>读者对象</td><td>系统架构师、后端/前端/小程序开发、测试、运维、项目经理</td></tr>
+<tr><td>适用范围</td><td>委托接单→采样外勤→样品流转→检测质控→物资→报告三审→归档上报全链路</td></tr>
+<tr><td>合规基线</td><td>CMA 检验检测机构资质认定、生态环境监测技术规范、等保 2.0（三级建议）</td></tr>
+</table>
+<div class="callout warn"><b>范围裁剪说明（V1.1 关键决策）：</b>相较 V1.0 技术方案，本次明确<b>放弃</b>：①工作流引擎（改用固定状态机硬编码）；②电子签章 / 电子签名；③仪器自动采集对接；④消息队列 MQ；⑤Redis 缓存/中间件；⑥MinIO 对象存储（改用服务器本地文件系统）；数据库由 MySQL 改为 <b>SQLite</b>。裁剪为降低部署与运维复杂度、适配单实验室轻量部署，但会与 BRD 部分要求产生偏差，详见第 10 章「合规偏差与补偿措施」。</div>
+</section>
+
+<!-- ============ 1 引言 ============ -->
+<section id="c1">
+<h2>1. 引言与范围</h2>
+<h3>1.1 TRD 与 PRD 的关系</h3>
+<ul class="pts">
+<li><b>PRD</b> 定义「做什么、长什么样、交互如何」（业务功能 + 界面）；</li>
+<li><b>TRD（本文件）</b> 定义「怎么建、数据怎么组织、状态怎么流转、接口怎么定、怎么验收」（技术方案 + 验收标准）；</li>
+<li>PRD 中每个功能点（含优先级 P0/P1/P2）在本文第 5 章对应一节六要素技术实现，并以第 8 章验收用例闭合。</li>
+</ul>
+<h3>1.2 设计原则</h3>
+<table class="doc">
+<tr><th style="width:150px">原则</th><th>落地要求</th></tr>
+<tr><td>分层解耦</td><td>展示层 / 应用层 / 平台支撑 / 集成 / 数据层 严格分层；业务规则收敛到规则引擎与<b>固定状态机</b></td></tr>
+<tr><td>合规优先</td><td>不可篡改、资质闸门、质控锁定、授权绑定等硬约束在<b>服务端强制校验</b>，前端仅做体验</td></tr>
+<tr><td>可追溯</td><td>委托单号、订单号、样品条码、报告编号四级编码贯穿；所有写操作落审计日志（仅追加）</td></tr>
+<tr><td>轻量可演进</td><td>模块化单体起步；流程以<b>固定状态机</b>实现，未来如需可视化编排可平滑外置</td></tr>
+<tr><td>弱网可用</td><td>外勤小程序支持离线填报 + 断点同步；通知/预警由服务端定时任务直接推送</td></tr>
+</table>
+<h3>1.3 关键术语</h3>
+<table class="doc">
+<tr><th style="width:150px">术语</th><th>说明</th></tr>
+<tr><td>固定状态机</td><td>代码枚举 State/Event + 迁移表（含守卫 Guard）硬编码实现状态流转，<b>不引入 BPMN / 工作流引擎</b></td></tr>
+<tr><td>质控闸门</td><td>进入报告编制前，必须全部质控判定合格，否则数据被系统锁定</td></tr>
+<tr><td>资质闸门</td><td>录入某项目数据前校验「人员 × 项目 × 方法」授权关系</td></tr>
+<tr><td>物资闸门</td><td>过期标物/试剂、校准过期仪器在任务关联时被禁用</td></tr>
+<tr><td>四级编码</td><td>委托单 WT、采样订单 CY、样品 SP、报告 RP，贯穿全流程用于溯源</td></tr>
+</table>
+</section>
+
+<!-- ============ 2 总体技术架构 ============ -->
+<section id="c2">
+<h2>2. 总体技术架构</h2>
+<h3>2.1 架构风格</h3>
+<p class="desc">采用<b>前后端分离 + 模块化单体（Modulith）</b>架构：Web 管理端、微信小程序、可视化大屏作为展示层；核心业务能力以领域内聚的 Module 形式组织在统一后端应用内；横切能力（规则引擎、编号引擎、消息中心、审计、公式计算、报表/PDF）下沉为平台支撑组件；监管平台/ERP 通过集成层适配器对接。单实验室规模（≤200 并发）下单应用 + 单 SQLite 文件即可支撑，无 MQ / 无 Redis / 无工作流引擎，部署与运维极简。</p>
+<h3>2.2 逻辑架构图</h3>
+<div class="arch">
+  <div class="band"><div class="band-title" style="background:#7c3aed;">展示层（多端）</div>
+    <div class="band-body"><span class="blk">PC Web 管理端（Vue3+Element Plus）</span><span class="blk">微信小程序（外勤采样）</span><span class="blk">可视化大屏（ECharts，1920×1080）</span><span class="blk">客户查询门户（PC/H5）</span><span class="blk">第三方系统（监管平台/ERP）</span></div></div>
+  <div class="band"><div class="band-title">应用层（业务域 Module）</div>
+    <div class="band-body"><span class="blk">委托与订单</span><span class="blk">采样调度</span><span class="blk">样品管理</span><span class="blk">检测与质控</span><span class="blk">物资仪器</span><span class="blk">报告管理</span><span class="blk">档案台账</span><span class="blk">统计报表</span></div></div>
+  <div class="band"><div class="band-title" style="background:#2563eb;">平台支撑层（横切组件）</div>
+    <div class="band-body"><span class="blk">固定状态机（硬编码迁移+守卫）</span><span class="blk">规则引擎（质控/预警判定）</span><span class="blk">编号规则引擎</span><span class="blk">消息中心（站内信/微信/短信）</span><span class="blk">审计日志（WORM）</span><span class="blk">公式计算引擎</span><span class="blk">报表/PDF 引擎</span></div></div>
+  <div class="band"><div class="band-title" style="background:#f59e0b;">集成层（适配器）</div>
+    <div class="band-body"><span class="blk">微信开放平台（登录/订阅消息/蓝牙/扫一扫）</span><span class="blk">监管平台上报适配器</span><span class="blk">ERP/财务/采购适配器</span><span class="blk">开放 API 网关</span></div></div>
+  <div class="band"><div class="band-title" style="background:#64748b;">数据层</div>
+    <div class="band-body"><span class="blk">SQLite（业务主库 + 审计库，WAL 模式）</span><span class="blk">服务器本地文件系统（照片/证书/PDF，只读防篡改）</span><span class="blk">备份（数据库文件 + 文件目录异地复制）</span></div></div>
+</div>
+<h3>2.3 关键架构决策</h3>
+<table class="doc">
+<tr><th style="width:170px">决策点</th><th>选择</th><th>理由</th></tr>
+<tr><td>单体 vs 微服务</td><td>模块化单体起步</td><td>单实验室规模下降低运维与分布式复杂度；组件边界清晰</td></tr>
+<tr><td>流程实现</td><td><b>固定状态机（硬编码）</b>，不引入工作流引擎</td><td>流程固定且确定，可穷举迁移+守卫、易单测、零额外中间件</td></tr>
+<tr><td>规则引擎</td><td>自研轻量规则引擎（QLExpress）</td><td>质控判定/预警规则频繁变更，需动态配置</td></tr>
+<tr><td>文件存储</td><td>服务器本地文件系统（目录只读 + 哈希存证）</td><td>免对象存储中间件；以文件系统权限 + SHA-256 实现类 WORM 防篡改</td></tr>
+<tr><td>缓存/队列</td><td><b>弃用 Redis 与 MQ</b></td><td>单实验室并发可控；缓存用应用内内存 + SQLite 索引；通知/导出由定时任务/线程池处理</td></tr>
+<tr><td>关系数据库</td><td>SQLite 3（单文件，WAL）</td><td>零部署、易备份；WAL 支撑读写并发；SQL 标准，可平滑切 MySQL</td></tr>
+<tr><td>不可篡改实现</td><td>审计日志 WORM + 业务数据版本化 + 哈希存证</td><td>满足 CMA/等保对数据溯源与防篡改的强制要求</td></tr>
+</table>
+<div class="callout info"><b>SQLite 并发说明：</b>启用 WAL、busy_timeout（如 5s）、连接池单写者串行化关键写路径；单库 ≤200 并发混合读写（以读为主）在 SSD 上可稳定支撑。若未来多实验室/高并发，可平滑切换 MySQL（ORM 层为 MyBatis-Plus，SQL 语法保持标准）。</div>
+</section>
+
+<!-- ============ 3 技术栈 ============ -->
+<section id="c3">
+<h2>3. 技术栈选型</h2>
+<table class="doc">
+<tr><th style="width:150px">分层</th><th>推荐技术</th><th>说明 / 备选</th></tr>
+<tr><td>前端 Web</td><td>Vue 3 + TypeScript + Vite + Element Plus</td><td>管理后台；备选 React + Ant Design</td></tr>
+<tr><td>可视化大屏</td><td>ECharts + DataV（或自绘 SVG）</td><td>适配 1920×1080 投屏；实时数据 30s 轮询或 SSE</td></tr>
+<tr><td>PDF 预览</td><td>pdf.js</td><td>报告在线预览、批注</td></tr>
+<tr><td>微信小程序</td><td>微信原生小程序（TS）+ WeUI</td><td>强依赖微信 API（授权登录/订阅消息/蓝牙/扫一扫/位置）</td></tr>
+<tr><td>后端框架</td><td>Java 17 + Spring Boot 3</td><td>Spring Security（鉴权）、MyBatis-Plus（ORM，标准 SQL 兼容 SQLite）、MapStruct（DTO）</td></tr>
+<tr><td>状态机</td><td><b>硬编码状态机</b>（枚举 State/Event + 迁移表 + Guard 接口）</td><td>不引入工作流引擎；提供迁移覆盖单测</td></tr>
+<tr><td>规则引擎</td><td>QLExpress（或 Groovy 沙箱）</td><td>质控判定、预警阈值、计算公式脚本化</td></tr>
+<tr><td>关系数据库</td><td>SQLite 3（WAL，utf8mb4）</td><td>业务主库 + 审计库；单文件易备份</td></tr>
+<tr><td>缓存/中间件</td><td><b>无 Redis</b>；应用内 Caffeine 本地缓存</td><td>热点数据（标准库/字典）走本地缓存；会话存 JWT 自包含</td></tr>
+<tr><td>消息队列</td><td><b>无 MQ</b>；Spring Scheduler + 线程池</td><td>预警扫描、通知推送、批量导出由定时任务/后台线程同步处理</td></tr>
+<tr><td>文件存储</td><td>服务器本地文件系统（目录只读 + 哈希）</td><td>落盘到 /data/lims/files；写入即算 SHA-256 存证，权限置只读</td></tr>
+<tr><td>报表/PDF</td><td>EasyExcel + 无头 Chrome/Playwright（HTML→PDF）</td><td>台账 Excel 导出、报告 PDF 生成（落服务器文件系统）</td></tr>
+<tr><td>仪器对接</td><td><b>本期放弃自动对接</b>；支持 Excel/CSV 手工导入 + 手动录入</td><td>预留未来适配器扩展点</td></tr>
+<tr><td>电子签章</td><td><b>本期放弃</b>；以账号操作 + 审计留痕代替</td><td>合规偏差见第 10 章提示</td></tr>
+<tr><td>部署</td><td>Docker + Docker Compose / 直接 jar + Nginx</td><td>单机实验室 Compose 即可；无 MQ/Redis 依赖</td></tr>
+<tr><td>反向代理</td><td>Nginx</td><td>HTTPS 终止、静态资源、API 路由</td></tr>
+</table>
+<div class="callout info"><b>鉴权方案：</b>管理端 <b>JWT（Access+Refresh，自包含会话，无需 Redis）</b> + Spring Security；小程序 <b>微信 code2Session</b> 换 openid 后签发内部 JWT 并绑定员工档案。所有写接口强制服务端校验「角色 + 数据权限 + 资质/有效期闸门」，前端权限仅为体验优化。</div>
+</section>
+
+<!-- ============ 4 部署与数据架构 ============ -->
+<section id="c4">
+<h2>4. 部署与数据架构</h2>
+<h3>4.1 部署拓扑</h3>
+<table class="doc">
+<tr><th style="width:160px">区域</th><th>部署内容</th><th>说明</th></tr>
+<tr><td>内网区（核心）</td><td>Web 后端（jar + SQLite 文件）、服务器文件系统、定时任务</td><td>实验室内部网络，与互联网隔离</td></tr>
+<tr><td>DMZ / 边界</td><td>Nginx 网关、微信回调接收、监管平台上报客户端</td><td>仅暴露必要 HTTPS 端口</td></tr>
+<tr><td>外部依赖</td><td>微信开放平台、短信网关、监管平台、ERP</td><td>标准协议对接，敏感数据加密传输</td></tr>
+</table>
+<div class="callout warn"><b>合规提示：</b>原始检测数据、现场照片等涉密/敏感数据原则上不出内网；上报监管平台仅传输经脱敏/规范化的监测结果，通道 HTTPS + 字段级加密。</div>
+<h3>4.2 数据架构</h3>
+<ul class="pts">
+<li><b>业务库（SQLite）</b>：委托、订单、样品、检测、质控、物资、报告、人员权限等；敏感字段（手机号、身份证、排污许可）AES 加密存储。</li>
+<li><b>文件库（服务器本地文件系统）</b>：现场照片、校准/标物证书、报告 PDF 落盘到 <code>/data/lims/files/</code>，按 年/月/业务类型 分子目录；写入后权限置只读（0444），记录 SHA-256 至 <code>t_file_meta</code>。</li>
+<li><b>审计（独立 SQLite 文件或同库独立表）</b>：操作审计日志，仅 INSERT，无 UPDATE/DELETE；AOP 切面采集（操作人/时间/对象/前后值）。</li>
+<li><b>备份策略</b>：每日全量（SQLite 文件物理拷贝 + 文件系统 rsync 增量）；加密保留 ≥90 天；定期恢复演练。</li>
+</ul>
+<h3>4.3 不可篡改技术实现</h3>
+<table class="doc">
+<tr><th style="width:200px">机制</th><th>实现方式</th></tr>
+<tr><td>操作审计日志</td><td>独立日志库/表，账号仅授予 INSERT；AOP 切面采集，无删除接口</td></tr>
+<tr><td>业务数据修改</td><td>不物理删除；logical_delete + 历史版本表（*_history）保留变更前后值</td></tr>
+<tr><td>电子记录完整性</td><td>关键记录生成哈希（SHA-256）+ 时间戳；可选第三方存证</td></tr>
+<tr><td>文件防篡改</td><td>目录写入后文件权限置只读 + 计算 SHA-256 存 <code>t_file_meta</code>；读取时校验</td></tr>
+</table>
+<h3>4.4 共享 / 跨模块数据实体</h3>
+<p class="desc">以下实体被多个业务模块共用，统一在此定义，避免在各模块重复建模或遗漏（本次自检补录）。</p>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明 / 被引用</th></tr>
+<tr><td>t_file_meta</td><td>id(主键), biz_type(业务类型), ref_id(关联业务ID), file_path(文件相对路径), sha256(文件SHA-256哈希), size(字节大小), read_only(是否只读0444), uploaded_at(上传时间)</td><td>文件存证（照片/证书/PDF）；写入后权限只读+哈希，读取校验（见 4.3）</td></tr>
+<tr><td>t_alert</td><td>id(主键), type(预警类型:校准/标物/试剂/留样/超标), ref_id(关联业务ID), level(严重级别), message(预警内容), status(状态:未读/已读/已处理), created_at(创建时间)</td><td>预警表（5.5 定时任务写入，5.8 大屏聚合，6.2.6）</td></tr>
+<tr><td>t_message</td><td>id(主键), receiver_id(接收人ID), channel(渠道:站内信/微信/短信), content(消息内容), read_flag(已读标记), created_at(创建时间)</td><td>消息中心（2.2 平台支撑；派单/收样/预警通知落库）</td></tr>
+<tr><td>t_vehicle</td><td>id(主键), plate_no(车牌号), status(状态:可用/占用/维修), occupied_window(占用时间段)</td><td>采样车辆主数据（5.2 派单资源，自检补录）</td></tr>
+</table>
+<p class="note-sm">上述实体此前仅在正文/接口中提及而未进入数据模型，本次自检补录：<code>t_file_meta</code> 被 5.3/5.4/5.7/5.8 引用；<code>t_alert</code>、<code>t_message</code> 由平台支撑层与 5.5/6.2.6 写入、5.8 消费；<code>t_vehicle</code> 供 5.2 派单。</p>
+</section>
+
+<!-- ============ 5 模块功能技术设计 ============ -->
+<section id="c5">
+<h2>5. 模块功能技术设计（按模块六要素）</h2>
+<p class="note-sm"><b>模块集合（补遗说明）：</b>本章在 V1.1 基础上新增 <b>5.11 检测作业指导书(SOP)管理（G4）</b> 与 <b>5.12 质量控制计划与能力验证管理（G5+G6）</b> 两个质量体系模块；并在 <b>5.1 委托</b> 增加「委托技术评审/实验室确认」状态机（G3）、在 <b>5.6 检测</b> 增加「实验环境条件」落库字段（G7）。以上补遗与《实验室流程检测-满足度匹配》报告 G1–G14 缺口规划一致。</p>
+<p class="desc">每个模块统一包含 <b>功能说明 / 业务规则 / 状态机设计 / 界面设计 / 接口设计 / 数据模型设计</b> 六部分，对应 PRD 第 6 章模块。状态机均为<b>服务端固定状态机硬编码</b>，迁移带 Guard 守卫。</p>
+
+<!-- ===== 5.1 委托与采样订单管理 ===== -->
+<div class="mod">
+<div class="mhead"><span>5.1 委托与采样订单管理</span><span class="no">P0 · PRD 6.2</span></div>
+<h4>5.1.1 功能说明</h4>
+<ul class="pts">
+<li>客户基础档案管理（企业名称/联系人/排污许可编号/开票信息/客户等级）。</li>
+<li>委托单创建：常规/监督/应急/信访专项监测分类；录入点位、监测类别、检测项目、执行标准、频次、要求。</li>
+<li>报价与合同关联：绑定报价单、合同，记录单价/总价/加急费。</li>
+<li>收费对账：收款、发票登记、欠款台账，按客户/订单对账。</li>
+<li>技术室（实验室）方法/能力评审（G3）：委托提交后进入「待技术确认」，由技术室评审检测方法适用性、实验室检测能力并出具确认意见，通过后方可生成采样订单（见 5.1.3 委托确认状态机、5.1.6 t_entrust_review）。</li>
+<li>由委托一键生成采样订单（拆单），写入订单池（待派单，需「已确认」状态）。</li>
+</ul>
+<h4>5.1.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>拆单规则</td><td>委托「技术确认→已确认」后按「点位 × 频次 × 监测类别」展开采样订单；支持多企业/多点位批量创建</td></tr>
+<tr><td>标准库带出</td><td>选「监测类别+项目」自动带出执行标准/限值/计算公式；可切换企业内控限值</td></tr>
+<tr><td>金额/对账</td><td>t_entrust_fee 记录单价/总价/加急费/收款/发票/欠款；仅业务接单员及以上可见（数据权限）</td></tr>
+<tr><td>编码</td><td>委托 WT-yyyyMMdd-NNN；订单 CY-yyyyMMdd-NNN（编号规则引擎）</td></tr>
+<tr><td>订单状态</td><td>待派单→已派单→采样执行中→样品送检→实验室检测中→报告编制→三级审核中→归档完成</td></tr>
+<tr><td>委托确认闸门（G3）</td><td>委托状态：草稿→待技术确认→已确认/已退回；仅「已确认」可触发拆单生成采样订单；退回须填意见，修改后可重新提交评审</td></tr>
+</table>
+<h4>5.1.3 状态机设计</h4>
+<table class="doc smtable">
+<tr><th>当前状态</th><th>事件</th><th>目标状态</th><th>守卫</th></tr>
+<tr><td>待派单</td><td>派单</td><td>已派单</td><td>负责人资质有效；车辆/设备时间窗无冲突；所选设备校准在有效期内（见 5.2.3）</td></tr>
+<tr><td>已派单</td><td>开始采样</td><td>采样执行中</td><td>资源已分配且小程序端已拉取任务</td></tr>
+<tr><td>采样执行中</td><td>提交送检</td><td>样品送检</td><td>该订单全部点位样品已生成条码且提交</td></tr>
+<tr><td>样品送检</td><td>实验室收样完成</td><td>实验室检测中</td><td>收样核验通过（拒收需补采后重入）</td></tr>
+<tr><td>实验室检测中</td><td>检测+质控完成</td><td>报告编制</td><td>质控全部合格（无 locked 记录）</td></tr>
+<tr><td>报告编制</td><td>提交审核</td><td>三级审核中</td><td>报告数据齐全、超标已标注</td></tr>
+<tr><td>三级审核中</td><td>签发通过</td><td>归档完成</td><td>三级确认齐全、质控核查结论通过</td></tr>
+<tr><td>三级审核中</td><td>驳回</td><td>退回对应环节</td><td>必填驳回意见</td></tr>
+<tr><td>任意</td><td>作废</td><td>已作废</td><td>仅管理员+合规原因，全程留痕</td></tr>
+</table>
+<p class="note-sm"><b>委托（entrust）确认状态机（G3 新增）：</b>委托独立于采样订单的状态机，是生成订单前的合规闸门（技术室方法/能力评审）。</p>
+<table class="doc smtable">
+<tr><th>当前状态</th><th>事件</th><th>目标状态</th><th>守卫</th></tr>
+<tr><td>草稿</td><td>提交评审</td><td>待技术确认</td><td>必填 监测分类/点位/项目/执行标准/频次</td></tr>
+<tr><td>待技术确认</td><td>技术确认通过</td><td>已确认</td><td>技术室评审方法适用性/实验室能力，确认意见非空；含分包项的须分包审核通过（见 G2 分包管理）</td></tr>
+<tr><td>待技术确认</td><td>退回</td><td>已退回</td><td>必填退回意见</td></tr>
+<tr><td>已退回</td><td>修改重提</td><td>待技术确认</td><td>修正后重新提交</td></tr>
+<tr><td>已确认</td><td>生成订单</td><td>（进入 5.1.3 订单状态机 待派单）</td><td>触发拆单（见 5.1.2 拆单规则）</td></tr>
+</table>
+<h4>5.1.4 界面设计</h4>
+<p>详见 PRD 图 6-2（委托列表 + 新建委托表单，标准库自动带出限值）、图 6-3（采样调度看板 + 派单弹窗）。关键组件：委托列表筛选（类型/状态/客户）、新建委托多步表单、点位-项目-标准联动选择、拆单预览、订单池看板入口。</p>
+<h4>5.1.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>委托创建</td><td>POST /api/v1/entrust</td><td>创建委托（草稿），不直接生成订单</td></tr>
+<tr><td>委托技术确认</td><td>POST /api/v1/entrust/{id}/review</td><td>技术室评审/退回（已确认/已退回，写 t_entrust_review）</td></tr>
+<tr><td>确认后生成订单</td><td>POST /api/v1/entrust/{id}/gen-order</td><td>已确认委托触发拆单生成采样订单</td></tr>
+<tr><td>委托列表</td><td>GET /api/v1/entrust?page=&type=&status=</td><td>分页/筛选（含待技术确认）</td></tr>
+<tr><td>订单列表</td><td>GET /api/v1/order?status=待派单</td><td>订单池/看板数据源</td></tr>
+<tr><td>收费对账</td><td>GET /api/v1/entrust/{id}/fee</td><td>收款/发票/欠款明细</td></tr>
+</table>
+<h4>5.1.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_entrust</td><td>id(主键), entrust_no(委托单号,WT前缀), customer_id(客户ID), <b>type</b>(监测分类:常规/监督/应急/信访), <b>freq</b>(监测频次), <b>requirement</b>(委托要求/工况要求), status(状态:草稿/待技术确认/已确认/已退回), amount(委托金额), contract_no(合同编号), fee_status(收费状态)</td><td>委托单头（分类+频次+总要求）</td></tr>
+<tr><td>t_entrust_detail</td><td>id(主键), entrust_id(委托单ID), <b>point_id</b>(监测点位ID,引用t_monitor_point), <b>monitor_type</b>(监测类别), <b>standard_id</b>(检测项目+执行标准,引用t_standard.id), requirement(点位级工况与监测要求)</td><td>委托监测明细（多值：点位×类别×项目）</td></tr>
+<tr><td>t_monitor_point</td><td>id(主键), point_no(点位编号), name(点位名称), point_type(点位类型:排污口/地表水断面/土壤点位…), customer_id(所属客户ID), address(地址), gps_lat(纬度), gps_lng(经度)</td><td>监测点位主数据</td></tr>
+<tr><td>t_sampling_order</td><td>id(主键), order_no(采样订单号,CY前缀), entrust_id(委托单ID), entrust_detail_id(委托明细ID), point_id(点位ID), monitor_type(监测类别), period(采样周期/时长), status(状态), urgent_flag(加急标记)</td><td>采样订单（拆单生成，冗余委托明细）</td></tr>
+<tr><td>t_customer</td><td>id(主键), name(企业名称), contact(联系人), permit_no(排污许可编号,加密存储), invoice(开票信息), level(客户等级)</td><td>客户档案</td></tr>
+<tr><td>t_entrust_fee</td><td>id(主键), entrust_id(委托单ID), unit_price(单价), total(总价), urgent_fee(加急费), received(已收款), invoice_no(发票号), arrears(欠款)</td><td>收费对账</td></tr>
+<tr><td>t_entrust_review</td><td>id(主键), entrust_id(委托单ID,引用t_entrust.id), reviewer_id(评审人ID,引用t_employee.id), method_capable(方法适用性结论:适用/不适用), ability_ok(实验室能力结论:具备/不具备), opinion(确认意见), has_subcontract(是否含分包), subcontract_review(分包审核结论), status(状态:待确认/已确认/已退回), reviewed_at(评审时间)</td><td>委托技术评审/实验室确认（G3 合规闸门，已确认方可拆单）</td></tr>
+</table>
+<p class="note-sm"><b>字段落位对照（BRD 3.1.1）：</b>监测分类 → <code>t_entrust.type</code>；监测频次 → <code>t_entrust.freq</code>；委托要求/工况 → <code>t_entrust.requirement</code>；监测点位 → <code>t_entrust_detail.point_id</code>（引用 <code>t_monitor_point</code>）；监测类别 → <code>t_entrust_detail.monitor_type</code>；检测项目与执行标准 → <code>t_entrust_detail.standard_id</code>（统一引用 <code>t_standard.id</code>，该行已含 monitor_type/item/method/limit_value/formula，见 5.6.6）；点位级工况要求 → <code>t_entrust_detail.requirement</code>。拆单时由「<code>t_entrust_detail</code>（按 点位×频次×监测类别 展开）」生成 <code>t_sampling_order</code>，并冗余写入 <code>point_id/monitor_type</code>。</p>
+</div>
+
+<!-- ===== 5.2 采样订单调度派单 ===== -->
+<div class="mod">
+<div class="mhead"><span>5.2 采样订单调度派单</span><span class="no">P0 · PRD 6.3</span></div>
+<h4>5.2.1 功能说明</h4>
+<ul class="pts">
+<li>调度看板：按订单状态分组（待派单/已派单/执行中/已送检），拖拽或点选派单。</li>
+<li>外勤资源分配：分配负责人/组员/车辆/设备。</li>
+<li>任务加急标记、应急任务单独分类；订单状态全流程流转。</li>
+</ul>
+<h4>5.2.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>资源冲突检测</td><td>人/车/设备占用基于时间窗唯一约束；同窗重复分配被拒</td></tr>
+<tr><td>物资闸门</td><td>关联采样设备时校验 t_instrument.calib_expire，过期设备返回禁用</td></tr>
+<tr><td>资质校验</td><td>负责人须持有该订单所需「采样/项目」上岗证（t_employee_qualification）</td></tr>
+<tr><td>通知</td><td>派单成功经消息中心同步发微信订阅消息 + 短信</td></tr>
+</table>
+<h4>5.2.3 状态机设计</h4>
+<p>本模块驱动订单状态机「待派单 → 采样执行中」迁移，核心守卫如下：</p>
+<table class="doc smtable">
+<tr><th>迁移</th><th>守卫（必须满足）</th></tr>
+<tr><td>待派单 → 已派单（派单）</td><td>①负责人资质有效；②车辆/设备时间窗无冲突；③所选设备校准在有效期内</td></tr>
+<tr><td>已派单 → 采样执行中（开始采样）</td><td>资源已分配且小程序端已拉取任务成功</td></tr>
+</table>
+<h4>5.2.4 界面设计</h4>
+<p>详见 PRD 图 6-3（采样调度看板 + 派单弹窗）。关键组件：状态分组看板、拖拽派单、资源多选（人/车/设备，过期设备灰化禁用）、冲突红点提示、应急任务红色置顶。</p>
+<h4>5.2.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>派单</td><td>POST /api/v1/order/{id}/dispatch</td><td>分配资源，校验资质/冲突/校准，发通知</td></tr>
+<tr><td>资源冲突校验</td><td>GET /api/v1/dispatch/conflict?vehicle=&date=</td><td>派单前预校验</td></tr>
+</table>
+<h4>5.2.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_dispatch</td><td>id(主键), order_id(采样订单ID), leader_id(采样负责人ID), members(采样组员), vehicle(采样车辆ID,引用t_vehicle), devices(采样设备ID,引用t_instrument), dispatch_time(派单时间), status(状态)</td><td>派单记录</td></tr>
+</table>
+<p class="note-sm"><b>多值字段存储：</b><code>members</code>（采样组员）、<code>devices</code>（采样设备）以 JSON 文本存储于 t_dispatch，或拆为关联表 <code>t_dispatch_member</code> / <code>t_dispatch_device</code>；<code>vehicle</code> 引用 <code>t_vehicle.id</code>（见 4.4）；<code>leader_id</code> / <code>members</code> 引用 <code>t_employee.id</code>；设备引用 <code>t_instrument.id</code>。</p>
+</div>
+
+<!-- ===== 5.3 微信小程序外勤采样 ===== -->
+<div class="mod">
+<div class="mhead"><span>5.3 微信小程序外勤采样</span><span class="no">P0 · PRD 6.4</span></div>
+<h4>5.3.1 功能说明</h4>
+<ul class="pts">
+<li>微信授权登录（手机号一键登录绑定资质）；接收采样任务。</li>
+<li>电子化现场采样记录：时间/流量/温度/pH/工况/固定剂。</li>
+<li>现场质控标记：现场空白/平行样/运输空白自动绑定订单。</li>
+<li>现场照片上传（点位标识/过程/工况，自动水印）。</li>
+<li>现场生成样品条码/二维码，蓝牙打印标签；提交送检。</li>
+<li>离线填报 + 断点同步。</li>
+</ul>
+<h4>5.3.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>参数不可改</td><td>采样时间、GPS 由系统自动采集，服务端二次校验，前端只读</td></tr>
+<tr><td>照片水印</td><td>微信相机拍照后 canvas 叠加时间+GPS 水印，落服务器文件系统（只读+哈希）</td></tr>
+<tr><td>质控绑定</td><td>现场空白/平行/运输空白一键添加并自动绑定订单</td></tr>
+<tr><td>条码编码</td><td>SP-{订单号}-{点位序号}-{样品序号}-{类型码}，蓝牙打印</td></tr>
+<tr><td>离线同步</td><td>本地队列缓存，恢复网络批量上报，幂等去重（idempotentKey）</td></tr>
+</table>
+<h4>5.3.3 状态机设计</h4>
+<table class="doc smtable">
+<tr><th>对象</th><th>状态流转</th><th>守卫</th></tr>
+<tr><td>采样记录(小程序侧)</td><td>草稿 → 已提交送检 → 已收样确认</td><td>必填现场参数+质控绑定；提交后不可改</td></tr>
+<tr><td>关联订单</td><td>随 5.1.3 订单状态机推进</td><td>全部点位提交送检方可「样品送检」</td></tr>
+</table>
+<h4>5.3.4 界面设计</h4>
+<p>详见 PRD 图 6-5（微信小程序双屏：任务列表 / 现场采样记录）。关键组件：微信原生胶囊、任务 Tab、现场参数字段（时间/GPS 只读）、固定剂勾选、质控绑定、水印照片网格、蓝牙打印按钮、提交送检。</p>
+<h4>5.3.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>小程序登录</td><td>POST /api/v1/wx/login</td><td>code 换 openid + 签发 JWT</td></tr>
+<tr><td>任务列表</td><td>GET /api/v1/wx/tasks</td><td>采样员任务（openid 由 JWT 解析，订阅消息点击直达）</td></tr>
+<tr><td>提交采样记录</td><td>POST /api/v1/wx/sampling-record</td><td>现场记录+质控+照片（离线同步同接口）</td></tr>
+<tr><td>扫码查样</td><td>GET /api/v1/wx/scan?code=</td><td>wx.scanCode 识别样品条码</td></tr>
+</table>
+<h4>5.3.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_sampling_record</td><td>id(主键), order_id(采样订单ID), point_id(点位ID), operator_id(采样员ID), sample_time(采样时间,自动采集), gps(采样坐标), flow(流量), temp(温度), ph(现场pH值), condition(现场工况), fixative(固定剂添加记录), status(状态)</td><td>现场采样记录</td></tr>
+<tr><td>t_sample_qc_binding</td><td>id(主键), record_id(采样记录ID), qc_type(现场质控类型:空白/平行/运输空白), bound_order_id(绑定的订单ID)</td><td>现场质控绑定</td></tr>
+<tr><td>t_photo</td><td>id(主键), biz_type(业务类型), ref_id(关联业务ID), file_meta_id(文件存证ID,引用t_file_meta), watermark(水印:时间+GPS)</td><td>照片存证（关联 t_file_meta）</td></tr>
+</table>
+</div>
+
+<!-- ===== 5.4 收样登记与样品全生命周期 ===== -->
+<div class="mod">
+<div class="mhead"><span>5.4 收样登记与样品全生命周期</span><span class="no">P0 · PRD 6.5</span></div>
+<h4>5.4.1 功能说明</h4>
+<ul class="pts">
+<li>实验室扫码收样，自动关联采样订单/委托。</li>
+<li>样品核验：外观/体积/保存温度/固定剂/有效期；异常拒收登记原因。</li>
+<li>分样与流转：原样/检测样/平行/留样/质控拆分，分配实验小组。</li>
+<li>留样库管理：分区、到期预警、领用、销毁审批。</li>
+<li>全链路溯源（正/反向一键查询）。</li>
+</ul>
+<h4>5.4.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>编码规则</td><td>SP-{订单号}-{点位序号}-{样品序号}-{类型码}，A=检测/B=平行/L=留样/QC=质控</td></tr>
+<tr><td>核验/拒收</td><td>核验项勾选；拒收须选原因+拍照，触发补采通知</td></tr>
+<tr><td>分样流转</td><td>parent_id 关联；按「项目→实验小组」映射自动派发检测任务</td></tr>
+<tr><td>留样到期</td><td>定时任务到期前 N 天预警；销毁走固定审批状态机</td></tr>
+</table>
+<h4>5.4.3 状态机设计</h4>
+<table class="doc smtable">
+<tr><th>当前状态</th><th>事件</th><th>目标状态</th><th>守卫</th></tr>
+<tr><td>待收样</td><td>收样核验通过</td><td>已收样</td><td>外观/体积/温度/固定剂/时限核验通过</td></tr>
+<tr><td>待收样</td><td>拒收</td><td>已拒收</td><td>必选原因+拍照；触发补采</td></tr>
+<tr><td>已收样</td><td>开始检测</td><td>检测中</td><td>分配检测员且资质有效</td></tr>
+<tr><td>检测中</td><td>质控异常</td><td>待复测</td><td>触发复测，原数据锁定</td></tr>
+<tr><td>检测中 / 待复测</td><td>检测完成</td><td>已完成</td><td>复测合格或无需复测</td></tr>
+<tr><td>留样</td><td>到期</td><td>待销毁</td><td>到期前 N 天预警</td></tr>
+<tr><td>已收样</td><td>超保存时限</td><td>过期作废</td><td>系统定时判定</td></tr>
+</table>
+<h4>5.4.4 界面设计</h4>
+<p>详见 PRD 图 6-6（扫码收样工作台，含拒收登记）、图 6-7（留样库管理）。关键组件：扫码枪/小程序扫条码、订单信息带出、核验勾选卡、拒收原因弹窗、留样库分区视图、销毁审批流。</p>
+<h4>5.4.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>扫码收样</td><td>POST /api/v1/sample/receive</td><td>条码→关联→核验→生成样品/分样</td></tr>
+<tr><td>分样</td><td>POST /api/v1/sample/{id}/split</td><td>原样/检测/平行/留样/质控拆分</td></tr>
+<tr><td>留样销毁申请</td><td>POST /api/v1/retain/{id}/destroy-apply</td><td>发起销毁审批状态机</td></tr>
+<tr><td>溯源查询</td><td>GET /api/v1/sample/{no}/trace</td><td>正/反向全链路溯源</td></tr>
+</table>
+<h4>5.4.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_sample</td><td>id(主键), sample_no(样品编号,SP前缀), order_id(采样订单ID), point_id(点位ID), type(样品类型:原样/检测样/平行样/留样/质控样), detect_items(检测项目), retain_cond(保存条件), status(状态:待检/检测中/待复测/已完成/过期作废), parent_id(父样品ID,分样关联), reject_reason(拒收原因)</td><td>样品（状态机 5.4.3）</td></tr>
+<tr><td>t_sample_log</td><td>id(主键), sample_id(样品ID), from_status(原状态), to_status(目标状态), operator_id(操作人ID), op_time(操作时间), guard_result(守卫校验结果)</td><td>样品状态变更留痕</td></tr>
+<tr><td>t_retain</td><td>id(主键), sample_id(留样品ID), zone(留样区), loc(留样位置), start_date(留样起始日), end_date(留样截止日), status(状态:在库/待销毁/已销毁)</td><td>留样库</td></tr>
+</table>
+</div>
+
+<!-- ===== 5.5 仪器/标物/试剂/危化品管理 ===== -->
+<div class="mod">
+<div class="mhead"><span>5.5 仪器/标物/试剂/危化品管理</span><span class="no">P0 · PRD 6.8</span></div>
+<h4>5.5.1 功能说明</h4>
+<ul class="pts">
+<li>仪器设备：全仪器台账、检定/校准管理、使用/维修/故障登记、停用启用。</li>
+<li>有证标准物质：入库/领用/归还、溶液配制标定、有效期预警。</li>
+<li>试剂与危化品：出入库、双人双锁领用、过期报废、废液处置台账。</li>
+<li>耗材：采购申请、出入库、消耗统计。</li>
+</ul>
+<h4>5.5.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>校准预警</td><td>calib_expire 与定时任务比对，到期前 30/15/7 天三级预警</td></tr>
+<tr><td>强制停用</td><td>过期自动置 status=强制停用，派单与录入禁用（物资闸门）</td></tr>
+<tr><td>标物/试剂</td><td>过期禁领；证书存档（文件系统）</td></tr>
+<tr><td>双人双锁</td><td>危化品领用需领用人+监督人双账号确认（代替电子签名）</td></tr>
+</table>
+<h4>5.5.3 状态机设计</h4>
+<table class="doc smtable">
+<tr><th>对象</th><th>状态流转</th><th>关键规则</th></tr>
+<tr><td>仪器设备</td><td>在用 → 校准临期 →（到期）<b>强制停用</b> → 校准/维修 → 恢复在用 / 报废</td><td>过期自动强制停用；派单与录入禁用</td></tr>
+<tr><td>标准物质</td><td>在库 → 领用 → 归还 / 过期停用</td><td>过期禁止领用；证书存档</td></tr>
+<tr><td>留样销毁审批</td><td>申请 → 监督确认 → 批准 → 已销毁</td><td>固定审批状态机；记录不可删</td></tr>
+<tr><td>危化品领用</td><td>申请 → 双账号确认（领用人+监督人）→ 已发料 / 驳回</td><td>双人双锁，无图形电子签名</td></tr>
+</table>
+<h4>5.5.4 界面设计</h4>
+<p>详见 PRD 图 6-8（仪器台账，含三级校准预警、过期强制停用）。关键组件：仪器台账表格（校准状态色标）、校准证书上传、危化品双人双锁领用表单、留样库/废液处置台账。</p>
+<h4>5.5.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>仪器 CRUD</td><td>/api/v1/instrument (GET/POST/PUT)</td><td>台账与校准信息</td></tr>
+<tr><td>校准登记</td><td>POST /api/v1/instrument/{id}/calibrate</td><td>录入周期/证书，更新到期</td></tr>
+<tr><td>预警列表</td><td>GET /api/v1/alert/list</td><td>五类预警聚合（含校准/标物/试剂/留样/超标）</td></tr>
+<tr><td>危化品领用</td><td>POST /api/v1/hazardous/apply</td><td>双账号确认</td></tr>
+</table>
+<h4>5.5.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_instrument</td><td>id(主键), code(仪器编号,YQ前缀), name(仪器名称), calib_expire(校准到期日), cert_file(校准证书文件ID,引用t_file_meta), status(状态:在用/临期/停用/维修/报废), usage_rate(使用率)</td><td>仪器（状态机 5.5.3）</td></tr>
+<tr><td>t_standard_material</td><td>id(主键), category(类别:标物/试剂/危化品), name(名称), lot_no(批号), expire(有效期), status(状态:在库/已领用/过期停用), cert_file(证书文件ID,引用t_file_meta)</td><td>标准物质/试剂/危化品主数据</td></tr>
+<tr><td>t_hazardous_ledger</td><td>id(主键), material_id(危化品ID,引用t_standard_material), applicant(申领人), supervisor(监督人), status(状态), op_time(操作时间)</td><td>危化品双人双锁领用台账</td></tr>
+<tr><td>t_consumable</td><td>id(主键), name(耗材名称), stock(库存量), threshold(预警阈值), status(状态)</td><td>耗材库存</td></tr>
+</table>
+</div>
+
+<!-- ===== 5.6 检测数据与闭环质控 ===== -->
+<div class="mod">
+<div class="mhead"><span>5.6 检测数据与闭环质控（CMA 核心）</span><span class="no">P0 · PRD 6.7</span></div>
+<h4>5.6.1 功能说明</h4>
+<ul class="pts">
+<li>标准库管理：按「监测类别 × 检测项目 × 标准方法」组织国标/行标，维护标准号、来源、版本、适用介质、检出限、限值、QLExpress 计算公式；支持种子数据初始化与用户自定义增改、旧版作废。</li>
+<li>原始数据：手工录入或 Excel/CSV 导入（本期无仪器自动对接）。</li>
+<li>系统自动运算：浓度换算、空白扣除、稀释倍数、平行相对偏差。</li>
+<li>智能异常预警：超标标红、偏差/回收率超限弹窗、异常说明必填。</li>
+<li>闭环质控：现场/实验室质控固化判定，不合格锁定，禁止进报告。</li>
+<li>实验环境条件录入（G7）：检测员录入温度/湿度/压力/洁净度等实验环境，随原始记录一并留存，满足 CMA 原始记录完整性要求。</li>
+</ul>
+<h4>5.6.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>资质闸门</td><td>录入前校验「人员×项目×方法」授权（t_employee_qualification）</td></tr>
+<tr><td>公式计算</td><td>公式取自 <code>t_standard.formula</code>（QLExpress 脚本），变量按全局约定注入（见 5.6.6「公式变量约定」）；仅测定值可填；<b>新项目/新国标只需新增 <code>t_standard</code> 一行+公式，零代码改动</b></td></tr>
+<tr><td>超标标红</td><td>结果超限值自动红色+▲，入超标台账并触发预警</td></tr>
+<tr><td>质控锁定</td><td>平行偏差/回收率超限触发 locked=1，禁止进入报告编制</td></tr>
+<tr><td>异常说明</td><td>质控不合格强制填说明+复测记录，无说明无法提交</td></tr>
+<tr><td>标准有效性</td><td><code>deprecated=1</code> 的标准方法禁止用于新建委托/检测批次；历史检测记录保留原 method_no 用于溯源</td></tr>
+</table>
+<h4>5.6.3 状态机设计</h4>
+<table class="doc smtable">
+<tr><th>当前状态</th><th>事件</th><th>目标状态</th><th>守卫</th></tr>
+<tr><td>待录入</td><td>提交批次</td><td>计算中</td><td>资质闸门通过</td></tr>
+<tr><td>计算中</td><td>公式运算完成</td><td>质控判定中</td><td>测定值齐全</td></tr>
+<tr><td>质控判定中</td><td>合格</td><td>待报告</td><td>全部质控 pass_flag=1，无 locked</td></tr>
+<tr><td>质控判定中</td><td>不合格</td><td>已锁定</td><td>填异常说明+复测；锁定数据禁止流转</td></tr>
+</table>
+<h4>5.6.4 界面设计</h4>
+<p>详见 PRD 图 6-8（检测数据录入 + 质控不合格强制拦截弹窗）。关键组件：原始数据录入表（超标红字）、公式计算结果列、质控判定结果、锁定拦截弹窗（必填说明+复测）、<b>实验环境卡（温度/湿度/压力/洁净度，G7 随原始记录留存）</b>。</p>
+<h4>5.6.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>检测提交</td><td>POST /api/v1/test/batch/{id}/submit</td><td>公式计算+质控判定+锁定</td></tr>
+<tr><td>Excel 导入</td><td>POST /api/v1/test/import</td><td>Excel/CSV 批量录入（本期替代仪器对接）</td></tr>
+<tr><td>标准库</td><td>GET /api/v1/standard?item=</td><td>限值/公式查询</td></tr>
+</table>
+<h4>5.6.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_standard</td><td>id(主键), monitor_type(监测类别), item(检测项目), method_no(方法编号,如HJ636-2012), method_name(方法名称), std_no(所属标准号,如HJ636), std_source(标准来源:GB/HJ/GB-T/行业标准/企业内控), std_name(标准名称), matrix(适用介质:水/气/土壤/固废/噪声), publish_date(发布日期), effective_date(实施日期), deprecated(是否作废), unit(结果单位,如mg/L), detect_limit(检出限), limit_value(限值), limit_type(限值类型:排放标准/内控/质量标准), internal_flag(是否内控限值), formula(QLExpress计算公式), formula_vars(公式变量与常量定义JSON), note(备注)</td><td>标准/限值/公式库（一行=监测类别×项目×标准方法，支持版本与扩展）</td></tr>
+<tr><td>t_test_batch</td><td>id(主键), batch_no(检测批次号,PC前缀), sample_id(样品ID), standard_id(标准ID), instrument_id(仪器ID), operator_id(检测员ID), status(状态)</td><td>检测批次（状态机 5.6.3）</td></tr>
+<tr><td>t_test_record</td><td>id(主键), batch_id(批次ID), standard_id(标准ID), measured_value(实测值), dilution(稀释倍数), final_value(计算终值), limit_value(限值), over_flag(超标标记), qc_result(质控结果), locked(质控锁定标记), env_cond(实验环境条件JSON:温度/湿度/压力/洁净度, G7)</td><td>原始/计算结果（locked=质控锁定；env_cond 满足 CMA 原始记录完整性）</td></tr>
+<tr><td>t_qc_record</td><td>id(主键), batch_id(批次ID), qc_type(质控类型), ref_value(参考值), result(结果), pass_flag(合格标记)</td><td>质控记录</td></tr>
+</table>
+<p class="note-sm"><b>公式变量约定（全局 · QLExpress 引擎）：</b>公式为数据、变量名固定，代码仅注入取值，不绑定具体标准号——以此实现"国标不枚举、靠数据扩展"。</p>
+<table class="doc">
+<tr><th style="width:110px">变量</th><th style="width:160px">含义</th><th>来源</th></tr>
+<tr><td>C</td><td>最终结果浓度</td><td>公式计算输出</td></tr>
+<tr><td>x / meas</td><td>仪器实测读数(吸光度/峰面积)</td><td>t_test_record.measured_value</td></tr>
+<tr><td>blank</td><td>空白测定值</td><td>空白批次</td></tr>
+<tr><td>V</td><td>定容体积(mL)</td><td>录入/默认</td></tr>
+<tr><td>V0</td><td>取样体积(mL)</td><td>录入</td></tr>
+<tr><td>f / dil</td><td>稀释倍数</td><td>t_test_record.dilution</td></tr>
+<tr><td>m</td><td>样品质量(g)</td><td>录入(土壤/固废)</td></tr>
+<tr><td>k / b / a</td><td>校准曲线斜率/截距(常量)</td><td>formula_vars 定义</td></tr>
+<tr><td>Csp / R</td><td>加标样品浓度 / 加标回收率%</td><td>计算派生</td></tr>
+</table>
+<p class="note-sm"><b>示例公式（数据驱动，非代码枚举）：</b></p>
+<table class="doc">
+<tr><th style="width:150px">标准 / 项目</th><th>QLExpress 公式（formula 字段）</th><th>说明</th></tr>
+<tr><td>总氮 HJ 636-2012</td><td><code>C = (A - a) / b * f</code></td><td>A=实测吸光度，a/b=校准曲线常量(存 formula_vars)，f=稀释倍数</td></tr>
+<tr><td>氨氮 HJ 535-2009</td><td><code>C = (A - A0) / k * V / V0 * f</code></td><td>纳氏试剂分光光度法</td></tr>
+<tr><td>总磷 GB 11893-89</td><td><code>C = (A - A0) / k * V / V0 * f</code></td><td>钼酸铵分光光度法</td></tr>
+<tr><td>COD HJ 828-2017</td><td><code>COD = (V0 - V1) * c * 8000 / V2</code></td><td>重铬酸盐法，c=硫酸亚铁铵浓度</td></tr>
+</table>
+<p class="note-sm"><b>标准库初始化与扩展策略：</b>① 国标<b>不在代码中逐个枚举</b>，全部以数据存于 <code>t_standard</code>；② 系统预置常用高优先级国标种子数据（地表水 24 项基本项目、废水常见项目、噪声等）作为初始化数据，属数据而非代码；③ 新增检测项目 / 新发布国标，由质量负责人在标准库管理界面新增一行（填方法号、标准号、限值、公式），<b>无需开发介入</b>；④ 标准换版时原行置 <code>deprecated=1</code> 保留溯源，另增新版行。</p>
+</div>
+
+<!-- ===== 5.7 报告编制与三级审核签发 ===== -->
+<div class="mod">
+<div class="mhead"><span>5.7 报告编制与三级审核签发</span><span class="no">P0 · PRD 6.9</span></div>
+<h4>5.7.1 功能说明</h4>
+<ul class="pts">
+<li>自动生成监测报告：汇总检测数据/质控/点位，标注超标项，套用标准模板。</li>
+<li>三级审核：自审→审核→签发，可驳回填写意见。</li>
+<li>报告归档：PDF 电子报告落服务器文件系统（只读+哈希）。</li>
+<li>数据对外上报：监管平台、企业自行监测平台、客户门户。</li>
+</ul>
+<h4>5.7.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>模板填充</td><td>HTML 模板+数据填充，超标项红色+▲；支持自定义页眉页脚</td></tr>
+<tr><td>三级审核</td><td>固定状态机驱动；节点驳回必填意见，按固定路径回退</td></tr>
+<tr><td>签发闸门</td><td>签发前出具「质控核查结论」，存在不合格质控则禁用签发</td></tr>
+<tr><td>版本管理</td><td>修改报告生成新版本，旧版本保留可查，新版本重走三审</td></tr>
+<tr><td>身份归属</td><td>以登录账号身份 + 审计日志归属代替图形电子签名</td></tr>
+</table>
+<h4>5.7.3 状态机设计</h4>
+<div class="flow">
+  <span class="step">编制中</span><span class="arrow">→</span>
+  <span class="step">自审通过</span><span class="arrow">→</span>
+  <span class="step">审核中</span><span class="arrow">→</span>
+  <span class="step">签发中</span><span class="arrow">→</span>
+  <span class="step">已签发(归档)</span>
+</div>
+<p>驳回路径（固定，不可逆跳跃）：<b>签发 → 审核</b>；<b>审核 → 编制（自审）</b>；每次驳回必填意见并写审计。所有节点以登录账号身份 + 审计归属，不使用图形电子签名。</p>
+<h4>5.7.4 界面设计</h4>
+<p>详见 PRD 图 6-9（报告三级审核页：左侧报告预览 + 审核流 + 溯源链）。关键组件：报告预览、超标标注、审核流时间线、驳回意见输入、签发闸门灰化、版本历史。</p>
+<h4>5.7.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>生成报告</td><td>POST /api/v1/report/generate</td><td>汇总数据/质控/点位，套模板</td></tr>
+<tr><td>报告审核</td><td>POST /api/v1/report/{id}/review</td><td>节点操作（通过/驳回+意见，账号归属）</td></tr>
+<tr><td>报告 PDF</td><td>GET /api/v1/report/{id}/pdf</td><td>生成/读取 PDF（文件系统）</td></tr>
+<tr><td>监管上报</td><td>POST /api/v1/integration/ep-authority/report</td><td>上报适配器</td></tr>
+</table>
+<h4>5.7.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_report</td><td>id(主键), report_no(报告编号,RP前缀), entrust_id(委托ID), order_ids(覆盖订单集合), version(版本号), status(状态), qc_conclusion(质控结论), pdf_file(报告PDF文件ID,引用t_file_meta)</td><td>报告（状态机 5.7.3，按委托出具，可跨多订单）</td></tr>
+<tr><td>t_report_review</td><td>id(主键), report_id(报告ID), node(审核节点:自审/审核/签发), reviewer_id(审核人ID), opinion(审核意见), result(审核结果), rejected(是否驳回), operated_at(操作时间)</td><td>三级审核流（账号归属，无图形签名）</td></tr>
+<tr><td>t_report_version</td><td>id(主键), report_id(报告ID), version(版本号), pdf_file(版本PDF文件ID,引用t_file_meta), created_at(生成时间)</td><td>报告版本留痕</td></tr>
+</table>
+</div>
+
+<!-- ===== 5.8 档案台账/统计报表/大屏 ===== -->
+<div class="mod">
+<div class="mhead"><span>5.8 档案台账 / 统计报表 / 大屏</span><span class="no">P1/P2 · PRD 6.10/7</span></div>
+<h4>5.8.1 功能说明</h4>
+<ul class="pts">
+<li>电子档案库：委托合同/采样记录/照片/检测数据/质控/证书/报告统一归档检索。</li>
+<li>合规台账：采样/样品/质控/校准/危化品/培训/超标 七类，一键导出 CMA 资料包。</li>
+<li>统计报表：经营/业务/绩效/物资多维统计，导出 Excel/PDF。</li>
+<li>可视化大屏：点位分布、在途任务、待检样品、超标预警、校准到期、业务总量。</li>
+</ul>
+<h4>5.8.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>台账聚合</td><td>由平台按业务数据自动聚合，支持按年度/类别筛选打包</td></tr>
+<tr><td>涉密授权</td><td>涉密监测数据独立授权，仅授权人员可查阅/导出</td></tr>
+<tr><td>导出</td><td>EasyExcel 导出；上万条由后台线程池生成，进度轮询</td></tr>
+<tr><td>大屏</td><td>30s 轮询或 SSE 推送，支持 1920×1080 投屏</td></tr>
+</table>
+<h4>5.8.3 状态机设计</h4>
+<p>本模块为查询/聚合类，无独立业务状态流转（档案、台账、报表均为只读聚合视图，不持有状态机）。档案检索权限由 RBAC + 数据权限控制。</p>
+<h4>5.8.4 界面设计</h4>
+<p>详见 PRD 图 6-10（可视化大屏深色主题）。关键组件：监测点位地图、在途采样任务卡、待检样品计数、超标滚动预警、质控合格率、校准到期提醒、月度业务总量；档案检索页与合规台账导出页。</p>
+<h4>5.8.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>档案检索</td><td>GET /api/v1/archive/search</td><td>全业务档案统一检索（权限过滤）</td></tr>
+<tr><td>合规台账</td><td>GET /api/v1/ledger/{type}?year=</td><td>七类台账导出</td></tr>
+<tr><td>统计报表</td><td>GET /api/v1/stats/{dim}?range=</td><td>经营/业务/绩效/物资</td></tr>
+<tr><td>大屏数据</td><td>GET /api/v1/dashboard</td><td>实时聚合（大屏轮询/SSE）</td></tr>
+</table>
+<h4>5.8.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_archive</td><td>id(主键), biz_type(业务类型), ref_id(关联业务ID), file_meta_id(文件存证ID,引用t_file_meta), secret_level(密级), authorized_roles(授权角色)</td><td>电子档案索引</td></tr>
+<tr><td>v_ledger_*</td><td>视图/聚合查询（采样/样品/质控/校准/危化品/培训/超标）</td><td>合规台账（基于前述业务表）</td></tr>
+<tr><td>t_stats_cache</td><td>id(主键), dim(统计维度), period(统计周期), value(统计值), generated_at(生成时间)</td><td>统计结果缓存（可选）</td></tr>
+</table>
+</div>
+
+<!-- ===== 5.9 人员资质权限 ===== -->
+<div class="mod">
+<div class="mhead"><span>5.9 人员资质权限</span><span class="no">P0 · PRD 第7章矩阵</span></div>
+<h4>5.9.1 功能说明</h4>
+<ul class="pts">
+<li>人员基础信息、上岗证、学历、培训/考核记录电子化。</li>
+<li>检测资质授权：绑定可操作监测项目、标准方法。</li>
+<li>分级角色权限：9 类预设角色，增删改查导印审分开管控。</li>
+<li>操作审计与身份归属：全操作留痕，关键操作以账号 + 审计归属。</li>
+</ul>
+<h4>5.9.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>RBAC+数据权限</td><td>角色→权限→数据范围（本人/本单位/全部）</td></tr>
+<tr><td>资质强绑定</td><td>检测权限精确到「人员×项目×方法」，服务端拦截无授权录入</td></tr>
+<tr><td>身份归属</td><td>关键操作以登录账号 + 审计日志归属（代替图形电子签名）</td></tr>
+<tr><td>审计 WORM</td><td>全操作 AOP 落 WORM 日志，任何角色不可删改</td></tr>
+</table>
+<h4>5.9.3 状态机设计</h4>
+<p>人员资质无主业务状态机；资质有效期以状态标识：<b>有效 → 临期 → 失效</b>，由定时任务依据有效期更新，失效后自动阻断对应检测录入（资质闸门）。</p>
+<h4>5.9.4 界面设计</h4>
+<p>详见 PRD 第 7 章角色权限矩阵。关键组件：人员档案页、资质授权表单（人员×项目×方法）、角色-权限配置、审计日志查询（只读）。</p>
+<h4>5.9.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>人员档案</td><td>/api/v1/employee (GET/POST/PUT)</td><td>人员与资质信息</td></tr>
+<tr><td>资质授权</td><td>POST /api/v1/employee/{id}/qualify</td><td>绑定 人员×项目×方法</td></tr>
+<tr><td>角色权限</td><td>GET /api/v1/role/{role}/permissions</td><td>权限矩阵查询</td></tr>
+<tr><td>审计日志</td><td>GET /api/v1/audit?page=</td><td>WORM 日志查询（只读）</td></tr>
+</table>
+<h4>5.9.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_employee</td><td>id(主键), name(姓名), cert_no(上岗证号), education(学历), train_records(培训记录), status(状态)</td><td>人员档案</td></tr>
+<tr><td>t_role / t_permission</td><td colspan="2">RBAC 核心表由 <b>5.10 后台管理模块</b> 统一维护（见 5.10.6：t_role / t_permission / t_role_permission）；本模块引用其构建「人员×项目×方法」资质授权与权限矩阵</td></tr>
+<tr><td>t_employee_qualification</td><td>id(主键), employee_id(人员ID), standard_id(标准方法ID,引用t_standard.id), expire(资质到期日), status(状态)</td><td>资质强绑定（人员×项目×方法，引用 t_standard.id）</td></tr>
+<tr><td>t_operation_log</td><td>id(主键), operator(操作人), op_time(操作时间), obj_type(对象类型), obj_id(对象ID), before(变更前值), after(变更后值), ip(客户端IP)</td><td>审计日志（仅 INSERT / WORM）</td></tr>
+</table>
+</div>
+
+<!-- ===== 5.10 系统后台管理模块 ===== -->
+<div class="mod">
+<div class="mhead"><span>5.10 系统后台管理模块</span><span class="no">P0 · 标准管理后台</span></div>
+<h4>5.10.1 功能说明</h4>
+<ul class="pts">
+<li><b>部门管理</b>：组织机构树（部门 / 科室 / 班组），支持增删改查、父子层级维护、负责人设置。</li>
+<li><b>用户管理</b>：登录账号（工号 / 手机号）、密码加密存储、状态（启用 / 禁用 / 锁定）、绑定人员档案（t_employee）、所属部门、分配角色。</li>
+<li><b>角色权限管理</b>：角色 CRUD、角色-权限分配（RBAC，与 5.9 权限项对齐）；数据范围（本人 / 本部门 / 全部）。</li>
+<li><b>数据字典</b>：标准化枚举集中维护（监测类别、样品类型、质控类型、预警类型、设备状态、报告状态等），分组键值对，支持动态扩展，供全业务下拉与状态机引用。</li>
+<li><b>集成配置</b>：微信小程序 AppID/Secret、监管平台上报地址、企业 ERP 接口、短信网关等外部对接参数集中配置（密钥字段密文存储）。</li>
+<li><b>登录日志</b>：记录登录时间、账号、IP、终端、成功/失败，支撑账号安全审计与锁定追溯。</li>
+<li><b>操作日志</b>：对 t_operation_log 的只读查询与管理视图（WORM，不可删改），支撑 CMA 数据溯源审计。</li>
+</ul>
+<h4>5.10.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:170px">规则</th><th>说明</th></tr>
+<tr><td>超管保护</td><td>内置超级管理员（role_key=SUPER_ADMIN）禁止被禁用 / 删除 / 改密，防止系统锁死</td></tr>
+<tr><td>密码安全</td><td>密码 bcrypt/SHA-256 加盐哈希，禁止明文；登录连续失败 ≥5 次自动锁定账号</td></tr>
+<tr><td>权限强校验</td><td>服务端 @RequirePerm + JWT 强制校验，前端仅做展示，无权限返回 403</td></tr>
+<tr><td>字典级联影响</td><td>数据字典为系统级共享配置，监测类别等枚举被 5.1/5.3 引用，变更需审计并谨慎</td></tr>
+<tr><td>配置密文</td><td>集成配置含密钥字段以 AES 密文存储，仅授权角色可见 / 可改，界面掩码显示</td></tr>
+<tr><td>日志 WORM</td><td>操作日志、登录日志均不可物理删除；任何修改 / 删除动作本身亦被审计记录</td></tr>
+<tr><td>变更审计</td><td>部门 / 用户 / 角色 / 字典 / 配置的任何写操作均经 @AuditLog 落 WORM 日志</td></tr>
+</table>
+<h4>5.10.3 状态机设计</h4>
+<p>部门 / 角色 / 数据字典项 / 集成配置为配置型主数据，无复杂状态机；用户账号具备状态机（服务端固定状态机硬编码，事件为 <code>禁用 / 启用 / 锁定 / 解锁</code>）：</p>
+<table class="doc">
+<tr><th style="width:150px">当前状态</th><th style="width:120px">事件</th><th style="width:120px">目标状态</th><th>守卫（Guard）</th></tr>
+<tr><td>启用</td><td>禁用</td><td>禁用</td><td>非超管账号；操作人具备 user:disable 权限</td></tr>
+<tr><td>禁用</td><td>启用</td><td>启用</td><td>操作人具备 user:enable 权限</td></tr>
+<tr><td>启用</td><td>锁定（失败≥5次）</td><td>锁定</td><td>登录失败计数触发，自动；不可锁超管</td></tr>
+<tr><td>锁定</td><td>解锁</td><td>启用</td><td>管理员 user:unlock；清除 fail_count/lock_time</td></tr>
+</table>
+<h4>5.10.4 界面设计</h4>
+<p>标准管理后台布局：左侧功能菜单树（部门 / 用户 / 角色权限 / 数据字典 / 集成配置 / 日志查询），右侧工作区。关键组件：</p>
+<ul class="pts">
+<li>用户列表：表格 + 新增 / 编辑抽屉；角色分配弹窗（多选角色）；状态标签（启用绿 / 禁用灰 / 锁定红）。</li>
+<li>角色权限配置：左侧角色树 + 右侧权限树（按 增删改查导印审 分组勾选），保存即生效。</li>
+<li>数据字典：按 dict_type 分组的标签页 + 键值表格，支持新增枚举值（影响全业务下拉）。</li>
+<li>集成配置：表单，密钥字段输入框掩码（••••），查看需二次授权。</li>
+<li>日志查询：登录日志 / 操作日志双标签页，条件筛选 + 表格，操作日志只读不可导出删除。</li>
+</ul>
+<p class="note-sm">界面风格与 PRD 第 7 章角色权限矩阵一致；超管账号、密钥掩码、WORM 日志只读为合规强制交互。</p>
+<h4>5.10.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:245px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>部门树</td><td>GET /api/v1/admin/dept/tree</td><td>组织机构树</td></tr>
+<tr><td>部门 CRUD</td><td>/api/v1/admin/dept (GET/POST/PUT/DELETE)</td><td>部门管理</td></tr>
+<tr><td>用户列表/新增/编辑</td><td>/api/v1/admin/user (GET/POST/PUT)</td><td>用户管理</td></tr>
+<tr><td>重置密码</td><td>POST /api/v1/admin/user/{id}/reset-pwd</td><td>管理员重置（强制改密）</td></tr>
+<tr><td>锁定/解锁</td><td>POST /api/v1/admin/user/{id}/lock（或 /unlock）</td><td>账号状态机事件</td></tr>
+<tr><td>角色 CRUD</td><td>/api/v1/admin/role (GET/POST/PUT/DELETE)</td><td>角色管理</td></tr>
+<tr><td>角色赋权</td><td>PUT /api/v1/admin/role/{id}/permissions</td><td>角色-权限分配</td></tr>
+<tr><td>权限项</td><td>GET /api/v1/admin/permissions</td><td>权限树（分组）</td></tr>
+<tr><td>字典查询/维护</td><td>/api/v1/admin/dict (GET/POST/PUT/DELETE)；GET /api/v1/admin/dict/type/{type}</td><td>数据字典</td></tr>
+<tr><td>集成配置</td><td>GET/PUT /api/v1/admin/integration</td><td>外部对接参数（密文）</td></tr>
+<tr><td>登录日志</td><td>GET /api/v1/admin/login-log?page=</td><td>登录审计</td></tr>
+<tr><td>操作日志</td><td>GET /api/v1/admin/operation-log?page=</td><td>WORM 日志只读查询</td></tr>
+</table>
+<p class="note-sm">全部接口受 @RequirePerm 保护；operation-log 接口仅读，任何 DELETE 被服务端拒绝（WORM）。</p>
+<h4>5.10.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_department</td><td>id(主键), dept_no(部门编号), dept_name(部门名称), parent_id(父部门ID,树形), leader_id(负责人ID,引用t_employee.id), status(状态:启用/停用)</td><td>部门/组织机构</td></tr>
+<tr><td>t_user</td><td>id(主键), username(登录账号), password(密码哈希,bcrypt), emp_id(人员ID,引用t_employee.id), dept_id(部门ID,引用t_department.id), status(状态:启用/禁用/锁定), fail_count(连续失败次数), lock_time(锁定时间), last_login(最后登录时间)</td><td>登录账号（RBAC 主体）</td></tr>
+<tr><td>t_role</td><td>id(主键), role_name(角色名称), role_key(角色标识,如SUPER_ADMIN/SAMPLER), data_scope(数据范围:1本人/2本部门/3全部), status(状态)</td><td>角色（RBAC 核心，本模块维护）</td></tr>
+<tr><td>t_permission</td><td>id(主键), perm_key(权限标识:user:add等), perm_name(权限名称), perm_group(权限分组:增删改查导印审)</td><td>权限项（RBAC 核心，本模块维护）</td></tr>
+<tr><td>t_role_permission</td><td>id(主键), role_id(角色ID,引用t_role.id), permission_id(权限ID,引用t_permission.id)</td><td>角色-权限关联（5.9 资质矩阵引用）</td></tr>
+<tr><td>t_data_dict</td><td>id(主键), dict_type(字典类型:monitor_type/sample_type/qc_type等), dict_label(显示名), dict_value(值), sort(排序), status(状态:启用/停用), remark(备注)</td><td>数据字典（全业务枚举源）</td></tr>
+<tr><td>t_integration_cfg</td><td>id(主键), cfg_key(配置键:WX_APPID/REGULATORY_URL/SMS_GATEWAY等), cfg_value(配置值,密钥类AES密文), encrypt_flag(是否加密), remark(备注)</td><td>集成配置（外部对接参数）</td></tr>
+<tr><td>t_login_log</td><td>id(主键), user_id(用户ID,引用t_user.id), username(登录账号), ip(IP地址), terminal(终端类型:PC/微信), login_time(登录时间), success(是否成功), fail_reason(失败原因)</td><td>登录日志（不可删）</td></tr>
+</table>
+<p class="note-sm">RBAC 核心表 <code>t_role / t_permission / t_role_permission</code> 由本模块（5.10）统一维护，5.9 人员资质权限模块引用其构建「人员×项目×方法」资质授权与权限矩阵；<code>t_operation_log</code>（WORM）由 5.9 定义、本模块提供只读查询界面。新建业务模块统一消费本模块的用户 / 角色 / 字典 / 配置 / 日志能力，不重复建设。</p>
+</div>
+
+<!-- ===== 5.11 检测作业指导书(SOP)管理（G4） ===== -->
+<div class="mod">
+<div class="mhead"><span>5.11 检测作业指导书(SOP)管理</span><span class="no">P1 · 二期 · 质量体系</span></div>
+<h4>5.11.1 功能说明</h4>
+<ul class="pts">
+<li>作业指导书（SOP）编制与维护：按「监测类别 × 检测项目 × 标准方法」组织 SOP，描述采样/检测操作步骤、仪器、试剂、质控要求。</li>
+<li>受控文件管理：SOP 作为受控技术文件，经审核、发布、作废版本化管理，旧版保留溯源（deprecated）。</li>
+<li>与标准库联动：SOP 关联 t_standard（方法），现场采样（5.3）与检测录入（5.6）可引用对应 SOP 作为操作依据。</li>
+</ul>
+<h4>5.11.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>受控 WORM</td><td>SOP 正文文件落服务器文件系统（引用 t_file_meta，只读+哈希），修改生成新版本而非覆盖，满足受控文件不可篡改</td></tr>
+<tr><td>版本管理</td><td>版本号递增；deprecated=1 的旧版保留可查，新版本发布后旧版不得再被新任务引用</td></tr>
+<tr><td>发布审核</td><td>SOP 发布须经技术负责人审核（状态机守卫），草稿不可直接用于指导检测</td></tr>
+<tr><td>方法关联</td><td>SOP 通过 standard_id 关联 t_standard；一个方法可有多份 SOP（如不同介质），由 category 区分</td></tr>
+</table>
+<h4>5.11.3 状态机设计</h4>
+<table class="doc smtable">
+<tr><th>当前状态</th><th>事件</th><th>目标状态</th><th>守卫</th></tr>
+<tr><td>草稿</td><td>提交审核</td><td>审核中</td><td>正文文件已上传（t_file_meta 关联）</td></tr>
+<tr><td>审核中</td><td>审核通过</td><td>已发布</td><td>技术负责人账号确认，写审计</td></tr>
+<tr><td>审核中</td><td>驳回</td><td>草稿</td><td>必填驳回意见</td></tr>
+<tr><td>已发布</td><td>作废</td><td>已作废</td><td>仅管理员+质量原因，旧版置 deprecated，记录不可删</td></tr>
+</table>
+<h4>5.11.4 界面设计</h4>
+<p>关键组件：SOP 列表（按监测类别/项目/方法筛选）、SOP 编辑器（富文本+文件上传）、版本历史时间线、受控章标识（已发布灰化不可改）、引用关系视图（关联 t_standard 与在用任务）。</p>
+<h4>5.11.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>SOP 创建/编辑</td><td>/api/v1/sop (POST/PUT)</td><td>草稿维护</td></tr>
+<tr><td>SOP 发布/作废</td><td>POST /api/v1/sop/{id}/publish · /obsolete</td><td>状态机事件，账号归属</td></tr>
+<tr><td>SOP 查询</td><td>GET /api/v1/sop?standard_id=&amp;monitor_type=</td><td>按方法/类别检索在用 SOP</td></tr>
+<tr><td>SOP 受控下载</td><td>GET /api/v1/sop/{id}/file</td><td>读 t_file_meta，校验权限后返回只读文件</td></tr>
+</table>
+<h4>5.11.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_sop</td><td>id(主键), code(SOP编号), title(标题), monitor_type(监测类别), item(检测项目), standard_id(标准方法ID,引用t_standard.id), category(类别:采样SOP/检测SOP), version(版本号), file_meta_id(正文文件ID,引用t_file_meta), status(状态:草稿/审核中/已发布/已作废), deprecated(是否作废), author_id(编制人ID), reviewer_id(审核人ID), eff_date(生效日期), published_at(发布时间)</td><td>检测作业指导书（受控文件，WORM 归档，版本化）</td></tr>
+</table>
+</div>
+
+<!-- ===== 5.12 质量控制计划与能力验证管理（G5+G6） ===== -->
+<div class="mod">
+<div class="mhead"><span>5.12 质量控制计划与能力验证管理</span><span class="no">P1 · 二期 · 质量体系</span></div>
+<h4>5.12.1 功能说明</h4>
+<ul class="pts">
+<li>质量控制计划：按年度/季度编制质控计划，明确监控类型（空白/平行/加标回收/留样复测等）、覆盖项目、责任人与频次。</li>
+<li>质量监控活动记录：按计划执行监控活动并登记结果，与 5.6 批次级质控判定联动。</li>
+<li>能力验证 / 实验室间比对 / 重复性试验（G6）：登记外部能力验证、实验室间比对、内部重复性试验结果，纳入人员与方法的检测能力画像。</li>
+</ul>
+<h4>5.12.2 业务规则</h4>
+<table class="doc">
+<tr><th style="width:160px">规则</th><th>说明</th></tr>
+<tr><td>计划驱动</td><td>监控活动须归属某质控计划（t_qc_plan），未列计划的活动也可登记但需标注临时</td></tr>
+<tr><td>结果联动</td><td>能力验证/比对不合格触发 5.9 资质复核；结果写入人员/方法能力画像，影响派单与录入资质闸门</td></tr>
+<tr><td>计划状态</td><td>计划 草稿→审批中→执行中→已完成（固定审批状态机）</td></tr>
+<tr><td>留痕</td><td>计划/活动/验证记录的写操作均经审计 WORM（5.9/5.10）</td></tr>
+</table>
+<h4>5.12.3 状态机设计</h4>
+<table class="doc smtable">
+<tr><th>当前状态</th><th>事件</th><th>目标状态</th><th>守卫</th></tr>
+<tr><td>草稿</td><td>提交审批</td><td>审批中</td><td>计划项非空（类型/项目/责任人/频次）</td></tr>
+<tr><td>审批中</td><td>审批通过</td><td>执行中</td><td>质量负责人确认</td></tr>
+<tr><td>审批中</td><td>驳回</td><td>草稿</td><td>必填意见</td></tr>
+<tr><td>执行中</td><td>全部活动完成</td><td>已完成</td><td>活动记录齐全</td></tr>
+</table>
+<h4>5.12.4 界面设计</h4>
+<p>关键组件：质控计划甘特/列表（按年度/季度）、计划项编辑器、监控活动录入表单（关联 t_test_batch 或独立登记）、能力验证台账（外部机构/项目/结果/证书）、实验室间比对看板、人员/方法能力画像卡片。</p>
+<h4>5.12.5 接口设计</h4>
+<table class="doc">
+<tr><th style="width:230px">接口</th><th>方法/路径</th><th>说明</th></tr>
+<tr><td>质控计划 CRUD</td><td>/api/v1/qc/plan (GET/POST/PUT)</td><td>计划维护</td></tr>
+<tr><td>计划审批</td><td>POST /api/v1/qc/plan/{id}/approve</td><td>状态机事件</td></tr>
+<tr><td>监控活动登记</td><td>POST /api/v1/qc/activity</td><td>活动结果录入</td></tr>
+<tr><td>能力验证/比对/重复</td><td>POST /api/v1/qc/proficiency · /interlab · /repeat</td><td>G6 三类结果登记</td></tr>
+<tr><td>能力画像</td><td>GET /api/v1/qc/profile?employee=&amp;standard=</td><td>人员/方法能力查询</td></tr>
+</table>
+<h4>5.12.6 数据模型设计</h4>
+<table class="doc">
+<tr><th>表</th><th>关键字段</th><th>说明</th></tr>
+<tr><td>t_qc_plan</td><td>id(主键), plan_no(计划编号), year(年度), quarter(季度), type(计划类型:年度/季度/专项), responsible_id(责任人ID,引用t_employee.id), status(状态:草稿/审批中/执行中/已完成), approved_by(审批人ID), approved_at(审批时间)</td><td>质量控制计划</td></tr>
+<tr><td>t_qc_activity</td><td>id(主键), plan_id(计划ID,引用t_qc_plan.id), qc_type(监控类型:空白/平行/加标回收/留样复测), item(检测项目), standard_id(标准方法ID,引用t_standard.id), batch_id(关联检测批次ID,可空), result(结果), pass_flag(合格标记), operator_id(执行人ID), act_date(执行日期)</td><td>质量监控活动记录（与 5.6 质控判定联动）</td></tr>
+<tr><td>t_proficiency_test</td><td>id(主键), plan_id(计划ID,可空), org(能力验证机构), item(检测项目), standard_id(标准方法ID,引用t_standard.id), result(结果), conclusion(结论:合格/不合格), cert_file(证书文件ID,引用t_file_meta), employee_ids(参与人员ID,JSON), test_date(验证日期)</td><td>能力验证（G6）</td></tr>
+<tr><td>t_interlab_compare</td><td>id(主键), plan_id(计划ID,可空), partner_lab(比对实验室), item(检测项目), standard_id(标准方法ID,引用t_standard.id), our_value(本室结果), ref_value(参考值), deviation(偏差), conclusion(结论), compare_date(比对日期)</td><td>实验室间比对（G6）</td></tr>
+<tr><td>t_repeat_test</td><td>id(主键), plan_id(计划ID,可空), item(检测项目), standard_id(标准方法ID,引用t_standard.id), first_value(首次值), repeat_value(重复值), deviation(偏差), conclusion(结论), operator_id(执行人ID), test_date(试验日期)</td><td>重复性试验（G6）</td></tr>
+</table>
+</div>
+
+</section>
+
+<!-- ============ 6 流程设计 ============ -->
+<section id="c6">
+<h2>6. 流程设计（端到端 + 关键子流程）</h2>
+<h3>6.1 端到端主流程（委托 → 归档）</h3>
+<div class="flow">
+  <span class="step">① 委托登记</span><span class="arrow">→</span>
+  <span class="step">①a 技术室确认</span><span class="arrow">→</span>
+  <span class="step">② 生成采样订单</span><span class="arrow">→</span>
+  <span class="step">③ 调度派单</span><span class="arrow">→</span>
+  <span class="step">④ 小程序外勤采样</span><span class="arrow">→</span>
+  <span class="step">⑤ 扫码收样/分样</span><span class="arrow">→</span>
+  <span class="step">⑥ 检测+质控</span><span class="arrow">→</span>
+  <span class="step">⑦ 报告三审</span><span class="arrow">→</span>
+  <span class="step">⑧ 归档/上报</span>
+</div>
+<h3>6.2 关键子流程</h3>
+<h4>6.2.1 派单流程（→ 5.2）</h4>
+<p>订单池出现「待派单」→ 调度员看板选单 → 分配 负责人/组员/车辆/设备 → <b>系统校验（资质/冲突/校准有效期）</b> → 通过则置「已派单/执行中」并同步发微信订阅消息；任一校验失败阻断。</p>
+<h4>6.2.2 外勤采样 + 送检（→ 5.3）</h4>
+<p>小程序拉取任务 → 填现场参数（时间/GPS 自动）→ 绑现场质控 → 拍照（水印）→ 蓝牙打印条码 → 提交送检 → 实验室收样待办（订阅消息+站内信）。离线表单恢复网络后同步。</p>
+<h4>6.2.3 收样分样（→ 5.4）</h4>
+<p>扫条码 → 带出订单信息 → 核验项勾选 → 通过则生成样品记录（检测样派发检测任务、留样入留样库）；拒收登记原因+拍照并通知补采。</p>
+<h4>6.2.4 检测与质控闭环（→ 5.6）</h4>
+<p>检测员领任务 → 资质闸门 → 手工录入/Excel 导入 → 公式引擎计算 → 规则引擎质控判定：合格进报告候选；<b>不合格则数据锁定 + 强制异常说明/复测</b>。整批合格方可流转报告编制。</p>
+<h4>6.2.5 报告三级审核（→ 5.7）</h4>
+<p>编制生成报告 → 自审（账号确认）→ 审核（复核+意见，可驳回）→ 签发（质控核查结论，可驳回）→ 签发后生成 PDF 落服务器文件系统归档、推送客户、可上报监管。以登录账号 + 审计归属，无图形电子签名。</p>
+<h4>6.2.6 预警与审批流（→ 5.5）</h4>
+<p>定时任务扫描：校准/标物/试剂/留样到期、数据超标 → 写预警表 + 同步推送（站内信/微信/短信）。留样销毁、危化品报废走<b>固定审批状态机</b>，记录不可删。</p>
+<h4>6.2.7 委托技术确认（→ 5.1，G3）</h4>
+<p>业务员提交委托 → 状态「待技术确认」→ 技术室评审方法适用性/实验室能力并出具确认意见（写 t_entrust_review）→ 通过置「已确认」并触发拆单生成采样订单；不通过「已退回」，修改后重提。</p>
+<h4>6.2.8 质控计划与能力验证（→ 5.12，G5+G6）</h4>
+<p>质量负责人编制年度/季度质控计划（t_qc_plan，审批后执行中）→ 按计划登记监控活动（t_qc_activity）并与 5.6 质控判定联动；外部能力验证（t_proficiency_test）、实验室间比对（t_interlab_compare）、重复性试验（t_repeat_test）结果纳入人员/方法能力画像，不合格触发 5.9 资质复核。</p>
+</section>
+
+<!-- ============ 7 非功能 ============ -->
+<section id="c7">
+<h2>7. 非功能技术需求</h2>
+<table class="doc">
+<tr><th style="width:120px">类别</th><th>需求</th><th>技术实现 / 验收口径</th></tr>
+<tr><td rowspan="3">性能</td><td>≥200 人同时在线</td><td>SQLite WAL + busy_timeout + 写路径串行化；应用内本地缓存热点；压测 200 并发无错误率上升</td></tr>
+<tr><td>查询响应 ≤3s</td><td>建索引+分页；P95 ≤3s；热点列表走本地缓存（Caffeine）</td></tr>
+<tr><td>导出上万条无卡顿</td><td>服务端后台线程池生成 + 流式写入服务器文件；进度存 DB 轮询</td></tr>
+<tr><td rowspan="4">安全</td><td>账号分级/锁定/日志</td><td>连续 5 次失败锁定；登录日志；RBAC+数据权限</td></tr>
+<tr><td>数据不可物理删除</td><td>logical_delete + 历史版本表；变更前后值全留存</td></tr>
+<tr><td>涉密隔离</td><td>涉密标记+独立授权+导出审计；敏感字段 AES 加密</td></tr>
+<tr><td>备份+异地</td><td>每日 SQLite 文件热备 + 文件系统 rsync 增量；恢复演练</td></tr>
+<tr><td>可靠性</td><td>关键任务稳定</td><td>无 MQ；定时任务幂等 + 失败重试 + 告警；核心单实例，文件/库写串行化防并发损坏</td></tr>
+<tr><td>兼容性</td><td>浏览器 / 微信 / 导出格式</td><td>Chrome/Edge/国产浏览器；微信 8.0+；xlsx/pdf/doc 兼容</td></tr>
+<tr><td>合规</td><td>防篡改/可追溯</td><td>WORM 审计日志 + 文件哈希存证 + 账号身份归属；满足 CMA/等保（电子签名偏差见第 10 章）</td></tr>
+</table>
+</section>
+
+<!-- ============ 8 验收标准 ============ -->
+<section id="c8">
+<h2>8. 功能验收标准（可测试）</h2>
+<p class="desc">每条验收用例采用 <b>前置条件 / 操作步骤 / 预期结果 / 通过标准</b> 结构，可直接转换为测试用例，细化自第 5 章各模块六要素。</p>
+
+<h3>8.1 委托与订单 / 派单（5.1 / 5.2）</h3>
+<table class="doc">
+<tr><th style="width:130px">验收点</th><th>前置</th><th>操作</th><th>预期结果</th><th>通过标准</th></tr>
+<tr><td>委托创建+拆单</td><td>业务接单员登录</td><td>新建委托（2 点位×季度 3 天×4 次/天）</td><td>生成 WT-… 与采样订单集合</td><td>订单数=点位×频次拆分正确，状态=待派单</td></tr>
+<tr><td>校准过期禁用</td><td>设备 YQ-057 校准已过期</td><td>派单选择该设备</td><td>设备不可选，提示「校准过期」</td><td>前端禁用 + 后端校验双重拦截</td></tr>
+<tr><td>资质校验</td><td>负责人无对应上岗证</td><td>派单选择该负责人</td><td>提示资质不足，阻断派单</td><td>后端返回 403，订单不流转</td></tr>
+<tr><td>冲突检测</td><td>车辆已派其他订单</td><td>同车再派</td><td>提示占用冲突</td><td>时间窗唯一约束生效</td></tr>
+</table>
+
+<h3>8.2 微信小程序外勤采样（5.3）</h3>
+<table class="doc">
+<tr><th style="width:130px">验收点</th><th>前置</th><th>操作</th><th>预期结果</th><th>通过标准</th></tr>
+<tr><td>授权登录</td><td>员工微信</td><td>wx.login → 绑定</td><td>自动登录并绑定档案</td><td>无独立注册；JWT 正常签发</td></tr>
+<tr><td>现场参数只读</td><td>采样中</td><td>尝试修改时间/GPS</td><td>不可改，自动填充</td><td>服务端二次校验</td></tr>
+<tr><td>拍照水印</td><td>拍照</td><td>上传</td><td>照片含时间+GPS 水印，落文件系统只读</td><td>水印不可去除；SHA-256 存证</td></tr>
+<tr><td>离线同步</td><td>断网填报</td><td>恢复网络</td><td>本地队列批量上报成功</td><td>幂等去重，无重复/丢失</td></tr>
+</table>
+
+<h3>8.3 收样分样 / 留样（5.4）</h3>
+<table class="doc">
+<tr><th style="width:130px">验收点</th><th>前置</th><th>操作</th><th>预期结果</th><th>通过标准</th></tr>
+<tr><td>扫码收样</td><td>已送检订单</td><td>扫 SP 条码</td><td>带出订单/项目/限值</td><td>自动关联，收样人/时间系统写入</td></tr>
+<tr><td>拒收登记</td><td>样品破损</td><td>选原因+拍照提交</td><td>状态=已拒收，通知补采</td><td>必填原因，触发补采待办</td></tr>
+<tr><td>分样派发</td><td>收样通过</td><td>分样</td><td>检测样派发检测任务、留样入留样库</td><td>按项目→小组映射正确</td></tr>
+</table>
+
+<h3>8.4 检测数据 + 闭环质控（5.6，CMA 核心）</h3>
+<table class="doc">
+<tr><th style="width:130px">验收点</th><th>前置</th><th>操作</th><th>预期结果</th><th>通过标准</th></tr>
+<tr><td>资质闸门</td><td>检测员无该项目授权</td><td>打开录入页</td><td>拦截，提示无授权</td><td>服务端校验，无法录入</td></tr>
+<tr><td>自动计算</td><td>录入测定值（或 Excel 导入）</td><td>提交批次</td><td>空白扣除/偏差/回收率自动算</td><td>结果与公式一致</td></tr>
+<tr><td>超标标红</td><td>结果超限值</td><td>提交</td><td>结果红色+▲，入超标台账</td><td>触发预警（站内信/短信）</td></tr>
+<tr><td>质控锁定</td><td>平行偏差 8%＞5%</td><td>提交</td><td>弹窗拦截，数据 locked=1</td><td>该数据<b>禁止进入报告编制</b></td></tr>
+<tr><td>报告闸门</td><td>批次存在 locked 数据</td><td>订单流转至报告编制</td><td>被拒绝</td><td>整批质控合格方可流转（守卫）</td></tr>
+</table>
+
+<h3>8.5 物资与预警（5.5）</h3>
+<table class="doc">
+<tr><th style="width:130px">验收点</th><th>前置</th><th>操作</th><th>预期结果</th><th>通过标准</th></tr>
+<tr><td>校准预警</td><td>设备 30/15/7 天内到期</td><td>定时任务</td><td>推送三级预警</td><td>预警记录+通知可达</td></tr>
+<tr><td>强制停用</td><td>设备已过期</td><td>查询可用设备</td><td>状态=强制停用</td><td>派单/录入均不可选</td></tr>
+<tr><td>双人双锁</td><td>危化品领用</td><td>领用登记</td><td>需领用人+监督人双账号确认</td><td>缺一方不可提交</td></tr>
+<tr><td>留样销毁</td><td>留样到期</td><td>发起销毁</td><td>走固定审批状态机</td><td>审批后记录不可删</td></tr>
+</table>
+
+<h3>8.6 报告三级审核（5.7，无电子签章）</h3>
+<table class="doc">
+<tr><th style="width:130px">验收点</th><th>前置</th><th>操作</th><th>预期结果</th><th>通过标准</th></tr>
+<tr><td>三级流程</td><td>报告编制完成</td><td>自审→审核→签发</td><td>按序流转，节点账号确认</td><td>越级/跳节点被拒（状态机守卫）</td></tr>
+<tr><td>驳回留痕</td><td>审核不通过</td><td>驳回+意见</td><td>退回编制，意见留痕</td><td>必填意见，轨迹可查</td></tr>
+<tr><td>签发闸门</td><td>存在不合格质控</td><td>点击签发</td><td>禁用（灰化+原因）</td><td>质控核查结论通过才可签发</td></tr>
+<tr><td>PDF 归档</td><td>签发通过</td><td>—</td><td>生成 PDF 落服务器文件系统（只读+哈希）</td><td>SHA-256 存证</td></tr>
+<tr><td>版本管理</td><td>报告修改</td><td>变更</td><td>新版本重走三审</td><td>旧版本保留可查</td></tr>
+</table>
+
+<h3>8.7 溯源 / 权限 / 性能（5.4 / 5.9 / 全局）</h3>
+<table class="doc">
+<tr><th style="width:130px">验收点</th><th>前置</th><th>操作</th><th>预期结果</th><th>通过标准</th></tr>
+<tr><td>反向溯源</td><td>任意报告</td><td>一键溯源</td><td>反查数据/样品/订单/照片</td><td>≤3 次点击到达现场照片</td></tr>
+<tr><td>权限隔离</td><td>客户账号</td><td>访问他单位数据</td><td>拒绝</td><td>数据权限生效</td></tr>
+<tr><td>审计防篡改</td><td>任意角色</td><td>尝试删改日志</td><td>失败</td><td>WORM 日志不可删改</td></tr>
+<tr><td>性能</td><td>200 并发</td><td>混合操作</td><td>无错误率上升</td><td>P95 查询 ≤3s（SQLite WAL）</td></tr>
+</table>
+<h3>8.8 委托技术确认 / SOP / 质控计划与能力验证 / 实验环境（G3–G7）</h3>
+<table class="doc">
+<tr><th style="width:130px">验收点</th><th>前置</th><th>操作</th><th>预期结果</th><th>通过标准</th></tr>
+<tr><td>委托技术确认闸门（G3）</td><td>业务员新建委托</td><td>提交评审 → 技术室确认通过</td><td>状态 待技术确认→已确认；方可拆单</td><td>未确认委托不可生成订单（后端 403）</td></tr>
+<tr><td>委托退回</td><td>技术室评审不通过</td><td>退回+意见</td><td>状态 已退回，可修改重提</td><td>必填退回意见，轨迹可查</td></tr>
+<tr><td>SOP 受控发布（G4）</td><td>编制 SOP 草稿</td><td>提交审核→发布</td><td>状态 已发布，正文落 t_file_meta 只读</td><td>草稿不可被检测任务引用；改版生成新版本</td></tr>
+<tr><td>质控计划驱动（G5）</td><td>年度计划审批通过</td><td>登记监控活动</td><td>活动归属计划，结果联动 5.6 质控</td><td>计划/活动状态机守卫生效</td></tr>
+<tr><td>能力验证联动（G6）</td><td>能力验证不合格</td><td>登记 t_proficiency_test</td><td>触发 5.9 资质复核</td><td>不合格结果写入人员/方法能力画像</td></tr>
+<tr><td>实验环境落库（G7）</td><td>检测录入</td><td>填写温/湿/压/洁净度</td><td>t_test_record.env_cond 留存</td><td>原始记录含实验环境条件，满足 CMA</td></tr>
+</table>
+<p class="sm">注：验收项 1–6 对应 PRD 9.2 交付验收标准，此处细化为可执行用例。仪器自动采集、电子签章相关验收项本期不适用（见范围裁剪说明）。</p>
+</section>
+
+<!-- ============ 9 开发规范 ============ -->
+<section id="c9">
+<h2>9. 开发规范与交付物</h2>
+<table class="doc">
+<tr><th style="width:160px">项</th><th>约定</th></tr>
+<tr><td>代码规范</td><td>后端 Google Java Style；前端 ESLint + Prettier；统一异常/响应/日志格式</td></tr>
+<tr><td>分支策略</td><td>GitFlow：main / release / develop / feature-* / hotfix-*；PR 评审 + CI 通过</td></tr>
+<tr><td>环境</td><td>DEV → TEST（验收） → PROD；配置外置（环境变量）；密钥进 Vault</td></tr>
+<tr><td>测试</td><td>单元测试（覆盖率≥60%核心域，<b>状态机迁移与守卫必覆盖</b>）、接口测试、E2E 关键链路、性能压测</td></tr>
+<tr><td>交付物</td><td>源码 + 部署包（jar + docker-compose 无 MQ/Redis）+ 接口文档（OpenAPI） + 数据字典 + 部署手册 + 验收报告</td></tr>
+<tr><td>合规审计</td><td>交付前对照第 8 章验收用例逐条执行并存档证据（截图/日志）</td></tr>
+</table>
+</section>
+
+<!-- ============ 10 实施计划 ============ -->
+<section id="c10">
+<h2>10. 实施计划与合规偏差</h2>
+<h3>10.1 实施计划（对齐 PRD 9.3 迭代）</h3>
+<div class="flow">
+  <span class="step">一期 P0<br><small style="font-weight:400;">委托订单 / 小程序采样 / 样品 / 检测质控 / 报告三审 / 权限审计 / 固定状态机与规则引擎基建</small></span><span class="arrow">→</span>
+  <span class="step gray">二期 P1<br><small style="font-weight:400;">物资全模块 / 档案台账 / 统计报表 / 客户门户 / 可视化大屏 / 微信订阅消息完善</small></span><span class="arrow">→</span>
+  <span class="step gray">三期 P2<br><small style="font-weight:400;">监管平台上报 / ERP 集成 / 开放 API / 多实验室（数据库可切 MySQL）</small></span>
+</div>
+<table class="doc">
+<tr><th style="width:90px">阶段</th><th>核心交付</th><th>验收锚点</th></tr>
+<tr><td>一期</td><td>技术底座（网关/鉴权/<b>固定状态机</b>/规则引擎/编号/审计 WORM）+ 委托→报告闭环</td><td>PRD 验收 1–2、6；第 8 章 8.1–8.6 核心用例</td></tr>
+<tr><td>二期</td><td>物资/档案/统计/大屏/客户门户</td><td>PRD 验收 3、5；台账一键导出 CMA 资料</td></tr>
+<tr><td>三期</td><td>监管上报/ERP/开放 API</td><td>PRD 验收 4（不含仪器自动采集）；联调验证</td></tr>
+</table>
+<div class="callout info">建议一期即把<b>固定状态机（迁移表+Guard）、规则引擎、编号引擎、审计 WORM、公式计算引擎</b>作为公共底座优先落地。仪器自动对接、电子签章为 V1.1 明确放弃项，若后续合规或效率要求恢复，按扩展点增量接入即可。</div>
+<p class="note-sm"><b>本期补遗规划（对应满足度匹配 G1–G14）：</b>建议<b>一期</b>并入 G3 委托技术评审状态机、G7 实验环境条件落库（均为小改动，与委托→报告闭环同步交付）；<b>二期 P1</b> 建设 G4 检测作业指导书(SOP)、G5 质量控制计划、G6 能力验证/比对（新增 5.11/5.12 模块）；G1 客户满意度/投诉、G2 分包管理亦纳入二期质量体系扩展。</p>
+
+<h3>10.2 合规偏差与补偿措施</h3>
+<table class="doc">
+<tr><th style="width:160px">放弃项</th><th>BRD 原要求</th><th>V1.1 偏差与补偿</th></tr>
+<tr><td>电子签章 / 电子签名</td><td>三级电子签名替代手写签字，符合 CMA 电子记录</td><td>以登录账号身份 + 审计日志归属代替图形签名；建议与质量负责人确认是否满足 CMA 评审，必要时后续接入 CA 签章</td></tr>
+<tr><td>仪器自动采集</td><td>色谱/光谱等数据自动对接，减少人工录入</td><td>改为手工录入 + Excel/CSV 导入；保留未来适配器扩展点；人工录入增加校验与复核要求</td></tr>
+<tr><td>工作流引擎</td><td>三级审核/审批流程可配置</td><td>固定状态机硬编码，流程确定性高、易测试；牺牲灵活配置，流程变更需发版</td></tr>
+<tr><td>MQ / Redis</td><td>异步解耦、缓存、削峰</td><td>单实验室规模下无需；以同步 + 定时任务 + 本地缓存 + SQLite WAL 实现，降低运维成本</td></tr>
+</table>
+</section>
+
+<!-- ============ 11 自检与审查报告 ============ -->
+<section id="c11">
+<h2>11. TRD 自检与审查报告</h2>
+<p class="desc">本章为针对第 5 章各模块「输入 / 数据模型 / 内部逻辑 / 模块间依赖」的系统性自检。审查项已于 11.1 定义，11.2 给出模块输入与依赖关系，11.3 为自检发现与修复清单（均已在本文件中就地修复）。</p>
+
+<h3>11.1 审查项定义（四类）</h3>
+<table class="doc">
+<tr><th style="width:200px">审查维度</th><th>审查内容（勾选式清单）</th></tr>
+<tr><td>一、模块输入完整性</td><td>①每模块是否明确输入来源（上游表/模块）；②触发条件是否明确；③依赖的前置状态是否已定义；④输入缺失是否会阻断下游。</td></tr>
+<tr><td>二、数据模型一致性</td><td>①接口/规则中引用的表是否已在数据模型定义；②字段命名跨模块一致；③外键引用目标存在且唯一；④状态机枚举值是否全覆盖（枚举 ⊇ 状态机所有状态）。</td></tr>
+<tr><td>三、模块内部逻辑性</td><td>①状态机守卫与业务规则一致；②接口覆盖功能说明全部动作；③数据模型字段足以支撑业务规则与界面；④无自相矛盾表述。</td></tr>
+<tr><td>四、模块间依赖性</td><td>①上游输出是否被下游消费；②共享实体（文件/预警/消息/车辆）是否单一归属定义；③无循环依赖、无孤儿表；④跨模块编号/编码贯穿一致。</td></tr>
+</table>
+
+<h3>11.2 模块输入与下游消费（含依赖关系）</h3>
+<table class="doc">
+<tr><th style="width:130px">模块</th><th style="width:230px">主要输入（上游表 / 模块）</th><th>主要输出（下游消费）</th></tr>
+<tr><td>5.1 委托订单</td><td>t_customer、t_monitor_point、t_standard</td><td>t_entrust / t_entrust_detail → 5.2（拆单生成订单）</td></tr>
+<tr><td>5.2 调度派单</td><td>t_sampling_order（待派单）、t_employee、t_vehicle(4.4)、t_instrument、t_employee_qualification</td><td>t_dispatch → 5.3（推送任务）、t_message</td></tr>
+<tr><td>5.3 小程序采样</td><td>t_sampling_order、t_standard_material（固定剂）、t_file_meta(4.4)</td><td>t_sampling_record / t_sample_qc_binding / t_photo → 5.4</td></tr>
+<tr><td>5.4 收样样品</td><td>t_sampling_record、t_sampling_order、t_retain（留样）</td><td>t_sample / t_sample_log → 5.6（检测任务）</td></tr>
+<tr><td>5.5 物资仪器</td><td>（主数据维护，少量外部录入）</td><td>t_instrument / t_standard_material / t_hazardous_ledger / t_consumable、t_alert → 5.2/5.6 闸门</td></tr>
+<tr><td>5.6 检测质控</td><td>t_sample、t_standard、t_employee_qualification、t_instrument</td><td>t_test_batch / t_test_record / t_qc_record、t_alert（超标）→ 5.7</td></tr>
+<tr><td>5.7 报告三审</td><td>t_test_record / t_qc_record、t_sampling_order、t_sample、t_employee、t_file_meta</td><td>t_report / t_report_review / t_report_version、t_message、t_archive → 5.8 / 上报</td></tr>
+<tr><td>5.8 档案台账大屏</td><td>全部业务表 + t_file_meta + t_alert（只读聚合）</td><td>视图/统计，无写操作</td></tr>
+<tr><td>5.9 人员资质</td><td>外部 HR 信息</td><td>t_employee / t_employee_qualification / t_operation_log；引用 5.10 的 t_role/t_permission；被 5.1/5.2/5.6/5.7/5.8 依赖</td></tr>
+<tr><td>5.10 后台管理</td><td>系统初始化（超管种子）、集成方提供参数</td><td>t_department / t_user / t_role / t_permission / t_role_permission / t_data_dict / t_integration_cfg / t_login_log；被 5.9 及全系统依赖（登录/鉴权/字典/配置/日志）</td></tr>
+<tr><td>5.11 SOP 管理（G4）</td><td>t_standard（方法关联）、t_employee（编制/审核）、t_file_meta(4.4)</td><td>t_sop（受控文件，引用 t_file_meta）；被 5.3/5.6 作为操作依据引用</td></tr>
+<tr><td>5.12 质控计划与能力验证（G5+G6）</td><td>t_standard、t_employee、t_test_batch（活动可关联）、t_file_meta(4.4)</td><td>t_qc_plan / t_qc_activity / t_proficiency_test / t_interlab_compare / t_repeat_test；结果写入人员/方法能力画像，触发 5.9 资质复核、联动 5.6 质控</td></tr>
+</table>
+<p class="note-sm"><b>依赖结论：</b>主线为 <b>5.1→5.2→5.3→5.4→5.6→5.7→5.8</b> 的单向流水，无循环依赖；<b>5.9（人员/资质）</b>、<b>5.10（后台管理：登录/鉴权/字典/配置/日志）</b> 与 <b>5.5（物资闸门）</b> 为被全系统多处依赖的横切底座；<b>5.11（SOP）</b> 与 <b>5.12（质控计划与能力验证）</b> 为质量体系延伸模块，依赖 <code>t_standard</code> 与 5.10 的字典/文件能力，其结果反哺 5.9 资质与 5.6 质控；后台管理模块的 <code>t_user / t_role / t_permission / t_data_dict / t_integration_cfg / t_login_log</code> 由 5.10 单一归属，消除重复建模与孤儿表；共享实体 <code>t_file_meta / t_alert / t_message / t_vehicle</code> 在 §4.4 单一归属定义。</p>
+
+<h3>11.3 自检发现与修复清单</h3>
+<table class="doc">
+<tr><th style="width:60px">编号</th><th style="width:120px">维度</th><th>问题</th><th style="width:60px">级别</th><th>修复</th></tr>
+<tr><td>F1</td><td>模块内部逻辑</td><td>5.2.1/6.2.1 出现「已派单」状态，但 5.1.3/5.2.3 订单状态机无此态（仅有 待派单→采样执行中）</td><td>高</td><td>订单状态机新增「已派单」中间态：待派单→(派单)→已派单→(开始采样)→采样执行中，并同步 5.2.3 与 5.1.2 规则</td></tr>
+<tr><td>F2</td><td>数据模型一致</td><td>5.5.3 仪器状态机含「报废」，但 5.5.6 t_instrument.status 枚举无报废</td><td>中</td><td>枚举补「报废」：在用/临期/停用/维修/报废</td></tr>
+<tr><td>F3</td><td>数据模型一致</td><td>t_standard_material 无 category，无法区分标物/试剂/危化品</td><td>中</td><td>新增 category(标物/试剂/危化品)；status 明确为 在库/已领用/过期停用</td></tr>
+<tr><td>F4</td><td>数据模型一致</td><td>标准引用松散：item_code / std_code / method_id 分别引用 t_standard.item 等非唯一列</td><td>高</td><td>统一为外键 <code>standard_id</code> → t_standard.id（含 item/method/limit/formula），覆盖 5.1/5.6/5.9</td></tr>
+<tr><td>F5</td><td>模块逻辑/数据</td><td>t_report 仅 order_id，多订单委托无法归集到一份报告</td><td>中</td><td>新增 entrust_id + order_ids（覆盖订单集合），报告按委托出具</td></tr>
+<tr><td>F6</td><td>数据模型一致</td><td>t_file_meta 在 4.2/4.3/5.3/5.8 被引用但未进数据模型</td><td>中</td><td>补录至 §4.4 共享实体</td></tr>
+<tr><td>F7</td><td>数据模型一致</td><td>5.5.5/6.2.6 写「预警表」但无 t_alert 定义</td><td>中</td><td>补录 t_alert 至 §4.4</td></tr>
+<tr><td>F8</td><td>数据模型一致</td><td>2.2/5.5 消息中心无 t_message 定义</td><td>中</td><td>补录 t_message 至 §4.4</td></tr>
+<tr><td>F9</td><td>数据模型一致</td><td>5.2 派单引用「车辆」但无 t_vehicle 主数据</td><td>中</td><td>补录 t_vehicle 至 §4.4</td></tr>
+<tr><td>F10</td><td>接口/安全</td><td>5.3.5 任务列表以 ?openid= 入参，泄露标识且未走鉴权</td><td>低</td><td>改为从 JWT 解析 openid，接口去参</td></tr>
+<tr><td>F11</td><td>数据模型一致</td><td>t_dispatch.members/devices 多值字段无存储说明</td><td>低</td><td>补注：JSON 文本或拆关联表 t_dispatch_member / t_dispatch_device</td></tr>
+<tr><td>F12</td><td>模块内部逻辑</td><td>5.5.3 仪器状态机「维修中」与 5.5.6 枚举「维修」措辞不一致</td><td>低</td><td>统一为「维修」</td></tr>
+<tr><td>F13</td><td>数据模型一致</td><td>新增 G3 委托确认状态机，但 5.1.6 原 t_entrust.status 无枚举值（草稿/待技术确认/已确认/已退回），且拆单触发条件原为「委托提交后」</td><td>中</td><td>t_entrust.status 补枚举并同步 5.1.2 拆单规则改为「技术确认→已确认后」；新增 t_entrust_review 表；5.1.3 增委托确认状态机；5.1.5 增 review/gen-order 接口</td></tr>
+<tr><td>F14</td><td>模块输入/依赖</td><td>新增 5.11/5.12（G4/G5/G6），其表需在 §11.2 依赖表登记且被 5.3/5.6/5.9 消费；t_test_record 缺实验环境条件（G7）</td><td>中</td><td>5.11/5.12 入 §11.2 并标注消费方（5.3/5.6 引用 SOP、5.12 联动 5.6/5.9）；t_test_record 增 env_cond(JSON)，5.6.1/5.6.4 同步；§6.2 增 6.2.7/6.2.8 子流程，§8 增 8.8 验收</td></tr>
+</table>
+<p class="note-sm"><b>自检结论：</b>共发现 14 项问题（高 2 / 中 9 / 低 3），已全部就地修复；本期补遗（G3 委托技术评审、G4 SOP、G5+G6 质控计划与能力验证、G7 实验环境）新增 5.11/5.12 两模块并修订 5.1/5.6，修复后四审查维度均通过：模块输入来源清晰、数据模型字段与引用闭环、状态机与业务规则一致、跨模块依赖为单向无环。后续改版建议优先回归 11.1 审查项。</p>
+</section>
+
+<footer>环境监测实验室 LIMS 系统 · TRD 技术需求文档 V1.1（精简技术栈版） · 本文与 BRD/PRD 配套使用，作为软件开发与验收的工程依据</footer>
+</div>
+</body>
+</html>

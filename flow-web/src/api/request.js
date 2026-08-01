@@ -52,4 +52,23 @@ request.interceptors.response.use(
   }
 )
 
+/**
+ * 以 blob 方式下载文件并触发浏览器保存。
+ * @param {Promise} requestPromise 返回 blob 的 axios 请求（需配置 responseType:'blob'）
+ * @param {string} filename 默认下载文件名
+ */
+export function downloadBlob(requestPromise, filename) {
+  return requestPromise.then((res) => {
+    const blob = res instanceof Blob ? res : res.data
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  })
+}
+
 export default request
