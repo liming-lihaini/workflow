@@ -688,3 +688,52 @@ CREATE TABLE IF NOT EXISTS t_retain (
     update_time   TEXT
 );
 
+-- ============ ISSUE-025 检测数据录入与复核 ============
+
+-- 检测任务（每个已收样样品生成一个检测任务，录入员填报监测项目结果）
+CREATE TABLE IF NOT EXISTS t_detection_task (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_no       TEXT,         -- 任务编号（DT前缀）
+    sample_id     INTEGER,      -- 样品ID
+    barcode       TEXT,         -- 样品条码
+    sample_name   TEXT,         -- 样品名称
+    point_id      INTEGER,      -- 监测点位ID
+    monitor_items TEXT,         -- 监测项目（逗号分隔，如 pH,COD,氨氮）
+    entry_by      TEXT,         -- 录入员
+    entry_time    TEXT,         -- 录入时间
+    status        TEXT,         -- 待录入/录入中/已提交/已复核/已退回
+    review_by     TEXT,         -- 复核人
+    review_time   TEXT,         -- 复核时间
+    review_opinion TEXT,        -- 复核意见
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 检测结果明细（每个监测项目一条记录）
+CREATE TABLE IF NOT EXISTS t_detection_result (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id       INTEGER,      -- 检测任务ID
+    sample_id     INTEGER,      -- 样品ID
+    monitor_item  TEXT,         -- 监测项目（pH/COD/氨氮等）
+    value         TEXT,         -- 检测值
+    unit          TEXT,         -- 单位
+    method        TEXT,         -- 检测方法/标准
+    limit_value   TEXT,         -- 标准限值
+    conclusion    TEXT,         -- 达标/超标
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 复核记录（每次复核留痕）
+CREATE TABLE IF NOT EXISTS t_detection_review (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id       INTEGER,      -- 检测任务ID
+    sample_id     INTEGER,      -- 样品ID
+    barcode       TEXT,         -- 样品条码
+    reviewer      TEXT,         -- 复核人
+    decision      TEXT,         -- 通过/退回
+    opinion       TEXT,         -- 复核意见
+    create_time   TEXT
+);
+

@@ -187,7 +187,9 @@ const menuConfig = [
       { key: 'ems-dispatch', title: '采样调度', path: '/ems/base/dispatch', permKey: 'ems:dispatch' },
       { key: 'ems-receive', title: '收样工作台', path: '/ems/base/receive', permKey: 'ems:sample' },
       { key: 'ems-sample', title: '样品管理', path: '/ems/base/sample', permKey: 'ems:sample' },
-      { key: 'ems-retain', title: '留样库管理', path: '/ems/base/retain', permKey: 'ems:sample' }
+      { key: 'ems-retain', title: '留样库管理', path: '/ems/base/retain', permKey: 'ems:sample' },
+      { key: 'ems-data-entry', title: '检测数据录入', path: '/ems/base/data-entry', permKey: 'ems:detection' },
+      { key: 'ems-review', title: '检测复核', path: '/ems/base/review', permKey: 'ems:detection' }
     ]
   },
   {
@@ -287,6 +289,8 @@ watch(() => route.path, (path) => {
     '/ems/base/receive': ['ems-receive'],
     '/ems/base/sample': ['ems-sample'],
     '/ems/base/retain': ['ems-retain'],
+    '/ems/base/data-entry': ['ems-data-entry'],
+    '/ems/base/review': ['ems-review'],
     '/monitor': ['monitor']
   }
   selectedKeys.value = pathMap[path] || []

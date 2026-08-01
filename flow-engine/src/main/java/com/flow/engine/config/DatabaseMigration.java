@@ -72,6 +72,20 @@ public class DatabaseMigration implements CommandLineRunner {
                 "name TEXT, point_id INTEGER, retain_by TEXT, retain_time TEXT, " +
                 "retain_days INTEGER, retain_until TEXT, dispose_time TEXT, dispose_by TEXT, " +
                 "status TEXT, remark TEXT, create_time TEXT, update_time TEXT");
+
+        // ===== ISSUE-025 检测数据录入与复核 =====
+        createTableIfAbsent("t_detection_task",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, task_no TEXT, sample_id INTEGER, " +
+                "barcode TEXT, sample_name TEXT, point_id INTEGER, monitor_items TEXT, " +
+                "entry_by TEXT, entry_time TEXT, status TEXT, review_by TEXT, review_time TEXT, " +
+                "review_opinion TEXT, remark TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_detection_result",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER, sample_id INTEGER, " +
+                "monitor_item TEXT, value TEXT, unit TEXT, method TEXT, limit_value TEXT, " +
+                "conclusion TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_detection_review",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER, sample_id INTEGER, " +
+                "barcode TEXT, reviewer TEXT, decision TEXT, opinion TEXT, create_time TEXT");
     }
 
     private void migrateInstrumentStatus() {

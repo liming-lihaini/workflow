@@ -161,3 +161,36 @@ Caused by: com.fasterxml.jackson.core.JsonParseException: Unexpected character (
 	at org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter.readJavaType(AbstractJackson2HttpMessageConverter.java:395) ~[spring-web-6.1.1.jar:6.1.1]
 	... 59 common frames omitted
 
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+2026-08-01T21:24:23.316+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-5] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=f066d70023c041c8b68bf4922be700fc
+2026-08-01T21:24:34.111+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-8] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=e05e1afadd2142baa1bcca4852bcd453
+2026-08-01T21:26:18.053+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-5] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=6087988c09274426a8466f6039483965
+2026-08-01T21:26:22.592+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-7] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=ecd19da124064c2b81b144a5feaa4cf6
+2026-08-01T21:27:49.738+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-3] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=551a4554be504fe08a03d6f7a2bb8d0c
+2026-08-01T21:27:54.693+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-6] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=35157a5aad9440f18dcba361e52fd506
+2026-08-01T21:29:21.782+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-3] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=7667cd99902d4718a88478548c711f18
+2026-08-01T21:29:26.539+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-6] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=b9a5b96f185e4e7ca2870c4ad06d1c7e
+2026-08-01T21:31:22.608+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-6] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=8d0b5621433a4283b788f9e45f343691
+2026-08-01T21:32:08.997+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-4] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=6738acf98d7f44eea664a536ba27660c
+2026-08-01T21:32:21.572+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-9] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=c1da82e833e342e19a99c2737eef88ec
+2026-08-01T21:32:41.664+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-3] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=63976ebab8884cb1a3534904324ef891
+2026-08-01T21:32:46.602+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-7] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=27789fd42b7a4dde8473da76a37cfcf0
+2026-08-01T21:33:36.142+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-1] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=845c6aef41d146599ca457afd95be9d0
+2026-08-01T21:33:41.135+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-4] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=61e76e9981bf4cb1b79bba4a7434e3f3
+2026-08-01T21:36:05.090+08:00  INFO 24868 --- [flow-engine] [io-8080-exec-10] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=331f7cf924634e60be15607f140be9f3
+2026-08-01T21:36:10.789+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-2] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=4c1011f4564e4410a5cec65402599a00
+2026-08-01T21:37:36.736+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-2] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=078731e498424ebb9d4ad5a7e08cc3c0
+2026-08-01T21:37:42.017+08:00  INFO 24868 --- [flow-engine] [nio-8080-exec-5] com.flow.engine.service.AuthService      : 用户登录: username=sys_admin, token=d5797f3082bb4e9c88c8647ac746c324
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:16 h
+[INFO] Finished at: 2026-08-01T22:39:39+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.2.0:run (default-cli) on project flow-engine: Process terminated with exit code: 1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

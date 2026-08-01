@@ -108,3 +108,17 @@ export const retainSample = (id, params) => request.post(`/ems/base/sampling/sam
 export const disposeRetain = (id, params) => request.post(`/ems/base/sampling/retains/${id}/dispose`, null, { params })
 export const getRetains = (params) => request.get('/ems/base/sampling/retains', { params })
 export const getExpiringRetains = (params) => request.get('/ems/base/sampling/retains/expiring', { params })
+
+// ===== 检测数据录入与复核（ISSUE-025，路径 /api/v1/ems/base/detection/*）=====
+// 录入工作台
+export const getPendingSamples = (params) => request.get('/ems/base/detection/pending-samples', { params })
+export const createDetectionTask = (data) => request.post('/ems/base/detection/task', data)
+export const getDetectionTasks = (params) => request.get('/ems/base/detection/tasks', { params })
+export const getDetectionTaskDetail = (id) => request.get(`/ems/base/detection/task/${id}`)
+export const saveDetectionResults = (id, data) => request.post(`/ems/base/detection/task/${id}/results`, data)
+export const submitDetection = (id) => request.post(`/ems/base/detection/task/${id}/submit`)
+
+// 复核工作台
+export const getPendingReviews = (params) => request.get('/ems/base/detection/pending-review', { params })
+export const approveDetection = (id, data) => request.post(`/ems/base/detection/task/${id}/approve`, data)
+export const rejectDetection = (id, data) => request.post(`/ems/base/detection/task/${id}/reject`, data)

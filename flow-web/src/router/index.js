@@ -219,6 +219,19 @@ const routes = [
         component: () => import('../views/ems/base/Retain.vue'),
         meta: { title: '留样库管理', permKey: 'ems:sample' }
       },
+      // ===== 检测数据录入与复核（ISSUE-025）=====
+      {
+        path: 'ems/base/data-entry',
+        name: 'EmsDataEntry',
+        component: () => import('../views/ems/base/DataEntry.vue'),
+        meta: { title: '检测数据录入', permKey: 'ems:detection' }
+      },
+      {
+        path: 'ems/base/review',
+        name: 'EmsReview',
+        component: () => import('../views/ems/base/Review.vue'),
+        meta: { title: '检测复核', permKey: 'ems:detection' }
+      },
     ]
   }
 ]
