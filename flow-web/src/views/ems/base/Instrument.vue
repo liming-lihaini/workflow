@@ -48,7 +48,7 @@
     </div>
 
     <!-- 新增/编辑设备 -->
-    <a-drawer v-model:open="visible" :title="editing ? '编辑设备' : '新增设备'" width="560" @close="visible = false">
+    <a-drawer v-model:open="visible" :title="editing ? '编辑设备' : '新增设备'" width="1000" @close="visible = false">
       <a-form :model="form" layout="vertical">
         <a-row :gutter="12">
           <a-col :span="12"><a-form-item label="仪器编号"><a-input v-model:value="form.code" placeholder="YQ001" /></a-form-item></a-col>
@@ -117,7 +117,7 @@ const columns = [
   { title: '状态', key: 'status', dataIndex: 'status', width: 90 },
   { title: '校准到期', key: 'calibDue', dataIndex: 'calibDue', width: 120 },
   { title: '证书号', dataIndex: 'certNo', key: 'certNo' },
-  { title: '操作', key: 'action', width: 180 }
+  { title: '操作', key: 'action', width: 240 }
 ]
 
 const form = reactive({ id: undefined, code: '', name: '', model: '', manufacturer: '', purchaseDate: null, calibDue: null, status: '在用', certNo: '', remark: '' })

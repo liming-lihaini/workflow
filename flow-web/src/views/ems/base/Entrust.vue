@@ -12,16 +12,31 @@
             allow-clear
             @search="loadData"
           />
+          <a-select
+            v-model:value="formState.status"
+            placeholder="委托状态"
+            :options="statusOptions"
+            style="width: 160px"
+            allow-clear
+            @change="loadData"
+          />
           <a-button v-if="hasPerm('ems:entrust:create')" type="primary" @click="showDrawer()">新建委托</a-button>
+          <a-button
+            danger
+            :disabled="!selectedRowKeys.length"
+            @click="handleBatchDelete"
+          >批量删除{{ selectedRowKeys.length ? `(${selectedRowKeys.length})` : '' }}</a-button>
         </a-space>
       </div>
 
+      <div class="tbl-box">
       <a-table
         :columns="columns"
         :data-source="dataList"
         :loading="loading"
         :pagination="pagination"
-        :scroll="{ x: 1100 }"
+        :scroll="{ x: 1100, y: scrollY }"
+        :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
         row-key="id"
         @change="handleTableChange"
       >
@@ -61,6 +76,7 @@
           </template>
         </template>
       </a-table>
+      </div>
     </div>
 
     <!-- 委托详情（独立界面，主页内打开） -->
@@ -72,7 +88,7 @@
     <a-drawer
       v-model:open="drawerVisible"
       :title="editingRecord ? '编辑委托' : '新建委托'"
-      width="1000"
+      width="1200"
       :confirm-loading="submitLoading"
       @close="drawerVisible = false"
     >
@@ -130,11 +146,7 @@
           row-key="rowKey"
         >
           <template #bodyCell="{ column, record, index }">
-            <template v-if="column.key === 'seq'">{{ index + 1 }}</template>
-            <template v-else-if="column.key === 'pointNo'">
-              <a-input v-model:value="record.pointNo" placeholder="点位编号" />
-            </template>
-            <template v-else-if="column.key === 'pointName'">
+            <template v-if="column.key === 'pointName'">
               <a-input v-model:value="record.pointName" placeholder="点位名称" />
             </template>
             <template v-else-if="column.key === 'longitude'">
@@ -146,8 +158,29 @@
             <template v-else-if="column.key === 'pointType'">
               <a-select v-model:value="record.pointType" placeholder="类型" :options="pointTypeOptions" style="width: 110px" />
             </template>
+            <template v-else-if="column.key === 'factors'">
+              <a-select
+                v-model:value="record.factors"
+                mode="multiple"
+                placeholder="监测因子"
+                :options="factorOptions"
+                style="width: 190px"
+              />
+            </template>
+            <template v-else-if="column.key === 'standard'">
+              <a-select
+                v-model:value="record.standardCode"
+                placeholder="执行标准"
+                :options="standardOptions"
+                style="width: 190px"
+                @change="(val) => { const o = standardOptions.find(s => s.value === val); record.standardName = o ? o.name : '' }"
+              />
+            </template>
+            <template v-else-if="column.key === 'freq'">
+              <a-select v-model:value="record.freq" placeholder="频次" :options="freqOptions" style="width: 120px" />
+            </template>
             <template v-else-if="column.key === 'envCondition'">
-              <a-textarea v-model:value="record.condition" placeholder="环境说明" :rows="1" auto-size />
+              <a-textarea v-model:value="record.condition" placeholder="工况要求" :rows="1" auto-size />
             </template>
             <template v-else-if="column.key === 'op'">
               <a-popconfirm title="删除该点位？" @confirm="removePoint(index)">
@@ -173,10 +206,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { message, Modal } from 'ant-design-vue'
 import {
-  getEntrusts, getEntrust, saveEntrust, submitEntrust, techConfirmEntrust, rejectEntrust, getCustomers, getDictItems
+  getEntrusts, getEntrust, saveEntrust, submitEntrust, techConfirmEntrust, rejectEntrust, batchDeleteEntrusts, getCustomers, getDictItems
 } from '../../../api/ems'
 import EntrustDetail from './EntrustDetail.vue'
 import { usePermission } from '../../../composables/usePermission'
@@ -192,9 +225,55 @@ const searchText = ref('')
 const customerOptions = ref([])
 const sourceOptions = ref([])
 const pointTypeOptions = ref([])
+const factorOptions = ref([])
+const standardOptions = ref([])
+const freqOptions = ref([])
 
 const rejectVisible = ref(false)
 const rejectForm = reactive({ record: null, opinion: '' })
+
+const selectedRowKeys = ref([])
+const scrollY = ref(420)
+function onSelectChange(keys) {
+  selectedRowKeys.value = keys
+}
+function syncTableHeight() {
+  const box = document.querySelector('.page-wrap .tbl-box')
+  if (!box) return
+  const boxRect = box.getBoundingClientRect()
+  const headerEl = box.querySelector('.ant-table-thead')
+  const headerH = headerEl ? headerEl.getBoundingClientRect().height : 40
+  const pagEl = box.querySelector('.ant-table-pagination')
+  let reservedBottom = 0
+  if (pagEl) {
+    const pagRect = pagEl.getBoundingClientRect()
+    reservedBottom = boxRect.bottom - pagRect.top
+  }
+  if (!reservedBottom) reservedBottom = 80
+  const h = boxRect.height - headerH - reservedBottom - 4
+  scrollY.value = h > 200 ? Math.floor(h) : 200
+}
+let pageObserver = null
+
+function handleBatchDelete() {
+  if (!selectedRowKeys.value.length) return
+  Modal.confirm({
+    title: `确认删除选中的 ${selectedRowKeys.value.length} 条委托？`,
+    content: '仅草稿/已退回状态可被删除，关联监测点位将一并清除。',
+    okText: '删除',
+    okType: 'danger',
+    onOk: () => {
+      const ids = [...selectedRowKeys.value]
+      batchDeleteEntrusts(ids)
+        .then(() => {
+          message.success(`已删除 ${ids.length} 条`)
+          selectedRowKeys.value = []
+          loadData()
+        })
+        .catch(() => {})
+    }
+  })
+}
 
 const editorRef = ref(null)
 const points = ref([])
@@ -205,25 +284,27 @@ const pagination = reactive({ current: 1, pageSize: 10, total: 0, showSizeChange
 const { columns } = useResizableColumns([
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
   { title: '委托名称', dataIndex: 'entrustName', key: 'entrustName', sorter: true },
-  { title: '客户', dataIndex: 'custName', key: 'custName', width: 140 },
+  { title: '客户', dataIndex: 'custName', key: 'custName', width: 240 },
   { title: '来源', dataIndex: 'sourceName', key: 'sourceName', width: 110 },
   { title: '状态', key: 'status', dataIndex: 'status', width: 100 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: ({ text }) => renderDate(text) },
-  { title: '操作', key: 'action', width: 240 }
+  { title: '操作', key: 'action', width: 220 }
 ])
 
 const pointColumns = [
-  { title: '#', key: 'seq', width: 50 },
-  { title: '点位编号', key: 'pointNo', width: 130 },
-  { title: '点位名称', key: 'pointName', width: 150 },
-  { title: '经度', key: 'longitude', width: 110 },
-  { title: '纬度', key: 'latitude', width: 110 },
-  { title: '类型', key: 'pointType', width: 120 },
-  { title: '环境说明', key: 'envCondition', width: 160 },
+  { title: '点位名称', key: 'pointName', width: 140 },
+  { title: '经度', key: 'longitude', width: 100 },
+  { title: '纬度', key: 'latitude', width: 100 },
+  { title: '介质类型', key: 'pointType', width: 120 },
+  { title: '监测因子', key: 'factors', width: 200 },
+  { title: '执行标准', key: 'standard', width: 200 },
+  { title: '监测频次', key: 'freq', width: 130 },
+  { title: '备注(工况要求)', key: 'envCondition', width: 160 },
   { title: '操作', key: 'op', width: 70 }
 ]
 
-const formState = reactive({ id: undefined, entrustName: '', custId: undefined, source: undefined })
+const formState = reactive({ id: undefined, entrustName: '', custId: undefined, source: undefined, status: undefined })
+const statusOptions = ref([])
 
 function renderDate(v) {
   if (!v) return '-'
@@ -260,11 +341,43 @@ function loadDicts() {
       pointTypeOptions.value = list.map((i) => ({ label: i.itemText, value: i.itemValue }))
     }
   }).catch(() => {})
+  // 监测因子（moni_monitor_factor）
+  getDictItems('moni_monitor_factor').then((res) => {
+    const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data || [])
+    if (list.length) {
+      factorOptions.value = list.map((i) => ({ label: i.itemText, value: i.itemValue }))
+    }
+  }).catch(() => {})
+  // 执行标准（moni_exec_standard）：label 显示"编号 全称"，额外保存 name
+  getDictItems('moni_exec_standard').then((res) => {
+    const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data || [])
+    if (list.length) {
+      standardOptions.value = list.map((i) => ({
+        label: `${i.itemValue} ${i.itemText}`,
+        value: i.itemValue,
+        name: i.itemText
+      }))
+    }
+  }).catch(() => {})
+  // 监测频次（moni_monitor_freq）
+  getDictItems('moni_monitor_freq').then((res) => {
+    const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data || [])
+    if (list.length) {
+      freqOptions.value = list.map((i) => ({ label: i.itemText, value: i.itemValue }))
+    }
+  }).catch(() => {})
+  // 委托状态（moni_entrust_status）：状态值为中文文本，value 用 itemText
+  getDictItems('moni_entrust_status').then((res) => {
+    const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data || [])
+    if (list.length) {
+      statusOptions.value = list.map((i) => ({ label: i.itemText, value: i.itemText }))
+    }
+  }).catch(() => {})
 }
 
 function loadData() {
   loading.value = true
-  getEntrusts({ page: pagination.current, size: pagination.pageSize, keyword: searchText.value || undefined })
+  getEntrusts({ page: pagination.current, size: pagination.pageSize, keyword: searchText.value || undefined, status: formState.status })
     .then((res) => {
       const data = res.data || res
       const list = Array.isArray(data) ? data : (data.list || [])
@@ -272,13 +385,14 @@ function loadData() {
       pagination.total = Array.isArray(data) ? list.length : (data.total || list.length)
     })
     .catch(() => {})
-    .finally(() => { loading.value = false })
+    .finally(() => { loading.value = false; nextTick(syncTableHeight) })
 }
 
 function addPoint() {
   points.value.push({
     rowKey: `rp_${Date.now()}_${points.value.length}`,
-    pointNo: '', pointName: '', lng: '', lat: '', pointType: undefined, condition: ''
+    pointNo: '', pointName: '', lng: '', lat: '', pointType: undefined,
+    factors: [], standardCode: undefined, standardName: '', freq: undefined, condition: ''
   })
 }
 
@@ -341,6 +455,10 @@ function loadEntrustDetail(id) {
       lng: p.lng ?? '',
       lat: p.lat ?? '',
       pointType: p.pointType || undefined,
+      factors: p.factors ? String(p.factors).split(',') : [],
+      standardCode: p.standardCode || undefined,
+      standardName: p.standardName || '',
+      freq: p.freq || undefined,
       condition: p.condition || ''
     }))
     drawerVisible.value = true
@@ -370,6 +488,10 @@ function handleSave() {
       lng: p.lng,
       lat: p.lat,
       pointType: p.pointType,
+      factors: Array.isArray(p.factors) ? p.factors.join(',') : (p.factors || ''),
+      standardCode: p.standardCode,
+      standardName: p.standardName,
+      freq: p.freq,
       condition: p.condition
     }))
   }
@@ -425,10 +547,83 @@ onMounted(() => {
   loadCustomers()
   loadDicts()
   loadData()
+  nextTick(() => {
+    syncTableHeight()
+    const wrap = document.querySelector('.page-wrap')
+    if (wrap && 'ResizeObserver' in window) {
+      pageObserver = new ResizeObserver(() => syncTableHeight())
+      pageObserver.observe(wrap)
+    }
+    window.addEventListener('resize', syncTableHeight)
+  })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', syncTableHeight)
+  if (pageObserver) pageObserver.disconnect()
 })
 </script>
 
 <style scoped>
+.page-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.card-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.page-wrap :deep(.ant-table-wrapper) {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.tbl-box {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tbl-box :deep(.ant-table-wrapper) {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.tbl-box :deep(.ant-spin-nested-loading) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tbl-box :deep(.ant-spin-container) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tbl-box :deep(.ant-table) {
+  flex: 1;
+  min-height: 0;
+}
+.tbl-box :deep(.ant-table-pagination) {
+  margin: 8px 0 16px !important;
+  flex: 0 0 auto;
+}
 .rich-editor {
   min-height: 120px;
   border: 1px solid #d9d9d9;

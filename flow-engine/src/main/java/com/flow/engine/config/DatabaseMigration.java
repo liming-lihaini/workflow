@@ -28,6 +28,11 @@ public class DatabaseMigration implements CommandLineRunner {
         addColumnIfAbsent("t_entrust", "description", "TEXT");
         // 监测点位归属委托（ISSUE-023 改造：点位作为委托基础信息）
         addColumnIfAbsent("t_monitor_point", "entrust_id", "INTEGER");
+        // 点位扩展信息（ISSUE-026：监测因子/执行标准/监测频次/备注）
+        addColumnIfAbsent("t_monitor_point", "factors", "TEXT");
+        addColumnIfAbsent("t_monitor_point", "standard_code", "VARCHAR(64)");
+        addColumnIfAbsent("t_monitor_point", "standard_name", "VARCHAR(255)");
+        addColumnIfAbsent("t_monitor_point", "freq", "VARCHAR(64)");
 
         // 车辆台账补充字段
         addColumnIfAbsent("t_vehicle", "remark", "TEXT");
@@ -86,7 +91,170 @@ public class DatabaseMigration implements CommandLineRunner {
         createTableIfAbsent("t_detection_review",
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER, sample_id INTEGER, " +
                 "barcode TEXT, reviewer TEXT, decision TEXT, opinion TEXT, create_time TEXT");
+
+        // ===== ISSUE-026 质量控制（物资 + 质控计划 + 能力验证） =====
+        createTableIfAbsent("t_standard_material",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, lot_no TEXT, spec TEXT, " +
+                "expire_date TEXT, stock INTEGER, status TEXT, cert_no TEXT, remark TEXT, " +
+                "create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_consumable",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, spec TEXT, qty INTEGER, " +
+                "expire_date TEXT, status TEXT, remark TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_hazardous_ledger",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, cas_no TEXT, category TEXT, " +
+                "qty TEXT, unit TEXT, status TEXT, apply_by TEXT, approve_by TEXT, " +
+                "apply_reason TEXT, approve_opinion TEXT, apply_time TEXT, approve_time TEXT, " +
+                "remark TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_qc_plan",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, plan_no TEXT, title TEXT, year INTEGER, " +
+                "quarter TEXT, type TEXT, responsible_id TEXT, status TEXT, approved_by TEXT, " +
+                "approved_at TEXT, remark TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_qc_activity",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, qc_type TEXT, item TEXT, " +
+                "standard_id INTEGER, batch_id INTEGER, result TEXT, pass_flag TEXT, " +
+                "operator_id TEXT, act_date TEXT, remark TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_proficiency_test",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, org TEXT, item TEXT, " +
+                "standard_id INTEGER, result TEXT, conclusion TEXT, cert_file TEXT, " +
+                "employee_ids TEXT, test_date TEXT, remark TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_interlab_compare",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, partner_lab TEXT, item TEXT, " +
+                "standard_id INTEGER, our_value TEXT, ref_value TEXT, deviation TEXT, " +
+                "conclusion TEXT, compare_date TEXT, remark TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_repeat_test",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, item TEXT, standard_id INTEGER, " +
+                "first_value TEXT, repeat_value TEXT, deviation TEXT, conclusion TEXT, " +
+                "operator_id TEXT, test_date TEXT, remark TEXT, create_time TEXT, update_time TEXT");
+
+        // ----- ISSUE-027 报告生成与审核 -----
+        createTableIfAbsent("t_report_template",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, tpl_no TEXT, name TEXT, type TEXT, content TEXT, " +
+                "enabled TEXT, remark TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_report",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, report_no TEXT, title TEXT, tpl_id INTEGER, tpl_type TEXT, " +
+                "client TEXT, period TEXT, task_ids TEXT, item_count INTEGER, exceed_count INTEGER, status TEXT, " +
+                "anti_fake_code TEXT, generator TEXT, publish_time TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_report_item",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, report_id INTEGER, task_id INTEGER, item TEXT, " +
+                "sample_code TEXT, result TEXT, unit TEXT, standard_limit TEXT, conclusion TEXT, create_time TEXT");
+        createTableIfAbsent("t_report_audit",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, report_id INTEGER, auditor TEXT, decision TEXT, " +
+                "opinion TEXT, create_time TEXT");
+
+        // ----- ISSUE-029 状态机与规则引擎基础底座 -----
+        createTableIfAbsent("t_state_def",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_type TEXT, state_key TEXT, state_name TEXT, sort INTEGER");
+        createTableIfAbsent("t_transition_def",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_type TEXT, from_state TEXT, event TEXT, " +
+                "to_state TEXT, guard_expr TEXT, guard_fail_msg TEXT");
+        createTableIfAbsent("t_rule_def",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, rule_key TEXT, rule_name TEXT, expr TEXT, " +
+                "enabled INTEGER DEFAULT 1, version INTEGER DEFAULT 1, remark TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_seq_def",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_key TEXT, prefix TEXT, seq_date TEXT, " +
+                "current_val INTEGER DEFAULT 0, step INTEGER DEFAULT 1");
+
+        // 初始化内置状态机/规则/编号（幂等）
+        // 注：操作审计复用现有 ISSUE-014 的 sys_operation_log + @OpLog 切面，不再重复建表
+        initStateMachineDefs();
+        initRuleDefs();
+        initSeqDefs();
     }
+
+    /** 内置通用校验状态机 + 示例业务状态机定义（幂等插入）。 */
+    private void initStateMachineDefs() {
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            // 通用校验状态机
+            ensureTransition(st, "common", "待校验", "verify_pass", "通过", "true", "规则引擎返回 true 才可通过");
+            ensureTransition(st, "common", "待校验", "verify_fail", "拒绝", "false", "规则引擎返回 false，记录原因");
+            // 委托状态机（示例，供下游复用）
+            ensureTransition(st, "entrust", "草稿", "submit", "待技术确认", "true", "提交需基本信息完整");
+            ensureTransition(st, "entrust", "待技术确认", "confirm", "已确认", "true", "技术确认通过");
+            ensureTransition(st, "entrust", "待技术确认", "reject", "已退回", "true", "退回草稿");
+            // 状态定义
+            ensureState(st, "common", "待校验", "待校验");
+            ensureState(st, "common", "通过", "通过");
+            ensureState(st, "common", "拒绝", "拒绝");
+            ensureState(st, "entrust", "草稿", "草稿");
+            ensureState(st, "entrust", "待技术确认", "待技术确认");
+            ensureState(st, "entrust", "已确认", "已确认");
+            ensureState(st, "entrust", "已退回", "已退回");
+        } catch (Exception ignored) {
+        }
+    }
+
+    /** 内置规则定义（QLExpress/SpEL 等价表达式，可配置热更）。 */
+    private void initRuleDefs() {
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            // 派单资质闸门：context 含 staffQualified、instAvailable
+            ensureRule(st, "dispatch_gate", "派单资质闸门",
+                    "#staffQualified == true && #instAvailable == true", "派单前校验人员资质与仪器可用");
+            // 物资校准闸门：context 含 calibrated
+            ensureRule(st, "material_calib_gate", "物资校准闸门",
+                    "#calibrated == true", "使用前校验物资/仪器已校准");
+            // 超标判定：value > limit
+            ensureRule(st, "exceed_judge", "超标判定",
+                    "#value > #limit", "检测结果是否超标");
+            // 质控判定：偏差在允许范围内
+            ensureRule(st, "qc_pass", "质控判定",
+                    "#deviation <= #allowDeviation", "质控活动是否通过");
+        } catch (Exception ignored) {
+        }
+    }
+
+    /** 内置编号序列定义（前缀 + 日期段 + 序列）。 */
+    private void initSeqDefs() {
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            ensureSeq(st, "entrust", "WT");
+            ensureSeq(st, "order", "WO");
+            ensureSeq(st, "sample", "S");
+            ensureSeq(st, "batch", "B");
+            ensureSeq(st, "report", "RP");
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void ensureTransition(Statement st, String biz, String from, String event,
+                                  String to, String guard, String failMsg) throws Exception {
+        var rs = st.executeQuery("SELECT 1 FROM t_transition_def WHERE biz_type='" + biz +
+                "' AND from_state='" + from + "' AND event='" + event + "'");
+        if (!rs.next()) {
+            st.execute("INSERT INTO t_transition_def(biz_type,from_state,event,to_state,guard_expr,guard_fail_msg) " +
+                    "VALUES('" + biz + "','" + from + "','" + event + "','" + to + "','" + guard + "','" + failMsg + "')");
+        }
+        rs.close();
+    }
+
+    private void ensureState(Statement st, String biz, String key, String name) throws Exception {
+        var rs = st.executeQuery("SELECT 1 FROM t_state_def WHERE biz_type='" + biz + "' AND state_key='" + key + "'");
+        if (!rs.next()) {
+            st.execute("INSERT INTO t_state_def(biz_type,state_key,state_name,sort) VALUES('" + biz + "','" + key + "','" + name + "',0)");
+        }
+        rs.close();
+    }
+
+    private void ensureRule(Statement st, String key, String name, String expr, String remark) throws Exception {
+        var rs = st.executeQuery("SELECT 1 FROM t_rule_def WHERE rule_key='" + key + "'");
+        if (!rs.next()) {
+            String now = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+            st.execute("INSERT INTO t_rule_def(rule_key,rule_name,expr,enabled,version,remark,create_time,update_time) " +
+                    "VALUES('" + key + "','" + name + "','" + expr + "',1,1,'" + remark + "','" + now + "','" + now + "')");
+        }
+        rs.close();
+    }
+
+    private void ensureSeq(Statement st, String biz, String prefix) throws Exception {
+        var rs = st.executeQuery("SELECT 1 FROM t_seq_def WHERE biz_key='" + biz + "'");
+        String today = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
+        if (!rs.next()) {
+            st.execute("INSERT INTO t_seq_def(biz_key,prefix,seq_date,current_val,step) VALUES('" + biz + "','" + prefix + "','" + today + "',0,1)");
+        }
+        rs.close();
+    }
+
 
     private void migrateInstrumentStatus() {
         try (Connection conn = dataSource.getConnection();

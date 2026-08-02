@@ -42,6 +42,8 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
     private EmsCustomerService customerService;
     @Autowired
     private DictService dictService;
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     /** 来源字典 code（TRD 5.1 t_entrust.source） */
     private static final String SOURCE_DICT = "moni_entrust_source";
@@ -121,9 +123,34 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         return this.list(new LambdaQueryWrapper<EmsEntrust>().eq(status != null, EmsEntrust::getStatus, status));
     }
 
-    /** 列表视图：关联客户名称、来源名称（TRD 5.1 委托列表展示） */
-    public List<EmsEntrustVO> listVO() {
-        List<EmsEntrust> list = this.list(new LambdaQueryWrapper<EmsEntrust>().orderByDesc(EmsEntrust::getCreateTime));
+    /** 批量删除委托（ISSUE-026：先删关联子表，再删主表，避免外键约束） */
+    @Transactional
+    public void batchDelete(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        for (Long id : ids) {
+            // 监测点位
+            jdbcTemplate.update("DELETE FROM t_monitor_point WHERE entrust_id = ?", id);
+            // 委托明细
+            jdbcTemplate.update("DELETE FROM t_entrust_detail WHERE entrust_id = ?", id);
+            // 采样订单 + 其派单
+            List<Long> orderIds = jdbcTemplate.queryForList(
+                    "SELECT id FROM t_sampling_order WHERE entrust_id = ?", Long.class, id);
+            if (orderIds != null && !orderIds.isEmpty()) {
+                String inSql = orderIds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","));
+                jdbcTemplate.update("DELETE FROM t_dispatch WHERE order_id IN (" + inSql + ")");
+                jdbcTemplate.update("DELETE FROM t_sampling_order WHERE entrust_id = ?", id);
+            }
+        }
+        removeByIds(ids);
+    }
+
+    /** 列表视图：关联客户名称、来源名称（TRD 5.1 委托列表展示），可按状态过滤 */
+    public List<EmsEntrustVO> listVO(String status) {
+        List<EmsEntrust> list = this.list(new LambdaQueryWrapper<EmsEntrust>()
+                .eq(status != null, EmsEntrust::getStatus, status)
+                .orderByDesc(EmsEntrust::getCreateTime));
         Map<Long, String> custNameMap = loadCustNames(list);
         Map<String, String> sourceNameMap = loadSourceNames();
         List<EmsEntrustVO> vos = new ArrayList<>();

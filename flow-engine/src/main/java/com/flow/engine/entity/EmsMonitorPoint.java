@@ -23,6 +23,14 @@ public class EmsMonitorPoint {
     private Double lat;
     private String pointType;
     private String condition;
+    /** 监测因子（检测项目，多个用逗号分隔，值取自字典 moni_monitor_factor） */
+    private String factors;
+    /** 执行标准编号（取自字典 moni_exec_standard） */
+    private String standardCode;
+    /** 执行标准全称 */
+    private String standardName;
+    /** 监测频次 / 天数（取自字典 moni_monitor_freq） */
+    private String freq;
     private Integer historyOverFlag;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

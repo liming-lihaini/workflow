@@ -31,6 +31,8 @@ export const techConfirmEntrust = (id, reviewerId, opinion) =>
   request.post(`/ems/base/entrusts/${id}/tech-confirm`, null, { params: { reviewerId, opinion } })
 export const rejectEntrust = (id, reviewerId, opinion) =>
   request.post(`/ems/base/entrusts/${id}/reject`, null, { params: { reviewerId, opinion } })
+export const batchDeleteEntrusts = (ids) =>
+  request.post('/ems/base/entrusts/batch-delete', ids)
 
 // 采样订单 / 调度派单（ISSUE-023）
 export const genSamplingOrders = (entrustId) =>
@@ -122,3 +124,83 @@ export const submitDetection = (id) => request.post(`/ems/base/detection/task/${
 export const getPendingReviews = (params) => request.get('/ems/base/detection/pending-review', { params })
 export const approveDetection = (id, data) => request.post(`/ems/base/detection/task/${id}/approve`, data)
 export const rejectDetection = (id, data) => request.post(`/ems/base/detection/task/${id}/reject`, data)
+
+// ===== 质量控制（ISSUE-026，路径 /api/v1/ems/quality/*）=====
+// 标准物质
+export const saveMaterial = (data) => request.post('/ems/quality/materials', data)
+export const getMaterials = (params) => request.get('/ems/quality/materials', { params })
+// 耗材
+export const saveConsumable = (data) => request.post('/ems/quality/consumables', data)
+export const getConsumables = (params) => request.get('/ems/quality/consumables', { params })
+// 危化品台账
+export const saveHazardous = (data) => request.post('/ems/quality/hazardous', data)
+export const getHazardous = (params) => request.get('/ems/quality/hazardous', { params })
+export const applyHazardous = (id, data) => request.post(`/ems/quality/hazardous/${id}/apply`, data)
+export const approveHazardous = (id, data) => request.post(`/ems/quality/hazardous/${id}/approve`, data)
+// 质控计划
+export const saveQcPlan = (data) => request.post('/ems/quality/plans', data)
+export const getQcPlans = (params) => request.get('/ems/quality/plans', { params })
+export const getQcPlanDetail = (id) => request.get(`/ems/quality/plans/${id}`)
+export const submitQcPlan = (id, data) => request.post(`/ems/quality/plans/${id}/submit`, data)
+export const approveQcPlan = (id, data) => request.post(`/ems/quality/plans/${id}/approve`, data)
+export const completeQcPlan = (id) => request.post(`/ems/quality/plans/${id}/complete`)
+// 监控活动
+export const saveQcActivity = (data) => request.post('/ems/quality/activities', data)
+export const getQcActivities = (params) => request.get('/ems/quality/activities', { params })
+// 能力验证
+export const saveProficiency = (data) => request.post('/ems/quality/proficiency', data)
+export const getProficiency = (params) => request.get('/ems/quality/proficiency', { params })
+// 实验室间比对
+export const saveInterlab = (data) => request.post('/ems/quality/interlab', data)
+export const getInterlab = (params) => request.get('/ems/quality/interlab', { params })
+// 重复性试验
+export const saveRepeat = (data) => request.post('/ems/quality/repeat', data)
+export const getRepeat = (params) => request.get('/ems/quality/repeat', { params })
+// 闸门校验
+export const checkMaterialGate = () => request.get('/ems/quality/gate/material')
+export const checkInstrumentGate = () => request.get('/ems/quality/gate/instrument')
+
+// ===== 报告生成与审核（ISSUE-027，路径 /api/v1/ems/report/*）=====
+// 报告模板
+export const getReportTemplates = () => request.get('/ems/report/templates')
+export const createReportTemplate = (data) => request.post('/ems/report/template', data)
+// 待生成报告的可选检测任务（已复核）
+export const getReportPendingTasks = () => request.get('/ems/report/pending-tasks')
+// 生成报告
+export const generateReport = (data) => request.post('/ems/report/generate', data)
+// 报告列表
+export const getReports = (status) =>
+  request.get('/ems/report/list', { params: status ? { status } : {} })
+// 报告详情
+export const getReportDetail = (id) => request.get(`/ems/report/${id}`)
+// 审核通过（发布）
+export const approveReport = (id, data) =>
+  request.post(`/ems/report/${id}/approve`, data)
+// 审核退回
+export const rejectReport = (id, data) =>
+  request.post(`/ems/report/${id}/reject`, data)
+
+// ===== 监测数据驾驶舱与统计（ISSUE-028，路径 /api/v1/ems/dashboard/*）=====
+export const getDashboardOverview = () =>
+  request.get('/ems/dashboard/overview')
+
+// ===== 基础设施底座（ISSUE-029，路径 /api/v1/*）=====
+// 状态机：驱动迁移
+export const fireState = (data) => request.post('/statemachine/fire', data)
+// 状态机：查询可用迁移
+export const getTransitions = (bizType, fromState) =>
+  request.get('/statemachine/transitions', { params: { bizType, fromState } })
+// 规则：求值
+export const evalRule = (ruleKey, context) =>
+  request.post('/rule/eval', { ruleKey, context })
+// 规则：列表
+export const listRules = () => request.get('/rule')
+// 规则：保存
+export const saveRule = (data) => request.post('/rule', data)
+// 规则：删除
+export const removeRule = (id) => request.delete(`/rule/${id}`)
+// 编号：生成唯一单号
+export const nextSeq = (biz) => request.get('/seq/next', { params: { biz } })
+// 公式：计算
+export const calcFormula = (formula, params) =>
+  request.post('/calc', { formula, params })

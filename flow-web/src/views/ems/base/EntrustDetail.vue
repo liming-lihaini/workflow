@@ -34,6 +34,7 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'seq'">{{ (vo.points || []).indexOf(record) + 1 }}</template>
+          <template v-else-if="column.key === 'standard'">{{ record.standardCode || '' }}<span v-if="record.standardName"> {{ record.standardName }}</span></template>
         </template>
       </a-table>
     </a-card>
@@ -50,12 +51,15 @@ const emit = defineEmits(['close'])
 const vo = ref({})
 const pointColumns = [
   { title: '#', key: 'seq', width: 50 },
-  { title: '点位编号', dataIndex: 'pointNo', key: 'pointNo', width: 130 },
-  { title: '点位名称', dataIndex: 'pointName', key: 'pointName', width: 150 },
-  { title: '经度', dataIndex: 'lng', key: 'lng', width: 110 },
-  { title: '纬度', dataIndex: 'lat', key: 'lat', width: 110 },
-  { title: '类型', dataIndex: 'pointType', key: 'pointType', width: 120 },
-  { title: '环境说明', dataIndex: 'condition', key: 'condition', width: 160 }
+  { title: '点位编号', dataIndex: 'pointNo', key: 'pointNo', width: 120 },
+  { title: '点位名称', dataIndex: 'pointName', key: 'pointName', width: 140 },
+  { title: '经度', dataIndex: 'lng', key: 'lng', width: 100 },
+  { title: '纬度', dataIndex: 'lat', key: 'lat', width: 100 },
+  { title: '介质类型', dataIndex: 'pointType', key: 'pointType', width: 120 },
+  { title: '监测因子', dataIndex: 'factors', key: 'factors', width: 200 },
+  { title: '执行标准(编号+全称)', key: 'standard', width: 220 },
+  { title: '监测频次', dataIndex: 'freq', key: 'freq', width: 130 },
+  { title: '备注(工况要求)', dataIndex: 'condition', key: 'condition', width: 160 }
 ]
 
 function statusColor(s) {

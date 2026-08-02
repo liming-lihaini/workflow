@@ -32,17 +32,19 @@
         </a-space>
       </div>
 
-      <a-table
-        :columns="columns"
-        :data-source="dataList"
-        :loading="loading"
-        :pagination="pagination"
-        :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
-        :resize-column="true"
-        @resizeColumn="handleResizeColumn"
-        row-key="id"
-        @change="handleTableChange"
-      >
+      <div class="tbl-box">
+        <a-table
+          :columns="columns"
+          :data-source="dataList"
+          :loading="loading"
+          :pagination="pagination"
+          :scroll="{ y: scrollY }"
+          :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
+          :resize-column="true"
+          @resizeColumn="handleResizeColumn"
+          row-key="id"
+          @change="handleTableChange"
+        >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
             <a-tag :color="record.status === 1 ? 'green' : 'default'">
@@ -61,7 +63,8 @@
           </template>
         </template>
       </a-table>
-    </div>
+      </div>
+      </div>
 
     <!-- 新建/编辑：右侧抽屉 -->
     <a-drawer
@@ -127,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { message } from 'ant-design-vue'
 import { createCustomer, getCustomers, disableCustomer, updateCustomer, batchDeleteCustomers, importCustomers, getCustomerTemplate } from '../../../api/ems'
 import { downloadBlob } from '../../../api/request'
@@ -144,6 +147,26 @@ const editingRecord = ref(null)
 const searchText = ref('')
 const templateVisible = ref(false)
 const importLoading = ref(false)
+
+const scrollY = ref(420)
+function syncTableHeight() {
+  const box = document.querySelector('.page-wrap .tbl-box')
+  if (!box) return
+  const boxRect = box.getBoundingClientRect()
+  const headerEl = box.querySelector('.ant-table-thead')
+  const headerH = headerEl ? headerEl.getBoundingClientRect().height : 40
+  const pagEl = box.querySelector('.ant-table-pagination')
+  let reservedBottom = 0
+  if (pagEl) {
+    const pagRect = pagEl.getBoundingClientRect()
+    reservedBottom = boxRect.bottom - pagRect.top
+  }
+  if (!reservedBottom) reservedBottom = 80
+  const h = boxRect.height - headerH - reservedBottom - 4
+  scrollY.value = h > 200 ? Math.floor(h) : 200
+}
+
+let pageObserver = null
 
 const selectedRowKeys = ref([])
 const hasSelected = computed(() => selectedRowKeys.value.length > 0)
@@ -225,6 +248,7 @@ async function loadData() {
     // ignore
   }
   loading.value = false
+  nextTick(syncTableHeight)
 }
 
 async function handleSubmit() {
@@ -302,10 +326,91 @@ function handleTableChange(pag) {
   loadData()
 }
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  nextTick(() => {
+    syncTableHeight()
+    const wrap = document.querySelector('.page-wrap')
+    if (wrap && 'ResizeObserver' in window) {
+      pageObserver = new ResizeObserver(() => syncTableHeight())
+      pageObserver.observe(wrap)
+    }
+    window.addEventListener('resize', syncTableHeight)
+  })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', syncTableHeight)
+  if (pageObserver) pageObserver.disconnect()
+})
 </script>
 
 <style scoped>
+.page-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.card-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.page-wrap :deep(.ant-card) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.page-wrap :deep(.ant-card-body) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px 0;
+}
+.tbl-box {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tbl-box :deep(.ant-table-wrapper) {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.tbl-box :deep(.ant-spin-nested-loading) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tbl-box :deep(.ant-spin-container) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.tbl-box :deep(.ant-table) {
+  flex: 1;
+  min-height: 0;
+}
+.tbl-box :deep(.ant-table-pagination) {
+  margin: 8px 0 16px !important;
+  flex: 0 0 auto;
+}
 .tip {
   color: #999;
   font-size: 12px;

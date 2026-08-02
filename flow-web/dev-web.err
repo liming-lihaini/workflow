@@ -298,3 +298,12 @@ Error: connect ECONNREFUSED 127.0.0.1:8080
       at async PluginContainer.transform (file:///D:/source_code/workflow/flow-web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
       at async loadAndTransform (file:///D:/source_code/workflow/flow-web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
       at async viteTransformMiddleware (file:///D:/source_code/workflow/flow-web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m10:39:52 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/v1/profile[39m
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+[2m10:40:05 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/v1/profile/tokens[39m
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+[2m10:40:09 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/v1/profile/tokens[39m
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)

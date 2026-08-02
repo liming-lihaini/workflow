@@ -737,3 +737,197 @@ CREATE TABLE IF NOT EXISTS t_detection_review (
     create_time   TEXT
 );
 
+-- ============ ISSUE-026 质量控制（物资 + 质控计划 + 能力验证） ============
+
+-- 标准物质（5.5 效期闸门）
+CREATE TABLE IF NOT EXISTS t_standard_material (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT,         -- 标物名称
+    lot_no        TEXT,         -- 批号
+    spec          TEXT,         -- 规格/浓度
+    expire_date   TEXT,         -- 效期
+    stock         INTEGER,      -- 库存
+    status        TEXT,         -- 在库/临期/过期
+    cert_no       TEXT,         -- 证书编号
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 耗材（5.5 效期管理）
+CREATE TABLE IF NOT EXISTS t_consumable (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT,         -- 耗材名称
+    spec          TEXT,         -- 规格
+    qty           INTEGER,      -- 数量
+    expire_date   TEXT,         -- 效期
+    status        TEXT,         -- 在库/临期/过期
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 危化品台账（5.5 审批状态机：在库→待审批→已领用/已报废）
+CREATE TABLE IF NOT EXISTS t_hazardous_ledger (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT,         -- 危化品名称
+    cas_no        TEXT,         -- CAS号
+    category      TEXT,         -- 类别（易燃/腐蚀/有毒等）
+    qty           TEXT,         -- 数量
+    unit          TEXT,         -- 单位
+    status        TEXT,         -- 在库/待审批/已领用/已报废
+    apply_by      TEXT,         -- 申请人
+    approve_by    TEXT,         -- 审批人
+    apply_reason  TEXT,         -- 申请用途
+    approve_opinion TEXT,       -- 审批意见
+    apply_time    TEXT,
+    approve_time  TEXT,
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 质控计划（5.12 状态机：草稿→审批中→执行中→已完成）
+CREATE TABLE IF NOT EXISTS t_qc_plan (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_no       TEXT,         -- 计划编号（QC前缀）
+    title         TEXT,         -- 计划名称
+    year          INTEGER,      -- 年度
+    quarter       TEXT,         -- 季度（Q1-Q4）/ 专项
+    type          TEXT,         -- 年度/季度/专项
+    responsible_id TEXT,        -- 责任人
+    status        TEXT,         -- 草稿/审批中/执行中/已完成
+    approved_by   TEXT,         -- 审批人
+    approved_at   TEXT,         -- 审批时间
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 监控活动（5.12 空白/平行/加标回收/留样复测，联动025）
+CREATE TABLE IF NOT EXISTS t_qc_activity (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id       INTEGER,      -- 所属质控计划
+    qc_type       TEXT,         -- 空白/平行/加标回收/留样复测
+    item          TEXT,         -- 监测项目
+    standard_id   INTEGER,      -- 关联标准物质
+    batch_id      INTEGER,      -- 关联检测批次（可空，联动025）
+    result        TEXT,         -- 检测结果
+    pass_flag     TEXT,         -- 合格/不合格
+    operator_id   TEXT,         -- 操作人
+    act_date      TEXT,         -- 活动日期
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 能力验证（5.12 G6）
+CREATE TABLE IF NOT EXISTS t_proficiency_test (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id       INTEGER,      -- 所属计划（可空）
+    org           TEXT,         -- 外部机构
+    item          TEXT,         -- 项目
+    standard_id   INTEGER,      -- 关联标准物质
+    result        TEXT,         -- 结果
+    conclusion    TEXT,         -- 合格/不合格
+    cert_file     TEXT,         -- 证书文件
+    employee_ids  TEXT,         -- 参与人员(JSON)
+    test_date     TEXT,         -- 验证日期
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 实验室间比对（5.12 G6）
+CREATE TABLE IF NOT EXISTS t_interlab_compare (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id       INTEGER,      -- 所属计划（可空）
+    partner_lab   TEXT,         -- 合作实验室
+    item          TEXT,         -- 项目
+    standard_id   INTEGER,      -- 关联标准物质
+    our_value     TEXT,         -- 我方值
+    ref_value     TEXT,         -- 参考值
+    deviation     TEXT,         -- 偏差
+    conclusion    TEXT,         -- 合格/不合格
+    compare_date  TEXT,         -- 比对日期
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 重复性试验（5.12 G6）
+CREATE TABLE IF NOT EXISTS t_repeat_test (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id       INTEGER,      -- 所属计划（可空）
+    item          TEXT,         -- 项目
+    standard_id   INTEGER,      -- 关联标准物质
+    first_value   TEXT,         -- 首次值
+    repeat_value  TEXT,         -- 重复值
+    deviation     TEXT,         -- 偏差
+    conclusion    TEXT,         -- 合格/不合格
+    operator_id   TEXT,         -- 操作人
+    test_date     TEXT,         -- 试验日期
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- ============ ISSUE-027 报告生成与审核（5.11） ============
+
+-- 报告模板（季度/月度/委托）
+CREATE TABLE IF NOT EXISTS t_report_template (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    tpl_no        TEXT,         -- 模板编号（RPT前缀）
+    name          TEXT,         -- 模板名称
+    type          TEXT,         -- 季度/月度/委托
+    content       TEXT,         -- 模板内容（含占位说明）
+    enabled       TEXT,         -- 1启用 0停用
+    remark        TEXT,
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 报告头（状态机：待生成→待审核→已发布/已退回）
+CREATE TABLE IF NOT EXISTS t_report (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    report_no     TEXT,         -- 报告编号（RP前缀）
+    title         TEXT,         -- 报告标题
+    tpl_id        INTEGER,      -- 模板ID
+    tpl_type      TEXT,         -- 模板类型（冗余）
+    client        TEXT,         -- 委托单位
+    period        TEXT,         -- 报告周期（如 2026-Q2）
+    task_ids      TEXT,         -- 关联检测任务ID(JSON数组)
+    item_count    INTEGER,      -- 明细项数
+    exceed_count  INTEGER,      -- 超标项数
+    status        TEXT,         -- 待审核/已发布/已退回
+    anti_fake_code TEXT,        -- 防伪码（发布后生成）
+    generator     TEXT,         -- 生成人
+    publish_time  TEXT,         -- 发布时间
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 报告明细（关联检测任务结果，含结论/是否超标）
+CREATE TABLE IF NOT EXISTS t_report_item (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    report_id     INTEGER,      -- 报告ID
+    task_id       INTEGER,      -- 检测任务ID
+    item          TEXT,         -- 监测项目
+    sample_code   TEXT,         -- 样品编号
+    result        TEXT,         -- 检测结果
+    unit          TEXT,         -- 单位
+    standard_limit TEXT,        -- 标准限值
+    conclusion    TEXT,         -- 达标/超标
+    create_time   TEXT
+);
+
+-- 报告审核记录（5.11）
+CREATE TABLE IF NOT EXISTS t_report_audit (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    report_id     INTEGER,      -- 报告ID
+    auditor       TEXT,         -- 审核人
+    decision      TEXT,         -- 通过/退回
+    opinion       TEXT,         -- 审核意见
+    create_time   TEXT
+);
+

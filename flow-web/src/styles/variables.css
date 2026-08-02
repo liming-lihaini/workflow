@@ -127,3 +127,29 @@ body {
 .ant-table-tbody > tr:hover > td {
   background: var(--bg-hover);
 }
+
+/* 标题分隔线：文字左对齐在上，横线在文字下方，横线颜色#409EFF，文字16px加粗 */
+.title-divider.ant-divider-horizontal.ant-divider-with-text {
+  display: block;
+  height: auto;
+  margin: 16px 0 20px;
+  border-top: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-title);
+  text-align: left;
+  line-height: 1.4;
+}
+
+/* 隐藏 a-divider 默认在文字两侧的横线 */
+.title-divider.ant-divider-horizontal.ant-divider-with-text::before,
+.title-divider.ant-divider-horizontal.ant-divider-with-text::after {
+  display: none;
+}
+
+/* 文字作为独立一行，下方横线用 border-bottom 实现 */
+.title-divider.ant-divider-horizontal.ant-divider-with-text .ant-divider-inner-text {
+  display: inline-block;
+  padding: 0 0 8px;
+  border-bottom: 2px solid #409eff;
+}

@@ -92,6 +92,14 @@ public class DictDataInitializer implements CommandLineRunner {
         createDictTypeIfNotExists("车辆状态", "moni_vehicle_status", 2, "采样车辆状态：可用/占用/维修");
         // 21. 委托来源（TRD 5.1 t_entrust.source）
         createDictTypeIfNotExists("委托来源", "moni_entrust_source", 2, "委托单来源渠道：电话/网站/上门/代理");
+        // 22. 仪器设备状态（TRD 5.5 t_instrument.status 全生命周期）
+        createDictTypeIfNotExists("仪器设备状态", "moni_instrument_status", 2, "仪器设备台账状态：在用/临期/停用/维修/报废");
+        // 23. 监测因子（检测项目，TRD 5.1 t_monitor_point.factors）
+        createDictTypeIfNotExists("监测因子", "moni_monitor_factor", 2, "监测点位检测项目/监测因子枚举");
+        // 24. 执行标准（TRD 5.1 t_monitor_point.standard_code/standard_name）
+        createDictTypeIfNotExists("执行标准", "moni_exec_standard", 2, "监测执行标准：标准编号 + 全称");
+        // 25. 监测频次（TRD 5.1 t_monitor_point.freq）
+        createDictTypeIfNotExists("监测频次", "moni_monitor_freq", 2, "监测频次/监测天数枚举");
     }
 
     private void initDictItems() {
@@ -300,6 +308,70 @@ public class DictDataInitializer implements CommandLineRunner {
             createDictItemIfNotExists(entrustSource.getId(), "网站委托", "web", 2);
             createDictItemIfNotExists(entrustSource.getId(), "上门委托", "visit", 3);
             createDictItemIfNotExists(entrustSource.getId(), "代理委托", "agent", 4);
+        }
+
+        // 仪器设备状态（TRD 5.5 t_instrument.status）
+        DictType instrumentStatus = getDictTypeByCode("moni_instrument_status");
+        if (instrumentStatus != null) {
+            createDictItemIfNotExists(instrumentStatus.getId(), "在用", "在用", 1);
+            createDictItemIfNotExists(instrumentStatus.getId(), "临期", "临期", 2);
+            createDictItemIfNotExists(instrumentStatus.getId(), "停用", "停用", 3);
+            createDictItemIfNotExists(instrumentStatus.getId(), "维修", "维修", 4);
+            createDictItemIfNotExists(instrumentStatus.getId(), "报废", "报废", 5);
+        }
+
+        // 监测因子（检测项目，TRD 5.1 t_monitor_point.factors）
+        DictType factor = getDictTypeByCode("moni_monitor_factor");
+        if (factor != null) {
+            createDictItemIfNotExists(factor.getId(), "pH", "pH", 1);
+            createDictItemIfNotExists(factor.getId(), "化学需氧量(COD)", "COD", 2);
+            createDictItemIfNotExists(factor.getId(), "氨氮", "NH3N", 3);
+            createDictItemIfNotExists(factor.getId(), "总磷", "TP", 4);
+            createDictItemIfNotExists(factor.getId(), "总氮", "TN", 5);
+            createDictItemIfNotExists(factor.getId(), "悬浮物(SS)", "SS", 6);
+            createDictItemIfNotExists(factor.getId(), "溶解氧(DO)", "DO", 7);
+            createDictItemIfNotExists(factor.getId(), "五日生化需氧量(BOD5)", "BOD5", 8);
+            createDictItemIfNotExists(factor.getId(), "石油类", "oil", 9);
+            createDictItemIfNotExists(factor.getId(), "挥发酚", "phenol", 10);
+            createDictItemIfNotExists(factor.getId(), "总铅", "Pb", 11);
+            createDictItemIfNotExists(factor.getId(), "总镉", "Cd", 12);
+            createDictItemIfNotExists(factor.getId(), "总砷", "As", 13);
+            createDictItemIfNotExists(factor.getId(), "六价铬", "Cr6", 14);
+            createDictItemIfNotExists(factor.getId(), "二氧化硫(SO2)", "SO2", 15);
+            createDictItemIfNotExists(factor.getId(), "氮氧化物(NOx)", "NOx", 16);
+            createDictItemIfNotExists(factor.getId(), "颗粒物", "PM", 17);
+            createDictItemIfNotExists(factor.getId(), "噪声(Leq)", "noise", 18);
+            createDictItemIfNotExists(factor.getId(), "铅", "Pb_air", 19);
+            createDictItemIfNotExists(factor.getId(), "苯并[a]芘", "BaP", 20);
+        }
+
+        // 执行标准（标准编号 + 全称，TRD 5.1 t_monitor_point.standard_code/standard_name）
+        DictType standard = getDictTypeByCode("moni_exec_standard");
+        if (standard != null) {
+            createDictItemIfNotExists(standard.getId(), "GB 3838-2002 地表水环境质量标准", "GB3838-2002", 1);
+            createDictItemIfNotExists(standard.getId(), "GB 3097-1997 海水水质标准", "GB3097-1997", 2);
+            createDictItemIfNotExists(standard.getId(), "GB/T 14848-2017 地下水质量标准", "GB14848-2017", 3);
+            createDictItemIfNotExists(standard.getId(), "GB 15618-2018 土壤环境质量 农用地污染风险管控标准", "GB15618-2018", 4);
+            createDictItemIfNotExists(standard.getId(), "GB 3095-2012 环境空气质量标准", "GB3095-2012", 5);
+            createDictItemIfNotExists(standard.getId(), "GB 3096-2008 声环境质量标准", "GB3096-2008", 6);
+            createDictItemIfNotExists(standard.getId(), "GB 8978-1996 污水综合排放标准", "GB8978-1996", 7);
+            createDictItemIfNotExists(standard.getId(), "GB 16297-1996 大气污染物综合排放标准", "GB16297-1996", 8);
+            createDictItemIfNotExists(standard.getId(), "HJ 828-2017 水质 化学需氧量的测定 重铬酸盐法", "HJ828-2017", 9);
+            createDictItemIfNotExists(standard.getId(), "HJ 535-2009 水质 氨氮的测定 纳氏试剂分光光度法", "HJ535-2009", 10);
+        }
+
+        // 监测频次 / 天数（TRD 5.1 t_monitor_point.freq）
+        DictType freq = getDictTypeByCode("moni_monitor_freq");
+        if (freq != null) {
+            createDictItemIfNotExists(freq.getId(), "每周1次", "weekly_1", 1);
+            createDictItemIfNotExists(freq.getId(), "每旬1次", "ten_days_1", 2);
+            createDictItemIfNotExists(freq.getId(), "每月1次", "monthly_1", 3);
+            createDictItemIfNotExists(freq.getId(), "每季度1次", "quarterly_1", 4);
+            createDictItemIfNotExists(freq.getId(), "每半年1次", "halfyear_1", 5);
+            createDictItemIfNotExists(freq.getId(), "每年1次", "yearly_1", 6);
+            createDictItemIfNotExists(freq.getId(), "连续监测3天", "cont_3d", 7);
+            createDictItemIfNotExists(freq.getId(), "连续监测7天", "cont_7d", 8);
+            createDictItemIfNotExists(freq.getId(), "一次性", "once", 9);
         }
     }
 

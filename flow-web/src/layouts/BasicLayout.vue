@@ -183,13 +183,20 @@ const menuConfig = [
       { key: 'ems-customer', title: '客户管理', path: '/ems/base/customer', permKey: 'ems:customer' },
       { key: 'ems-entrust', title: '委托管理', path: '/ems/base/entrust', permKey: 'ems:entrust' },
       { key: 'ems-vehicle', title: '车辆台账', path: '/ems/base/vehicle', permKey: 'ems:vehicle' },
-      { key: 'ems-instrument', title: '设备台账', path: '/ems/base/instrument', permKey: 'ems:instrument' },
+      { key: 'ems-instrument', title: '物资管理', path: '/ems/base/asset-manage', permKey: 'ems:instrument' },
       { key: 'ems-dispatch', title: '采样调度', path: '/ems/base/dispatch', permKey: 'ems:dispatch' },
       { key: 'ems-receive', title: '收样工作台', path: '/ems/base/receive', permKey: 'ems:sample' },
       { key: 'ems-sample', title: '样品管理', path: '/ems/base/sample', permKey: 'ems:sample' },
       { key: 'ems-retain', title: '留样库管理', path: '/ems/base/retain', permKey: 'ems:sample' },
       { key: 'ems-data-entry', title: '检测数据录入', path: '/ems/base/data-entry', permKey: 'ems:detection' },
-      { key: 'ems-review', title: '检测复核', path: '/ems/base/review', permKey: 'ems:detection' }
+      { key: 'ems-review', title: '检测复核', path: '/ems/base/review', permKey: 'ems:detection' },
+      { key: 'ems-hazardous', title: '危化品管理', path: '/ems/quality/hazardous', permKey: 'ems:quality' },
+      { key: 'ems-qcplan', title: '质控计划', path: '/ems/quality/plan', permKey: 'ems:quality' },
+      { key: 'ems-proficiency', title: '能力验证与比对', path: '/ems/quality/proficiency', permKey: 'ems:quality' },
+      { key: 'ems-dashboard', title: '监测驾驶舱', path: '/ems/dashboard', permKey: 'ems:dashboard' },
+      { key: 'ems-rule-admin', title: '规则引擎配置', path: '/ems/base/rule-admin', permKey: 'ems:base' },
+      { key: 'ems-report-generate', title: '报告生成', path: '/ems/report/generate', permKey: 'ems:report' },
+      { key: 'ems-report-review', title: '报告审核', path: '/ems/report/review', permKey: 'ems:report' }
     ]
   },
   {
@@ -284,13 +291,20 @@ watch(() => route.path, (path) => {
     '/ems/base/customer': ['ems-customer'],
     '/ems/base/entrust': ['ems-entrust'],
     '/ems/base/vehicle': ['ems-vehicle'],
-    '/ems/base/instrument': ['ems-instrument'],
+    '/ems/base/asset-manage': ['ems-instrument'],
     '/ems/base/dispatch': ['ems-dispatch'],
     '/ems/base/receive': ['ems-receive'],
     '/ems/base/sample': ['ems-sample'],
     '/ems/base/retain': ['ems-retain'],
     '/ems/base/data-entry': ['ems-data-entry'],
     '/ems/base/review': ['ems-review'],
+    '/ems/quality/hazardous': ['ems-hazardous'],
+    '/ems/quality/plan': ['ems-qcplan'],
+    '/ems/quality/proficiency': ['ems-proficiency'],
+    '/ems/dashboard': ['ems-dashboard'],
+    '/ems/base/rule-admin': ['ems-rule-admin'],
+    '/ems/report/generate': ['ems-report-generate'],
+    '/ems/report/review': ['ems-report-review'],
     '/monitor': ['monitor']
   }
   selectedKeys.value = pathMap[path] || []

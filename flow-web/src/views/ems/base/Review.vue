@@ -56,7 +56,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   getPendingReviews, getDetectionTaskDetail, approveDetection, rejectDetection
-} from '@/api/ems'
+} from '../../../api/ems'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -78,8 +78,8 @@ const resultColumns = [
   { title: '检测值', dataIndex: 'value', key: 'value' },
   { title: '单位', dataIndex: 'unit', key: 'unit' },
   { title: '限值', dataIndex: 'limitValue', key: 'limitValue' },
-  { title: '结论', key: 'conclusion',
-    customRender: ({ text }) => text === '超标' ? '超标' : (text === '达标' ? '达标' : (text || '未判定')) }
+  { title: '结论', dataIndex: 'conclusion', key: 'conclusion',
+    customCell: (record) => ({ style: { color: record.conclusion === '超标' ? '#cf1322' : (record.conclusion === '达标' ? '#389e0d' : 'inherit') } }) }
 ]
 
 const statusColor = (s) => ({ '录入中': 'blue', '已提交': 'orange', '已复核': 'green', '已退回': 'red' }[s] || 'default')

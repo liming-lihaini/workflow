@@ -2,7 +2,7 @@
   <a-drawer
     :open="open"
     :title="'设备详情 - ' + (detail.code || '')"
-    width="640"
+    width="1000"
     @close="$emit('close')"
   >
     <template v-if="loading">

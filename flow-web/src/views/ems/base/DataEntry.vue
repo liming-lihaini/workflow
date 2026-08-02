@@ -110,7 +110,7 @@ import { message } from 'ant-design-vue'
 import {
   getDetectionTasks, getPendingSamples, createDetectionTask, getDetectionTaskDetail,
   saveDetectionResults, submitDetection
-} from '@/api/ems'
+} from '../../../api/ems'
 
 const loading = ref(false)
 const saving = ref(false)

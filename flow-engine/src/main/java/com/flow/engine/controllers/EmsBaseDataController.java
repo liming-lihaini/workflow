@@ -89,8 +89,26 @@ public class EmsBaseDataController {
     }
 
     @GetMapping("/entrusts")
-    public Result<List<com.flow.engine.dto.EmsEntrustVO>> listEntrusts() {
-        return Result.ok(entrustService.listVO());
+    public Result<List<com.flow.engine.dto.EmsEntrustVO>> listEntrusts(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword) {
+        List<com.flow.engine.dto.EmsEntrustVO> list = entrustService.listVO(status);
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String k = keyword.trim();
+            list = list.stream()
+                    .filter(v -> (v.getEntrustName() != null && v.getEntrustName().contains(k))
+                            || (v.getEntrustNo() != null && v.getEntrustNo().contains(k))
+                            || (v.getCustName() != null && v.getCustName().contains(k)))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+        return Result.ok(list);
+    }
+
+    /** 批量删除委托（ISSUE-026） */
+    @PostMapping("/entrusts/batch-delete")
+    public Result<Void> batchDeleteEntrusts(@RequestBody List<Long> ids) {
+        entrustService.batchDelete(ids);
+        return Result.ok();
     }
 
     /** 委托详情（含监测点位） */

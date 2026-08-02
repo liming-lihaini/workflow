@@ -189,10 +189,10 @@ const routes = [
         meta: { title: '车辆台账', permKey: 'ems:vehicle' }
       },
       {
-        path: 'ems/base/instrument',
-        name: 'EmsInstrument',
-        component: () => import('../views/ems/base/Instrument.vue'),
-        meta: { title: '设备台账', permKey: 'ems:instrument' }
+        path: 'ems/base/asset-manage',
+        name: 'EmsAssetManage',
+        component: () => import('../views/ems/base/AssetManage.vue'),
+        meta: { title: '物资管理', permKey: 'ems:instrument' }
       },
       {
         path: 'ems/base/dispatch',
@@ -231,6 +231,52 @@ const routes = [
         name: 'EmsReview',
         component: () => import('../views/ems/base/Review.vue'),
         meta: { title: '检测复核', permKey: 'ems:detection' }
+      },
+      // ===== 质量控制（ISSUE-026）=====
+      {
+        path: 'ems/quality/hazardous',
+        name: 'EmsHazardous',
+        component: () => import('../views/ems/quality/Hazardous.vue'),
+        meta: { title: '危化品管理', permKey: 'ems:quality' }
+      },
+      {
+        path: 'ems/quality/plan',
+        name: 'EmsQcPlan',
+        component: () => import('../views/ems/quality/QcPlan.vue'),
+        meta: { title: '质控计划', permKey: 'ems:quality' }
+      },
+      {
+        path: 'ems/quality/proficiency',
+        name: 'EmsProficiency',
+        component: () => import('../views/ems/quality/Proficiency.vue'),
+        meta: { title: '能力验证与比对', permKey: 'ems:quality' }
+      },
+      // ===== 监测数据驾驶舱与统计（ISSUE-028）=====
+      {
+        path: 'ems/dashboard',
+        name: 'EmsDashboard',
+        component: () => import('../views/ems/dashboard/Dashboard.vue'),
+        meta: { title: '监测驾驶舱', permKey: 'ems:dashboard' }
+      },
+      // ===== 基础设施底座：规则引擎配置（ISSUE-029）=====
+      {
+        path: 'ems/base/rule-admin',
+        name: 'EmsRuleAdmin',
+        component: () => import('../views/ems/base/RuleAdmin.vue'),
+        meta: { title: '规则引擎配置', permKey: 'ems:base' }
+      },
+      // ===== 报告生成与审核（ISSUE-027）=====
+      {
+        path: 'ems/report/generate',
+        name: 'EmsReportGenerate',
+        component: () => import('../views/ems/report/ReportGenerate.vue'),
+        meta: { title: '报告生成', permKey: 'ems:report' }
+      },
+      {
+        path: 'ems/report/review',
+        name: 'EmsReportReview',
+        component: () => import('../views/ems/report/ReportReview.vue'),
+        meta: { title: '报告审核', permKey: 'ems:report' }
       },
     ]
   }
