@@ -57,7 +57,7 @@
           <a-descriptions-item label="防伪码">{{ current.antiFakeCode || '—' }}</a-descriptions-item>
         </a-descriptions>
 
-        <a-divider>检测明细</a-divider>
+        <a-divider class="title-divider">检测明细</a-divider>
         <a-table
           rowKey="id"
           :columns="itemColumns"
@@ -72,7 +72,7 @@
           </template>
         </a-table>
 
-        <a-divider>审核记录</a-divider>
+        <a-divider class="title-divider">审核记录</a-divider>
         <a-timeline v-if="audits.length">
           <a-timeline-item v-for="a in audits" :key="a.id">
             <b>{{ a.auditor }}</b> · {{ a.decision }} · {{ a.createTime }}

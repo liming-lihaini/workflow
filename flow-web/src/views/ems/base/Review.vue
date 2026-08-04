@@ -30,10 +30,10 @@
           <a-descriptions-item label="录入员">{{ current.entryBy }}</a-descriptions-item>
         </a-descriptions>
 
-        <a-divider>检测结果</a-divider>
+        <a-divider class="title-divider">检测结果</a-divider>
         <a-table :columns="resultColumns" :data-source="results" :pagination="false" size="small" row-key="id" />
 
-        <a-divider>复核意见</a-divider>
+        <a-divider class="title-divider">复核意见</a-divider>
         <a-form layout="vertical">
           <a-form-item label="复核人">
             <a-input v-model:value="reviewer" />

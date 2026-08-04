@@ -100,6 +100,10 @@ public class DictDataInitializer implements CommandLineRunner {
         createDictTypeIfNotExists("执行标准", "moni_exec_standard", 2, "监测执行标准：标准编号 + 全称");
         // 25. 监测频次（TRD 5.1 t_monitor_point.freq）
         createDictTypeIfNotExists("监测频次", "moni_monitor_freq", 2, "监测频次/监测天数枚举");
+        // 26. 车辆维修保养操作类型（ISSUE-036 t_vehicle_maintenance.maint_type）
+        createDictTypeIfNotExists("车辆维修保养类型", "moni_vehicle_maint_type", 2, "维修保养操作类型：保养/维修/年检/其他");
+        // 27. 危化品类别（TRD 5.5 t_hazardous_ledger.category）
+        createDictTypeIfNotExists("危化品类别", "moni_hazardous_category", 2, "危化品台账类别枚举：易燃/腐蚀/有毒/易爆");
     }
 
     private void initDictItems() {
@@ -298,7 +302,16 @@ public class DictDataInitializer implements CommandLineRunner {
         if (vehicleStatus != null) {
             createDictItemIfNotExists(vehicleStatus.getId(), "可用", "available", 1);
             createDictItemIfNotExists(vehicleStatus.getId(), "占用", "occupied", 2);
-            createDictItemIfNotExists(vehicleStatus.getId(), "维修", "repair", 3);
+            createDictItemIfNotExists(vehicleStatus.getId(), "维修保养中", "repair", 3);
+        }
+
+        // 车辆维修保养操作类型（ISSUE-036 t_vehicle_maintenance.maint_type）
+        DictType maintType = getDictTypeByCode("moni_vehicle_maint_type");
+        if (maintType != null) {
+            createDictItemIfNotExists(maintType.getId(), "保养", "maintain", 1);
+            createDictItemIfNotExists(maintType.getId(), "维修", "repair", 2);
+            createDictItemIfNotExists(maintType.getId(), "年检", "annual", 3);
+            createDictItemIfNotExists(maintType.getId(), "其他", "other", 4);
         }
 
         // 委托来源（TRD 5.1 t_entrust.source）
@@ -372,6 +385,17 @@ public class DictDataInitializer implements CommandLineRunner {
             createDictItemIfNotExists(freq.getId(), "连续监测3天", "cont_3d", 7);
             createDictItemIfNotExists(freq.getId(), "连续监测7天", "cont_7d", 8);
             createDictItemIfNotExists(freq.getId(), "一次性", "once", 9);
+        }
+
+        // 危化品类别（TRD 5.5 t_hazardous_ledger.category）
+        DictType hazardousCategory = getDictTypeByCode("moni_hazardous_category");
+        if (hazardousCategory != null) {
+            createDictItemIfNotExists(hazardousCategory.getId(), "易燃", "易燃", 1);
+            createDictItemIfNotExists(hazardousCategory.getId(), "腐蚀", "腐蚀", 2);
+            createDictItemIfNotExists(hazardousCategory.getId(), "有毒", "有毒", 3);
+            createDictItemIfNotExists(hazardousCategory.getId(), "易爆", "易爆", 4);
+            createDictItemIfNotExists(hazardousCategory.getId(), "易制毒", "易制毒", 5);
+            createDictItemIfNotExists(hazardousCategory.getId(), "易制爆", "易制爆", 6);
         }
     }
 

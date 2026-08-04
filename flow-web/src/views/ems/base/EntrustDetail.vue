@@ -20,7 +20,7 @@
         <a-descriptions-item label="创建时间">{{ renderDate(vo.createTime) }}</a-descriptions-item>
       </a-descriptions>
 
-      <a-divider orientation="left">委托说明</a-divider>
+      <a-divider class="title-divider" orientation="left">委托说明</a-divider>
       <div class="rich-view" v-html="vo.description || '<span style=\'color:#bfbfbf\'>暂无说明</span>'"></div>
     </a-card>
 

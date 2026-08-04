@@ -4,47 +4,93 @@
       <div class="page-header">
         <span class="page-title">设备台账（仪器设备全生命周期）</span>
         <a-space wrap>
-          <a-input-search v-model:value="kw" placeholder="搜索编号/名称/型号" style="width: 220px" allow-clear @search="load" />
-          <a-select v-model:value="statusFilter" placeholder="状态" allow-clear style="width: 120px" :options="statusFilterOptions" @change="load" />
-          <a-button type="primary" @click="showDrawer()">新增设备</a-button>
+          <a-radio-group v-model:value="viewMode" button-style="solid" size="small">
+            <a-radio-button value="list">列表</a-radio-button>
+            <a-radio-button value="calendar">使用日历</a-radio-button>
+          </a-radio-group>
+          <a-input-search v-if="viewMode === 'list'" v-model:value="kw" placeholder="搜索编号/名称/型号" style="width: 220px" allow-clear @search="load" />
+          <a-select v-if="viewMode === 'list'" v-model:value="statusFilter" placeholder="状态" allow-clear style="width: 120px" :options="statusFilterOptions" @change="load" />
+          <a-button type="primary" v-if="viewMode === 'list'" @click="showDrawer()">新增设备</a-button>
         </a-space>
       </div>
-      <a-alert
-        v-if="expiring.length"
-        type="warning"
-        show-icon
-        style="margin-bottom: 12px"
-        :message="`校准预警：${expiring.length} 台设备临近到期或已停用`"
-      />
-      <a-table
-        :columns="columns"
-        :data-source="dataList"
-        :loading="loading"
-        :pagination="pagination"
-        row-key="id"
-        @change="handleTableChange"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'code'">
-            <span class="code-link" @click="openDetail(record)">{{ record.code }}</span>
+      <!-- 列表模式 -->
+      <template v-if="viewMode === 'list'">
+        <a-alert
+          v-if="expiring.length"
+          type="warning"
+          show-icon
+          style="margin-bottom: 12px"
+          :message="`校准预警：${expiring.length} 台设备临近到期或已停用`"
+        />
+        <a-table
+          :columns="columns"
+          :data-source="dataList"
+          :loading="loading"
+          :pagination="pagination"
+          row-key="id"
+          @change="handleTableChange"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'code'">
+              <span class="code-link" @click="openDetail(record)">{{ record.code }}</span>
+            </template>
+            <template v-if="column.key === 'status'">
+              <a-tag :color="instStatusColor(record.status)">{{ record.status }}</a-tag>
+            </template>
+            <template v-if="column.key === 'calibDue'">
+              <span :style="{ color: isExpiring(record) ? '#fa8c16' : 'inherit' }">{{ record.calibDue || '-' }}</span>
+            </template>
+            <template v-if="column.key === 'action'">
+              <span class="action-link" @click="showDrawer(record)">编辑</span>
+              <a-divider type="vertical" />
+              <span class="action-link" @click="showCalibrate(record)">校准登记</span>
+              <a-divider type="vertical" />
+              <a-popconfirm title="删除该设备？" @confirm="handleDelete(record)">
+                <span class="action-link danger">删除</span>
+              </a-popconfirm>
+            </template>
           </template>
-          <template v-if="column.key === 'status'">
-            <a-tag :color="instStatusColor(record.status)">{{ record.status }}</a-tag>
+        </a-table>
+      </template>
+
+      <!-- 使用日历模式 -->
+      <div v-if="viewMode === 'calendar'" class="cal-wrap">
+        <div class="cal-toolbar">
+          <a-space>
+            <a-button size="small" @click="() => changeMonth(-1)">上个月</a-button>
+            <span class="cal-title">{{ calYear }} 年 {{ calMonth }} 月</span>
+            <a-button size="small" @click="() => changeMonth(1)">下个月</a-button>
+            <a-button size="small" @click="goToday">今天</a-button>
+            <a-button size="small" type="primary" :loading="calLoading" @click="loadInstrumentUsage">刷新</a-button>
+          </a-space>
+        </div>
+        <a-calendar v-model:value="calValue" :cell-render="dateCellRender">
+          <template #headerRender="{ value }">
+            <span class="cal-title">{{ value.year() }} 年 {{ value.month() + 1 }} 月</span>
           </template>
-          <template v-if="column.key === 'calibDue'">
-            <span :style="{ color: isExpiring(record) ? '#fa8c16' : 'inherit' }">{{ record.calibDue || '-' }}</span>
-          </template>
-          <template v-if="column.key === 'action'">
-            <span class="action-link" @click="showDrawer(record)">编辑</span>
-            <a-divider type="vertical" />
-            <span class="action-link" @click="showCalibrate(record)">校准登记</span>
-            <a-divider type="vertical" />
-            <a-popconfirm title="删除该设备？" @confirm="handleDelete(record)">
-              <span class="action-link danger">删除</span>
-            </a-popconfirm>
-          </template>
-        </template>
-      </a-table>
+        </a-calendar>
+        <div class="cal-side">
+          <div class="cal-legend">
+            <span class="dot inst"></span>派单占用（蓝）
+            <span class="dot maint"></span>校准占用（橙）
+          </div>
+          <div class="cal-list">
+            <div class="cal-list-title">本月设备占用（{{ instrumentUsages.length }} 台）</div>
+            <div v-for="(v, i) in instrumentUsages" :key="v.instrumentId" class="cal-item">
+              <div class="cal-item-head">
+                <span class="cal-item-name">{{ v.code }} {{ v.name }}</span>
+                <a-tag :color="instStatusColor(v.status)">{{ v.status }}</a-tag>
+              </div>
+              <div v-if="(v.ranges && v.ranges.length) || (v.maintenances && v.maintenances.length)">
+                <div v-for="(r, ri) in v.ranges" :key="'r' + ri" class="cal-range inst">{{ fmt(r.start) }} ~ {{ fmt(r.end) }} 派单#{{ r.dispatchId }}（{{ r.status }}）</div>
+                <div v-for="(m, mi) in v.maintenances" :key="'m' + mi" class="cal-range maint">{{ fmt(m.start) }} ~ {{ fmt(m.end) }} 校准{{ m.certNo ? '（' + m.certNo + '）' : '' }}</div>
+              </div>
+              <div v-else class="cal-empty">本月无占用</div>
+            </div>
+            <a-empty v-if="!instrumentUsages.length" description="暂无设备占用数据" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 新增/编辑设备 -->
@@ -85,9 +131,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed, h, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import { listInstruments, createInstrument, updateInstrument, deleteInstrument, calibrateInstrument, expiringInstruments, getDictItems } from '../../../api/ems'
+import { listInstruments, createInstrument, updateInstrument, deleteInstrument, calibrateInstrument, expiringInstruments, getDictItems, getInstrumentUsage } from '../../../api/ems'
 import InstrumentDetail from './InstrumentDetail.vue'
 import dayjs from 'dayjs'
 
@@ -108,6 +154,70 @@ const statusFilterOptions = [
   { label: '停用', value: '停用' }, { label: '维修', value: '维修' }, { label: '报废', value: '报废' }
 ]
 const pagination = reactive({ current: 1, pageSize: 10, total: 0 })
+
+// ===== 使用日历 =====
+const viewMode = ref('list')
+const calLoading = ref(false)
+const calYear = ref(dayjs().year())
+const calMonth = ref(dayjs().month() + 1)
+const calValue = ref(dayjs())
+const instrumentUsages = ref([])
+
+function loadInstrumentUsage() {
+  calLoading.value = true
+  const s = dayjs(`${calYear.value}-${calMonth.value}-01`).subtract(1, 'month').startOf('month')
+  const e = dayjs(`${calYear.value}-${calMonth.value}-01`).add(1, 'month').endOf('month')
+  getInstrumentUsage({
+    start: s.format('YYYY-MM-DDTHH:mm:ss'),
+    end: e.format('YYYY-MM-DDTHH:mm:ss')
+  }).then((res) => {
+    const data = res.data || res
+    instrumentUsages.value = Array.isArray(data) ? data : (data.list || [])
+  }).catch(() => {}).finally(() => { calLoading.value = false })
+}
+
+function changeMonth(delta) {
+  const d = dayjs(`${calYear.value}-${calMonth.value}-01`).add(delta, 'month')
+  calYear.value = d.year()
+  calMonth.value = d.month() + 1
+  calValue.value = d
+  loadInstrumentUsage()
+}
+function goToday() {
+  calYear.value = dayjs().year()
+  calMonth.value = dayjs().month() + 1
+  calValue.value = dayjs()
+  loadInstrumentUsage()
+}
+function fmt(v) {
+  if (!v) return '-'
+  return dayjs(String(v).replace(' ', 'T')).format('MM-DD')
+}
+
+function dateCellRender(current) {
+  const day = dayjs(current).format('YYYY-MM-DD')
+  const events = []
+  for (const v of instrumentUsages.value) {
+    const ranges = v.ranges || []
+    for (const r of ranges) {
+      if (r.start && r.end) {
+        const s = dayjs(String(r.start).replace(' ', 'T')).format('YYYY-MM-DD')
+        const e = dayjs(String(r.end).replace(' ', 'T')).format('YYYY-MM-DD')
+        if (day >= s && day <= e) events.push({ type: 'inst', text: `${v.code} ${v.name}` })
+      }
+    }
+    const ms = v.maintenances || []
+    for (const m of ms) {
+      if (m.start && m.end) {
+        const s = dayjs(String(m.start).replace(' ', 'T')).format('YYYY-MM-DD')
+        const e = dayjs(String(m.end).replace(' ', 'T')).format('YYYY-MM-DD')
+        if (day >= s && day <= e) events.push({ type: 'maint', text: `${v.code} ${v.name} 校准` })
+      }
+    }
+  }
+  if (!events.length) return null
+  return events.slice(0, 4).map((ev) => h('div', { class: `cal-badge ${ev.type}` }, ev.text))
+}
 
 const columns = [
   { title: '编号', dataIndex: 'code', key: 'code', width: 100 },
@@ -218,6 +328,9 @@ function handleTableChange(pag) {
 }
 
 onMounted(() => { loadDict(); load() })
+
+// 切换至使用日历时加载占用数据
+watch(viewMode, (v) => { if (v === 'calendar') loadInstrumentUsage() })
 </script>
 
 <style scoped>
@@ -225,4 +338,25 @@ onMounted(() => { loadDict(); load() })
 .action-link.danger { color: #ff4d4f; }
 .code-link { color: #2563EB; cursor: pointer; font-weight: 600; }
 .code-link:hover { text-decoration: underline; }
+
+/* 使用日历 */
+.cal-wrap { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.cal-toolbar { width: 100%; display: flex; justify-content: space-between; margin-bottom: 8px; }
+.cal-title { font-weight: 600; }
+.cal-side { width: 320px; flex-shrink: 0; border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; max-height: 640px; overflow: auto; }
+.cal-legend { font-size: 12px; color: #666; margin-bottom: 10px; display: flex; gap: 12px; align-items: center; }
+.cal-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.cal-legend .dot.inst { background: #1677ff; }
+.cal-legend .dot.maint { background: #fa8c16; }
+.cal-list-title { font-weight: 600; margin-bottom: 8px; }
+.cal-item { border-bottom: 1px dashed #eee; padding: 8px 0; }
+.cal-item-head { display: flex; justify-content: space-between; align-items: center; }
+.cal-item-name { font-weight: 600; }
+.cal-range { font-size: 12px; margin-top: 4px; padding: 2px 6px; border-radius: 4px; }
+.cal-range.inst { background: #e6f4ff; color: #1677ff; }
+.cal-range.maint { background: #fff7e6; color: #d46b08; }
+.cal-empty { color: #999; font-size: 12px; margin-top: 4px; }
+.cal-badge { font-size: 11px; line-height: 1.5; padding: 0 4px; border-radius: 3px; margin: 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-badge.inst { background: #e6f4ff; color: #1677ff; }
+.cal-badge.maint { background: #fff7e6; color: #d46b08; }
 </style>

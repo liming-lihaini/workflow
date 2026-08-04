@@ -568,8 +568,20 @@ CREATE TABLE IF NOT EXISTS t_vehicle (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     plate_no TEXT,
     model    TEXT,
-    status   INTEGER DEFAULT 1,   -- 1-可用 2-维修 0-停用（字典 moni_vehicle_status）
+    status   INTEGER DEFAULT 1,   -- 1-可用 2-占用 3-维修保养中（字典 moni_vehicle_status）
     remark   TEXT,
+    create_time TEXT,
+    update_time TEXT
+);
+
+-- 车辆维修保养记录（ISSUE-036）
+CREATE TABLE IF NOT EXISTS t_vehicle_maintenance (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    vehicle_id  INTEGER,
+    maint_type  TEXT,             -- 操作类型（字典 moni_vehicle_maint_type 的 item_value）
+    start_date  TEXT,             -- 保养开始日期
+    end_date    TEXT,             -- 保养结束日期
+    remark      TEXT,             -- 备注说明
     create_time TEXT,
     update_time TEXT
 );

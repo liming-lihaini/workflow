@@ -1,0 +1,60 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2026-08-03T20:50:26.298+08:00  INFO 5396 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : Starting FlowEngineApplication using Java 17.0.12 with PID 5396 (D:\source_code\workflow\flow-engine\target\classes started by chengJin-huawei in D:\source_code\workflow\flow-engine)
+2026-08-03T20:50:26.303+08:00  INFO 5396 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-08-03T20:50:28.724+08:00  INFO 5396 --- [flow-engine] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-08-03T20:50:28.771+08:00  INFO 5396 --- [flow-engine] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-08-03T20:50:28.772+08:00  INFO 5396 --- [flow-engine] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.16]
+2026-08-03T20:50:28.863+08:00  INFO 5396 --- [flow-engine] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-08-03T20:50:28.864+08:00  INFO 5396 --- [flow-engine] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2201 ms
+2026-08-03T20:50:29.201+08:00  INFO 5396 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-03T20:50:29.495+08:00  INFO 5396 --- [flow-engine] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.sqlite.jdbc4.JDBC4Connection@2d47b06
+2026-08-03T20:50:29.497+08:00  INFO 5396 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.5 
+2026-08-03T20:50:32.016+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=dummy, class=com.flow.engine.node.DummyNodeHandler
+2026-08-03T20:50:32.050+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=customDemo, class=com.flow.engine.node.impl.CustomDemoNodeHandler
+2026-08-03T20:50:32.051+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=end, class=com.flow.engine.node.impl.EndNodeHandler
+2026-08-03T20:50:32.052+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=exclusiveGateway, class=com.flow.engine.node.impl.ExclusiveGatewayNodeHandler
+2026-08-03T20:50:32.052+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=inclusiveGateway, class=com.flow.engine.node.impl.InclusiveGatewayNodeHandler
+2026-08-03T20:50:32.052+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=parallelGateway, class=com.flow.engine.node.impl.ParallelGatewayNodeHandler
+2026-08-03T20:50:32.052+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=scriptTask, class=com.flow.engine.node.impl.ScriptTaskNodeHandler
+2026-08-03T20:50:32.052+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=serviceTask, class=com.flow.engine.node.impl.ServiceTaskNodeHandler
+2026-08-03T20:50:32.052+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=start, class=com.flow.engine.node.impl.StartNodeHandler
+2026-08-03T20:50:32.054+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=subProcess, class=com.flow.engine.node.impl.SubProcessNodeHandler
+2026-08-03T20:50:32.055+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=userTask, class=com.flow.engine.node.impl.UserTaskNodeHandler
+2026-08-03T20:50:32.825+08:00  WARN 5396 --- [flow-engine] [           main] .b.a.g.t.GroovyTemplateAutoConfiguration : Cannot find template location: classpath:/templates/ (please add some templates, check your Groovy configuration, or set spring.groovy.template.check-template-location=false)
+2026-08-03T20:50:33.256+08:00  INFO 5396 --- [flow-engine] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-08-03T20:50:33.394+08:00  INFO 5396 --- [flow-engine] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2026-08-03T20:50:33.413+08:00  INFO 5396 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : Started FlowEngineApplication in 7.62 seconds (process running for 8.013)
+2026-08-03T20:50:33.480+08:00  INFO 5396 --- [flow-engine] [           main] c.f.engine.config.DictDataInitializer    : [DictDataInitializer] 开始初始化系统内置字典数据...
+2026-08-03T20:50:33.878+08:00  INFO 5396 --- [flow-engine] [           main] c.f.engine.config.DictDataInitializer    : [DictDataInitializer] 系统内置字典数据初始化完成
+2026-08-03T20:50:33.896+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.config.CustomerDataInitializer     : [CustomerDataInitializer] t_customer 已存在 100 条数据，跳过初始化
+2026-08-03T20:50:33.897+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.config.TripleAdminInitializer      : [TripleAdminInitializer] 开始初始化三员账号...
+2026-08-03T20:50:33.897+08:00  INFO 5396 --- [flow-engine] [           main] c.f.engine.service.TripleAdminService    : [TripleAdminService] 开始初始化三员账号...
+2026-08-03T20:50:33.909+08:00  INFO 5396 --- [flow-engine] [           main] c.f.engine.service.TripleAdminService    : [TripleAdminService] 三员账号初始化完成
+2026-08-03T20:50:33.910+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.config.TripleAdminInitializer      : [TripleAdminInitializer] 三员账号初始化完成
+2026-08-03T20:50:33.910+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.config.EntrustDataInitializer      : [EntrustDataInitializer] t_entrust 已存在 100 条，跳过初始化
+2026-08-03T20:50:33.911+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 开始初始化权限数据...
+2026-08-03T20:50:33.924+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 权限数据已存在且完整，跳过初始化
+2026-08-03T20:50:33.977+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 权限数据初始化完成
+2026-08-03T20:50:33.977+08:00  INFO 5396 --- [flow-engine] [           main] c.f.e.c.SamplingOrderDataInitializer     : [SamplingOrderDataInitializer] 采样订单负责人均已分配，跳过
+2026-08-03T20:51:56.292+08:00  INFO 5396 --- [flow-engine] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-08-03T20:51:56.293+08:00  INFO 5396 --- [flow-engine] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-08-03T20:51:56.296+08:00  INFO 5396 --- [flow-engine] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.2.0:run (default-cli) on project flow-engine: Process terminated with exit code: -1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

@@ -112,6 +112,31 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         return sample;
     }
 
+    /**
+     * 手动收集样品：适用于未通过微信小程序上报/现场采样流程的场景。
+     * 不依赖采样记录（samplingId 可空），创建后直接进入已收样状态，
+     * 收样人/收样时间由调用方指定；同时写入收样日志。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public EmsSample manualCollect(EmsSample sample) {
+        if (!StringUtils.hasText(sample.getName())) throw new BusinessException("样品名称不能为空");
+        // 默认来源标记，便于区分小程序上报的样品
+        if (!StringUtils.hasText(sample.getSource())) sample.setSource("手动收集");
+        // 生成条码
+        int seq = (int) (sampleMapper.selectCount(new LambdaQueryWrapper<>()) + 1);
+        sample.setBarcode(CodeGenerator.generate("YP", seq));
+        sample.setStatus("已收样");
+        sample.setReceiveBy(StringUtils.hasText(sample.getReceiveBy()) ? sample.getReceiveBy() : "收样员");
+        sample.setReceiveTime(StringUtils.hasText(sample.getReceiveTime())
+                ? sample.getReceiveTime() : LocalDate.now().toString());
+        sample.setCreateTime(LocalDateTime.now());
+        sample.setUpdateTime(LocalDateTime.now());
+        sampleMapper.insert(sample);
+        writeLog(sample.getId(), "手动收样", sample.getReceiveBy(),
+                "手动收集样品: " + sample.getName() + "（条码 " + sample.getBarcode() + "）");
+        return sample;
+    }
+
     public EmsSample updateSample(Long id, EmsSample sample) {
         EmsSample exist = sampleMapper.selectById(id);
         if (exist == null) throw new BusinessException("样品不存在: " + id);

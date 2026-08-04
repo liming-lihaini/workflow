@@ -2,6 +2,7 @@ package com.flow.engine.controllers;
 
 import com.flow.engine.common.Result;
 import com.flow.engine.common.BusinessException;
+import com.flow.engine.common.ErrorCode;
 import com.flow.engine.dto.*;
 import com.flow.engine.entity.*;
 import com.flow.engine.service.*;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 环境监测 LIMS - 基础数据管理 API（ISSUE-022，TRD §5.1/§5.10）
@@ -182,7 +184,36 @@ public class EmsBaseDataController {
     public Result<?> listVehicles(@RequestParam(required = false) String keyword,
                                   @RequestParam(defaultValue = "1") int page,
                                   @RequestParam(defaultValue = "10") int size) {
-        return Result.ok(vehicleService.pageSearch(keyword, page, size));
+        var pageData = vehicleService.pageSearch(keyword, page, size);
+        // 惰性恢复：保养已到期但状态仍为"维修保养中(3)"的车辆恢复为可用(1)
+        pageData.getRecords().forEach(v -> {
+            if (Integer.valueOf(3).equals(v.getStatus())) vehicleService.syncStatus(v.getId());
+        });
+        return Result.ok(pageData);
+    }
+
+    // ---------- 车辆维修保养（ISSUE-036） ----------
+    @PostMapping("/vehicles/{id}/maintenances")
+    public Result<EmsVehicleMaintenance> createMaintenance(@PathVariable Long id, @RequestBody EmsVehicleMaintenance m) {
+        m.setVehicleId(id);
+        return Result.ok(vehicleService.createMaintenance(m));
+    }
+
+    @GetMapping("/vehicles/{id}/maintenances")
+    public Result<List<EmsVehicleMaintenance>> listMaintenances(@PathVariable Long id) {
+        return Result.ok(vehicleService.listMaintenances(id));
+    }
+
+    @DeleteMapping("/vehicles/maintenances/{mid}")
+    public Result<Void> deleteMaintenance(@PathVariable Long mid) {
+        vehicleService.deleteMaintenance(mid);
+        return Result.ok();
+    }
+
+    /** 车辆详情：基本信息 + 派单记录 + 维修保养记录（ISSUE-036） */
+    @GetMapping("/vehicles/{id}/detail")
+    public Result<Map<String, Object>> vehicleDetail(@PathVariable Long id) {
+        return Result.ok(dispatchService.getVehicleDetail(id));
     }
 
     // ---------- 采样订单（5.1+5.2） ----------
@@ -198,6 +229,44 @@ public class EmsBaseDataController {
     @GetMapping("/sampling-orders")
     public Result<List<EmsSamplingOrder>> listSamplingOrders(@RequestParam(required = false) String status) {
         return Result.ok(samplingOrderService.listByStatus(status));
+    }
+
+    /** 采样调度看板聚合：补充点位名称、派单计划区间、派单负责人姓名，支持按订单号/负责人/状态筛选 */
+    @GetMapping("/sampling-orders/dispatch-list")
+    public Result<List<Map<String, Object>>> listDispatchBoard(
+            @RequestParam(required = false) String orderNo,
+            @RequestParam(required = false) String leadName,
+            @RequestParam(required = false) String status) {
+        return Result.ok(samplingOrderService.listDispatchBoard(orderNo, leadName, status));
+    }
+
+    /** 批量派单：同一组派单信息依次派发到多个订单（复用冲突/资质校验），返回成功与失败明细 */
+    @PostMapping("/sampling-orders/batch-dispatch")
+    public Result<Map<String, Object>> batchDispatch(
+            @RequestParam List<Long> orderIds,
+            @RequestParam(required = false) Long vehicleId,
+            @RequestParam Long leadId,
+            @RequestParam(required = false) List<Long> empIds,
+            @RequestParam(required = false) List<Long> instrumentIds,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime planStart,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime planEnd,
+            @RequestParam(required = false) String note) {
+        Map<String, Object> result = samplingOrderService.batchDispatch(
+                orderIds, vehicleId, leadId, empIds, instrumentIds, planStart, planEnd, note, dispatchService);
+        List<Map<String, Object>> successList = (List<Map<String, Object>>) result.get("successIds");
+        List<Map<String, Object>> failList = (List<Map<String, Object>>) result.get("failList");
+        // 存在阻断（部分订单无法派单）时返回异常状态值，前端据此保留表单并展示阻断明细
+        if (failList != null && !failList.isEmpty()) {
+            String detail = failList.stream()
+                    .map(m -> "订单" + m.get("orderId") + "：" + m.get("reason"))
+                    .collect(java.util.stream.Collectors.joining("\n"));
+            java.util.Map<String, Object> block = new java.util.LinkedHashMap<>();
+            block.put("failList", failList);
+            block.put("successCount", successList == null ? 0 : successList.size());
+            return Result.fail(ErrorCode.BUSINESS_ERROR.getCode(),
+                    "派单被阻断：\n" + detail, block);
+        }
+        return Result.ok(result);
     }
 
     // ---------- 调度派单（5.2） ----------
@@ -238,6 +307,47 @@ public class EmsBaseDataController {
     @GetMapping("/dispatch")
     public Result<EmsDispatchDetailVO> getDispatchDetail(@RequestParam Long orderId) {
         return Result.ok(dispatchService.getDispatchDetail(orderId));
+    }
+
+    /**
+     * 车辆使用日历（ISSUE-035）：查询车辆在某时间范围内的占用区间。
+     * 不传 start/end 时返回全部历史占用；传 vehicleId 仅查单车。
+     */
+    @GetMapping("/dispatch/vehicle-usage")
+    public Result<List<Map<String, Object>>> vehicleUsage(
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end,
+            @RequestParam(required = false) Long vehicleId) {
+        java.time.LocalDateTime s = start == null ? null : parseLocalDateTime(start);
+        java.time.LocalDateTime e = end == null ? null : parseLocalDateTime(end);
+        return Result.ok(dispatchService.getVehicleUsage(s, e, vehicleId));
+    }
+
+    /**
+     * 设备使用日历：查询仪器在某时间范围内的占用区间（派单 + 校准）。
+     * 不传 start/end 时返回全部历史占用；传 instrumentId 仅查单台设备。
+     */
+    @GetMapping("/dispatch/instrument-usage")
+    public Result<List<Map<String, Object>>> instrumentUsage(
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end,
+            @RequestParam(required = false) Long instrumentId) {
+        java.time.LocalDateTime s = start == null ? null : parseLocalDateTime(start);
+        java.time.LocalDateTime e = end == null ? null : parseLocalDateTime(end);
+        return Result.ok(dispatchService.getInstrumentUsage(s, e, instrumentId));
+    }
+
+    /**
+     * 派单可用车辆（ISSUE-035）：给定检车时间区间，返回未被占用的车辆 id 列表。
+     * 若时间区间为空，返回全部车辆。
+     */
+    @GetMapping("/dispatch/available-vehicles")
+    public Result<List<Long>> availableVehicles(
+            @RequestParam(required = false) String planStart,
+            @RequestParam(required = false) String planEnd) {
+        java.time.LocalDateTime ps = planStart == null ? null : parseLocalDateTime(planStart);
+        java.time.LocalDateTime pe = planEnd == null ? null : parseLocalDateTime(planEnd);
+        return Result.ok(dispatchService.getAvailableVehicles(ps, pe));
     }
 
     // ---------- 派单资源：人员/设备 ----------

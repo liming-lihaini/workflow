@@ -134,7 +134,7 @@
           ></div>
         </a-form-item>
 
-        <a-divider orientation="left">监测点位（委托基础信息）</a-divider>
+        <a-divider class="title-divider" orientation="left">监测点位（委托基础信息）</a-divider>
         <div class="point-toolbar">
           <a-button size="small" type="dashed" @click="addPoint">+ 添加点位</a-button>
         </div>

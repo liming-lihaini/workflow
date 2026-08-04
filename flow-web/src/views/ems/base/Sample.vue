@@ -169,7 +169,7 @@
         <a-descriptions-item label="留样到期">{{ detail.sample?.retainUntil }}</a-descriptions-item>
       </a-descriptions>
 
-      <a-divider orientation="left">质控样</a-divider>
+      <a-divider class="title-divider" orientation="left">质控样</a-divider>
       <a-table
         v-if="detail.qcList && detail.qcList.length"
         :columns="qcColumns"
@@ -186,7 +186,7 @@
       </a-table>
       <a-empty v-else description="无质控样" />
 
-      <a-divider orientation="left">操作日志</a-divider>
+      <a-divider class="title-divider" orientation="left">操作日志</a-divider>
       <a-timeline v-if="detail.logs && detail.logs.length">
         <a-timeline-item v-for="log in detail.logs" :key="log.id">
           <b>{{ log.action }}</b> · {{ log.operator }} · {{ log.detail }}

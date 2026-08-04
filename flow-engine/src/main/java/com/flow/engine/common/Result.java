@@ -37,6 +37,10 @@ public class Result<T> implements Serializable {
         return of(code, message, null);
     }
 
+    public static <T> Result<T> fail(int code, String message, T data) {
+        return of(code, message, data);
+    }
+
     private static <T> Result<T> of(int code, String message, T data) {
         Result<T> r = new Result<>();
         r.setCode(code);

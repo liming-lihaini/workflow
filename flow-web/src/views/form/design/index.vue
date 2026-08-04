@@ -255,7 +255,7 @@
             </template>
             <!-- DataRef 接口引用配置 -->
             <template v-if="selectedField.type === 'data-ref'">
-              <a-divider orientation="left" style="margin: 8px 0; font-size: 12px">数据源</a-divider>
+              <a-divider class="title-divider" orientation="left" style="margin: 8px 0">数据源</a-divider>
               <a-form-item label="接口地址">
                 <a-input v-model:value="selectedField.dataSource.url" placeholder="/api/v1/xxx/${userId}" />
                 <div class="formula-help" style="margin-top: 4px">
@@ -295,7 +295,7 @@
                 <div class="formula-help" style="margin-top: 4px">这些表单字段变化时自动重新拉取数据</div>
               </a-form-item>
 
-              <a-divider orientation="left" style="margin: 8px 0; font-size: 12px">显示模式</a-divider>
+              <a-divider class="title-divider" orientation="left" style="margin: 8px 0">显示模式</a-divider>
               <a-form-item label="模式">
                 <a-radio-group v-model:value="selectedField.display.mode" size="small">
                   <a-radio-button value="text">单文本</a-radio-button>
@@ -337,7 +337,7 @@
                 </a-form-item>
               </template>
 
-              <a-divider orientation="left" style="margin: 8px 0; font-size: 12px">回写</a-divider>
+              <a-divider class="title-divider" orientation="left" style="margin: 8px 0">回写</a-divider>
               <a-form-item label="回写表单值">
                 <a-switch v-model:checked="selectedField.bindToForm" />
                 <div class="formula-help" style="margin-top: 4px">
@@ -360,7 +360,7 @@
     <a-drawer v-model:open="showPreview" title="表单预览" placement="right" :width="1000" @after-open-change="onPreviewOpen">
       <a-form :model="previewData" layout="vertical" class="preview-form">
         <template v-for="section in sections" :key="section.id">
-          <a-divider orientation="left">{{ section.title || '分栏' }}</a-divider>
+          <a-divider class="title-divider" orientation="left">{{ section.title || '分栏' }}</a-divider>
           <template v-for="row in section.children" :key="row.id">
             <a-row :gutter="row.columns === 2 ? 16 : 0" style="margin-bottom: 8px">
               <a-col v-for="cell in row.cells" :key="cell.id" :span="row.columns === 2 ? 12 : 24">
@@ -499,7 +499,15 @@ async function handleUserSearch(keyword) {
 }
 async function loadDeptTree() { try { const res = await getDeptTree(); const d = res.data || res; deptTreeData.value = convertTree(Array.isArray(d) ? d : []) } catch {} }
 function convertTree(nodes) { return nodes.map(n => ({ title: n.deptName || n.name, value: String(n.id), key: String(n.id), children: n.children ? convertTree(n.children) : [] })) }
-function onPreviewOpen() { if (showPreview.value) loadDeptTree() }
+function onPreviewOpen() {
+  if (showPreview.value) {
+    loadDeptTree()
+    // 确保引用数据字典的字段在预览前已加载字典项，避免下拉/单选/复选项空白
+    sections.value.forEach(s => s.children?.forEach(r => r.cells?.forEach(c => c.fields?.forEach(f => {
+      if (f.optionsSource === 'dict' && f.dictCode) handleDictChange(f.dictCode)
+    }))))
+  }
+}
 
 // --- SubTable helpers ---
 function handleSubTableBindChange(tableName, field) {
@@ -746,7 +754,8 @@ async function handleModelChange(modelKey) {
       const fields = modelFields.value.map(f => ({
         id: genId('field'), type: fieldTypeMap[f.type] || 'text', field: f.fieldKey,
         label: f.label || f.fieldKey, placeholder: `请输入${f.label}`, required: f.required || false,
-        defaultValue: '', fromModel: true, modelKey, modelField: f.fieldKey, optionsSource: null, dictCode: null
+        defaultValue: '', fromModel: true, modelKey, modelField: f.fieldKey,
+        optionsSource: f.dictCode ? 'dict' : null, dictCode: f.dictCode || null
       }))
       // Group: 2 fields per row
       for (let i = 0; i < fields.length; i += 2) {
@@ -756,6 +765,8 @@ async function handleModelChange(modelKey) {
         sec.children.push({ id: genId('row'), columns: 2, cells })
       }
       sections.value.push(sec)
+      // 预加载模型字段上继承的数据字典项，保证画布/属性面板立即回填选项
+      fields.forEach(f => { if (f.optionsSource === 'dict' && f.dictCode) handleDictChange(f.dictCode) })
       message.success(`已绑定模型，生成 ${sec.children.length} 个布局行`)
     }
   } catch { message.error('加载模型失败') }
@@ -800,7 +811,7 @@ async function loadForm() {
             const cn = parseInt(c.id.split('_')[1]) || 0; if (cn > maxId) maxId = cn
             c.fields?.forEach(f => {
               const fn = parseInt(f.id.split('_')[1]) || 0; if (fn > maxId) maxId = fn
-              if (f.dictCode && !dictItemsCache[f.dictCode]) handleDictChange(f.dictCode)
+              if ((f.optionsSource === 'dict' || f.dictCode) && f.dictCode && !dictItemsCache[f.dictCode]) handleDictChange(f.dictCode)
             })
           })
         })

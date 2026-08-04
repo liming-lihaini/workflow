@@ -154,11 +154,110 @@ public class DatabaseMigration implements CommandLineRunner {
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_key TEXT, prefix TEXT, seq_date TEXT, " +
                 "current_val INTEGER DEFAULT 0, step INTEGER DEFAULT 1");
 
+        // ----- 危化品流程管理流转日志（流程管理数据模型 - 流转记录层）-----
+        createTableIfAbsent("t_hazardous_flow_log",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_type TEXT, biz_id INTEGER, event TEXT, " +
+                "event_name TEXT, from_state TEXT, to_state TEXT, operator TEXT, opinion TEXT, create_time TEXT");
+
         // 初始化内置状态机/规则/编号（幂等）
         // 注：操作审计复用现有 ISSUE-014 的 sys_operation_log + @OpLog 切面，不再重复建表
         initStateMachineDefs();
         initRuleDefs();
         initSeqDefs();
+        // 将危化品数据基础表抽象为流程管理-数据模型的一条数据模型记录（可在数据模型模块查看）
+        initHazardousDataModel();
+        // 基于危险品数据模型生成「危险品入库申请」表单定义（绑定 hazardous 模型）
+        initHazardousInboundForm();
+    }
+
+    /**
+     * 基于危险品数据模型（modelKey=hazardous）生成「危险品入库申请」表单定义。
+     * 表单字段以危化品台账字段（名称/CAS编号/类别/数量/单位/备注）为基底，
+     * 补充入库业务字段（存放位置/入库日期/申请人），类别字段引用数据字典 moni_hazardous_category。
+     * 幂等：form_key 已存在则跳过。
+     */
+    private void initHazardousInboundForm() {
+        // 表单 schema 遵循设计器/FormRenderer 约定：sections[].children[](rows).cells[].fields
+        // 注意：渲染组件遍历的是 section.children（非 rows），字段需落在 cells.fields 内
+        String formJson = "{"
+                + "\"sections\":[{"
+                + "\"id\":\"section_1\",\"title\":\"危险品入库信息\","
+                + "\"children\":["
+                + "{\"id\":\"row_1\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_1\",\"span\":12,\"fields\":[{\"field\":\"name\",\"label\":\"名称\",\"type\":\"text\",\"required\":true}]},"
+                + "{\"id\":\"cell_2\",\"span\":12,\"fields\":[{\"field\":\"casNo\",\"label\":\"CAS编号\",\"type\":\"text\"}]}"
+                + "]},"
+                + "{\"id\":\"row_2\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_3\",\"span\":12,\"fields\":[{\"field\":\"category\",\"label\":\"类别\",\"type\":\"select\",\"required\":true,\"optionsSource\":\"dict\",\"dictCode\":\"moni_hazardous_category\"}]},"
+                + "{\"id\":\"cell_4\",\"span\":12,\"fields\":[{\"field\":\"qty\",\"label\":\"数量\",\"type\":\"number\",\"required\":true}]}"
+                + "]},"
+                + "{\"id\":\"row_3\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_5\",\"span\":12,\"fields\":[{\"field\":\"unit\",\"label\":\"单位\",\"type\":\"text\"}]},"
+                + "{\"id\":\"cell_6\",\"span\":12,\"fields\":[{\"field\":\"location\",\"label\":\"存放位置\",\"type\":\"text\",\"required\":true}]}"
+                + "]},"
+                + "{\"id\":\"row_4\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_7\",\"span\":12,\"fields\":[{\"field\":\"inboundDate\",\"label\":\"入库日期\",\"type\":\"date\",\"required\":true}]},"
+                + "{\"id\":\"cell_8\",\"span\":12,\"fields\":[{\"field\":\"applicant\",\"label\":\"申请人\",\"type\":\"user\",\"required\":true}]}"
+                + "]},"
+                + "{\"id\":\"row_5\",\"columns\":1,\"cells\":["
+                + "{\"id\":\"cell_9\",\"span\":24,\"fields\":[{\"field\":\"remark\",\"label\":\"备注\",\"type\":\"textarea\"}]}"
+                + "]}"
+                + "]}]}";
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM wf_form_definition WHERE form_key='hazardous_inbound'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) {
+                // 已存在：用最新结构更新（保证 schema 修正生效，可热更）
+                st.executeUpdate("UPDATE wf_form_definition SET form_json='" + formJson
+                        + "' WHERE form_key='hazardous_inbound'");
+            } else {
+                st.executeUpdate("INSERT INTO wf_form_definition (form_key, form_name, form_json, category, model_key) "
+                        + "VALUES ('hazardous_inbound', '危险品入库申请', '" + formJson + "', 'hazardous', 'hazardous')");
+            }
+        } catch (Exception ignored) {
+            // 幂等保护；表/字段不存在则跳过，不影响主流程
+        }
+    }
+
+    /**
+     * 将危化品数据基础表（t_hazardous_ledger）注册为流程管理-数据模型中的一条数据模型定义记录。
+     * 这样在「流程管理-数据模型」模块即可查看「危险品」数据模型（modelKey=hazardous），
+     * 其主表结构即对应 t_hazardous_ledger 的字段。幂等：model_key 已存在则跳过。
+     */
+    private void initHazardousDataModel() {
+        // 类别字段引用数据字典 moni_hazardous_category，供表单设计器绑定模型时自动继承字典来源
+        String modelJson = "{\"modelKey\":\"hazardous\",\"modelName\":\"危险品\",\"mainTable\":{"
+                + "\"tableName\":\"t_hazardous_ledger\",\"label\":\"危化品台账\",\"fields\":["
+                + "{\"fieldKey\":\"name\",\"label\":\"名称\",\"type\":\"text\",\"required\":true},"
+                + "{\"fieldKey\":\"casNo\",\"label\":\"CAS编号\",\"type\":\"text\"},"
+                + "{\"fieldKey\":\"category\",\"label\":\"类别\",\"type\":\"text\",\"required\":true,\"dictCode\":\"moni_hazardous_category\"},"
+                + "{\"fieldKey\":\"qty\",\"label\":\"数量\",\"type\":\"number\"},"
+                + "{\"fieldKey\":\"unit\",\"label\":\"单位\",\"type\":\"text\"},"
+                + "{\"fieldKey\":\"status\",\"label\":\"状态\",\"type\":\"text\"},"
+                + "{\"fieldKey\":\"remark\",\"label\":\"备注\",\"type\":\"text\"}"
+                + "]}}";
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM wf_data_model WHERE model_key='hazardous'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) {
+                // 已存在：同步最新模型结构（含类别字典绑定），保证字典继承生效
+                st.executeUpdate("UPDATE wf_data_model SET model_json='" + modelJson
+                        + "', model_name='危险品', version=1, status=1 WHERE model_key='hazardous'");
+            } else {
+                st.executeUpdate("INSERT INTO wf_data_model (model_key, model_name, model_json, version, status) "
+                        + "VALUES ('hazardous', '危险品', '" + modelJson + "', 1, 1)");
+            }
+        } catch (Exception ignored) {
+            // 幂等保护；若表/字段不存在则跳过，不影响主流程
+        }
     }
 
     /** 内置通用校验状态机 + 示例业务状态机定义（幂等插入）。 */
@@ -180,6 +279,23 @@ public class DatabaseMigration implements CommandLineRunner {
             ensureState(st, "entrust", "待技术确认", "待技术确认");
             ensureState(st, "entrust", "已确认", "已确认");
             ensureState(st, "entrust", "已退回", "已退回");
+
+            // 危化品台账审批状态机（bizType=hazardous）
+            // 在库 --(apply_use 领用申请)--> 待审批 --(approve_use 审批通过)--> 已领用
+            // 在库 --(scrap_apply 报废申请)--> 待审批 --(approve_scrap 审批通过)--> 已报废
+            // 待审批 --(reject 审批驳回)--> 在库
+            // 先清理旧种子，保证状态机定义始终与代码一致（可热更）
+            st.execute("DELETE FROM t_transition_def WHERE biz_type='hazardous'");
+            st.execute("DELETE FROM t_state_def WHERE biz_type='hazardous'");
+            ensureTransition(st, "hazardous", "在库", "apply_use", "待审批", "#applyReason != null && #applyReason.length() > 0", "领用申请需填写原因");
+            ensureTransition(st, "hazardous", "在库", "scrap_apply", "待审批", "#applyReason != null && #applyReason.length() > 0", "报废申请需填写原因");
+            ensureTransition(st, "hazardous", "待审批", "approve_use", "已领用", "true", "领用审批通过");
+            ensureTransition(st, "hazardous", "待审批", "approve_scrap", "已报废", "true", "报废审批通过");
+            ensureTransition(st, "hazardous", "待审批", "reject", "在库", "true", "审批驳回，回退在库");
+            ensureState(st, "hazardous", "在库", "在库");
+            ensureState(st, "hazardous", "待审批", "待审批");
+            ensureState(st, "hazardous", "已领用", "已领用");
+            ensureState(st, "hazardous", "已报废", "已报废");
         } catch (Exception ignored) {
         }
     }

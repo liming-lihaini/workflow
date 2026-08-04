@@ -4,7 +4,7 @@
       <!-- 嵌套结构：sections > rows > cells > fields -->
       <template v-if="parsedSections.length > 0">
         <template v-for="(section, sIdx) in parsedSections" :key="section.id || sIdx">
-          <a-divider v-if="section.title" orientation="left" style="margin: 8px 0 12px">
+          <a-divider v-if="section.title" class="title-divider" orientation="left" style="margin: 8px 0 12px">
             {{ section.title }}
           </a-divider>
           <template v-for="(row, rIdx) in (section.children || [])" :key="row.id || rIdx">
@@ -18,7 +18,7 @@
                   <template v-if="!isFieldHidden(field)">
                     <!-- 子表表格：占满整行 -->
                     <template v-if="field.type === 'subTable'">
-                      <a-divider orientation="left" style="margin: 4px 0 8px">{{ field.label || '子表' }}</a-divider>
+                      <a-divider class="title-divider" orientation="left" style="margin: 4px 0 8px">{{ field.label || '子表' }}</a-divider>
                       <SubTableRenderer
                         :field="field"
                         :model-value="localValues[field.field || field.key] || []"

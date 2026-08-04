@@ -2,14 +2,14 @@
   <a-drawer
     :open="open"
     :title="'派单详情 - ' + (detail.orderNo || '')"
-    width="520"
+    width="1000"
     @close="$emit('close')"
   >
     <template v-if="loading">
       <a-skeleton active />
     </template>
     <template v-else>
-      <a-descriptions bordered :column="1" size="small">
+      <a-descriptions bordered :column="2" size="small">
         <a-descriptions-item label="订单编号">{{ detail.orderNo || '—' }}</a-descriptions-item>
         <a-descriptions-item label="订单状态">{{ detail.orderStatus || '—' }}</a-descriptions-item>
         <a-descriptions-item label="派单状态">
@@ -18,10 +18,10 @@
         </a-descriptions-item>
         <a-descriptions-item label="计划开始">{{ detail.planStart || '—' }}</a-descriptions-item>
         <a-descriptions-item label="计划结束">{{ detail.planEnd || '—' }}</a-descriptions-item>
-        <a-descriptions-item label="备注">{{ detail.note || '—' }}</a-descriptions-item>
+        <a-descriptions-item label="备注" :span="2">{{ detail.note || '—' }}</a-descriptions-item>
       </a-descriptions>
 
-      <a-divider orientation="left">负责人 / 组员</a-divider>
+      <a-divider class="title-divider" orientation="left">负责人 / 组员</a-divider>
       <a-descriptions bordered :column="1" size="small" v-if="detail.lead || (detail.members && detail.members.length)">
         <a-descriptions-item v-if="detail.lead" label="负责人">
           {{ detail.lead.realName || detail.lead.username }}（{{ detail.lead.username }}）
@@ -34,13 +34,13 @@
       </a-descriptions>
       <a-empty v-else description="暂无人员" :image="simpleImage" />
 
-      <a-divider orientation="left">车辆</a-divider>
+      <a-divider class="title-divider" orientation="left">车辆</a-divider>
       <a-descriptions bordered :column="1" size="small" v-if="detail.vehicle">
         <a-descriptions-item label="车牌 / 车型">{{ detail.vehicle.plateNo }} {{ detail.vehicle.model || '' }}</a-descriptions-item>
       </a-descriptions>
       <a-empty v-else description="未分配车辆" :image="simpleImage" />
 
-      <a-divider orientation="left">设备</a-divider>
+      <a-divider class="title-divider" orientation="left">设备</a-divider>
       <a-table
         v-if="detail.instruments && detail.instruments.length"
         :dataSource="detail.instruments"

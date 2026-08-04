@@ -9,7 +9,7 @@
       <a-skeleton active />
     </template>
     <template v-else>
-      <a-divider orientation="left">基本信息</a-divider>
+      <a-divider class="title-divider" orientation="left">基本信息</a-divider>
       <a-descriptions bordered :column="2" size="small">
         <a-descriptions-item label="仪器编号">{{ detail.code || '—' }}</a-descriptions-item>
         <a-descriptions-item label="状态">
@@ -25,7 +25,7 @@
         <a-descriptions-item label="备注" :span="2">{{ detail.remark || '—' }}</a-descriptions-item>
       </a-descriptions>
 
-      <a-divider orientation="left">校准记录</a-divider>
+      <a-divider class="title-divider" orientation="left">校准记录</a-divider>
       <a-table
         v-if="detail.calibRecords && detail.calibRecords.length"
         :dataSource="detail.calibRecords"
@@ -36,7 +36,7 @@
       />
       <a-empty v-else description="暂无校准记录" :image="simpleImage" />
 
-      <a-divider orientation="left">关联采样任务</a-divider>
+      <a-divider class="title-divider" orientation="left">关联采样任务</a-divider>
       <a-table
         v-if="detail.samplingTasks && detail.samplingTasks.length"
         :dataSource="detail.samplingTasks"

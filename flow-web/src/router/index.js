@@ -183,18 +183,6 @@ const routes = [
         meta: { title: '委托管理', permKey: 'ems:entrust' }
       },
       {
-        path: 'ems/base/vehicle',
-        name: 'EmsVehicle',
-        component: () => import('../views/ems/base/Vehicle.vue'),
-        meta: { title: '车辆台账', permKey: 'ems:vehicle' }
-      },
-      {
-        path: 'ems/base/asset-manage',
-        name: 'EmsAssetManage',
-        component: () => import('../views/ems/base/AssetManage.vue'),
-        meta: { title: '物资管理', permKey: 'ems:instrument' }
-      },
-      {
         path: 'ems/base/dispatch',
         name: 'EmsDispatch',
         component: () => import('../views/ems/base/DispatchBoard.vue'),
@@ -250,6 +238,18 @@ const routes = [
         name: 'EmsProficiency',
         component: () => import('../views/ems/quality/Proficiency.vue'),
         meta: { title: '能力验证与比对', permKey: 'ems:quality' }
+      },
+      {
+        path: 'ems/base/vehicle',
+        name: 'EmsVehicle',
+        component: () => import('../views/ems/base/Vehicle.vue'),
+        meta: { title: '车辆台账', permKey: 'ems:vehicle' }
+      },
+      {
+        path: 'ems/base/asset-manage',
+        name: 'EmsAssetManage',
+        component: () => import('../views/ems/base/AssetManage.vue'),
+        meta: { title: '物资管理', permKey: 'ems:instrument' }
       },
       // ===== 监测数据驾驶舱与统计（ISSUE-028）=====
       {

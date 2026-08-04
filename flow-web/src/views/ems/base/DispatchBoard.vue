@@ -4,7 +4,7 @@
       <div class="page-header">
         <span class="page-title">采样调度</span>
         <a-space>
-          <a-radio-group v-model:value="mode" button-style="solid" size="small" @change="onModeChange">
+          <a-radio-group v-model:value="mode" button-style="solid"  @change="onModeChange">
             <a-radio-button value="board">看板模式</a-radio-button>
             <a-radio-button value="table">表格模式</a-radio-button>
           </a-radio-group>
@@ -13,7 +13,7 @@
             :disabled="mode === 'board'"
             placeholder="分组维度"
             style="width: 150px"
-            size="small"
+            
             @change="onGroupChange"
           >
             <a-select-option value="none">不分组</a-select-option>
@@ -24,8 +24,44 @@
             <template #title>看板模式已固定按状态分组，切换至表格模式可选择其他分组维度</template>
             <span class="hint">提示</span>
           </a-tooltip>
-          <a-button size="small" @click="loadOrders">刷新</a-button>
+          <a-button  :loading="loading" @click="loadOrders">刷新</a-button>
         </a-space>
+      </div>
+
+      <!-- 筛选栏：订单号 / 负责人 / 状态 -->
+      <div class="filter-bar">
+        <a-input
+          v-model:value="filters.orderNo"
+          placeholder="订单号（模糊）"
+          allow-clear
+          style="width: 180px"
+          @press-enter="loadOrders"
+        />
+        <a-input
+          v-model:value="filters.leadName"
+          placeholder="负责人（模糊）"
+          allow-clear
+          style="width: 160px"
+          @press-enter="loadOrders"
+        />
+        <a-select
+          v-model:value="filters.status"
+          placeholder="状态"
+          allow-clear
+          style="width: 150px"
+          @change="loadOrders"
+        >
+          <a-select-option v-for="s in ORDER_STATUS_CHAIN" :key="s" :value="s">{{ s }}</a-select-option>
+        </a-select>
+        <a-button type="primary"  :loading="loading" @click="loadOrders">查询</a-button>
+        <a-button  @click="resetFilters">重置</a-button>
+        <a-divider type="vertical" />
+        <a-button
+          type="primary"
+          
+          :disabled="!selectedOrderIds.length"
+          @click="openBatchDispatch"
+        >批量派单{{ selectedOrderIds.length ? `(${selectedOrderIds.length})` : '' }}</a-button>
       </div>
 
       <!-- 看板模式：固定按状态分组 -->
@@ -36,15 +72,15 @@
             <a-card
               v-for="order in boardGrouped[col.status] || []"
               :key="order.id"
-              size="small"
+              
               class="order-card"
               hoverable
               @click="openDispatch(order)"
             >
               <div class="order-no link" @click.stop="openDetail(order)">{{ order.orderNo }}</div>
-              <div class="order-meta">点位ID: {{ order.pointId || '—' }}</div>
-              <div class="order-meta">计划: {{ order.planDate || '—' }}</div>
-              <div class="order-meta">负责人: {{ order.samplerLead || '—' }}</div>
+              <div class="order-meta">点位: {{ order.pointName || '—' }}</div>
+              <div class="order-meta">计划: {{ order.planRange || '—' }}</div>
+              <div class="order-meta">负责人: {{ order.leadName || '—' }}</div>
             </a-card>
             <a-empty v-if="!(boardGrouped[col.status] || []).length" description="无" :image="simpleImage" />
           </div>
@@ -59,15 +95,21 @@
           :loading="loading"
           :scroll="{ y: scrollY }"
           row-key="id"
+          :row-selection="rowSelection"
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'status'">
-              <a-tag :color="statusColor(record.status)">{{ record.status }}</a-tag>
+              <span class="status-chain">
+                <template v-for="(s, idx) in statusSteps(record)" :key="s.label">
+                  <span v-if="idx" class="chain-sep">-</span>
+                  <span :class="['chain-node', 'chain-' + s.state]">{{ s.label }}</span>
+                </template>
+              </span>
             </template>
             <template v-else-if="column.key === 'op'">
               <a-space>
-                <a-button v-if="record.status === '待派单' && hasPerm('ems:dispatch')" type="link" size="small" @click="openDispatch(record)">派单</a-button>
-                <a-button type="link" size="small" @click="openDetail(record)">详情</a-button>
+                <a-button v-if="record.status === '待派单' && hasPerm('ems:dispatch')" type="link"  @click="openDispatch(record)">派单</a-button>
+                <a-button type="link"  @click="openDetail(record)">详情</a-button>
               </a-space>
             </template>
           </template>
@@ -90,7 +132,7 @@
         <a-card
           v-for="g in tableGroups"
           :key="g.key"
-          size="small"
+          
           class="group-card"
         >
           <template #title>
@@ -100,10 +142,11 @@
           <a-table
             :columns="orderCols"
             :data-source="g.list"
-            size="small"
+            
             :scroll="{ y: scrollY }"
             :pagination="groupPagination(g.key)"
             row-key="id"
+            :row-selection="rowSelection"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'status'">
@@ -111,8 +154,8 @@
               </template>
               <template v-else-if="column.key === 'op'">
                 <a-space>
-                  <a-button v-if="record.status === '待派单' && hasPerm('ems:dispatch')" type="link" size="small" @click="openDispatch(record)">派单</a-button>
-                  <a-button type="link" size="small" @click="openDetail(record)">详情</a-button>
+                  <a-button v-if="record.status === '待派单' && hasPerm('ems:dispatch')" type="link"  @click="openDispatch(record)">派单</a-button>
+                  <a-button type="link"  @click="openDetail(record)">详情</a-button>
                 </a-space>
               </template>
             </template>
@@ -122,78 +165,39 @@
       </div>
     </div>
 
-    <!-- 派单抽屉 -->
+    <!-- 派单抽屉（单订单 / 批量共用） -->
     <a-drawer
       v-model:open="dispatchVisible"
-      title="调度派单"
-      width="520"
+      :title="isBatch ? `批量派单（共 ${selectedOrderIds.length} 个订单）` : '调度派单'"
+      width="1000"
       :confirm-loading="dispatchLoading"
-      @close="dispatchVisible = false"
+      @close="closeDispatch"
     >
-      <template v-if="currentOrder">
+      <template v-if="!isBatch && currentOrder">
         <a-alert :message="'订单：' + currentOrder.orderNo" type="info" style="margin-bottom: 12px" />
-        <a-form layout="vertical">
-          <a-form-item label="负责人（后台人员）">
-            <a-select
-              v-model:value="dispatchForm.leadId"
-              show-search
-              placeholder="搜索并选择负责人"
-              :options="employeeOptions"
-              :filter-option="false"
-              @search="onSearchEmployee"
-              allow-clear
-            />
-          </a-form-item>
-          <a-form-item label="组员（后台人员，可多选）">
-            <a-select
-              v-model:value="dispatchForm.empIds"
-              mode="multiple"
-              show-search
-              placeholder="搜索并选择组员"
-              :options="employeeOptions"
-              :filter-option="false"
-              @search="onSearchEmployee"
-              allow-clear
-            />
-          </a-form-item>
-          <a-form-item label="车辆">
-            <a-select
-              v-model:value="dispatchForm.vehicleId"
-              show-search
-              placeholder="搜索并选择车辆"
-              :options="vehicleOptions"
-              :filter-option="false"
-              @search="onSearchVehicle"
-              allow-clear
-            />
-          </a-form-item>
-          <a-form-item label="设备（可多选）">
-            <a-select
-              v-model:value="dispatchForm.instrumentIds"
-              mode="multiple"
-              show-search
-              placeholder="搜索并选择设备"
-              :options="instrumentOptions"
-              :filter-option="false"
-              @search="onSearchInstrument"
-              allow-clear
-            />
-          </a-form-item>
-          <a-form-item label="计划开始">
-            <a-date-picker v-model:value="dispatchForm.planStart" show-time format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
-          </a-form-item>
-          <a-form-item label="计划结束">
-            <a-date-picker v-model:value="dispatchForm.planEnd" show-time format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
-          </a-form-item>
-          <a-form-item label="备注">
-            <a-textarea v-model:value="dispatchForm.note" :rows="2" />
-          </a-form-item>
-        </a-form>
       </template>
+      <template v-else>
+        <a-alert :message="`批量派单：共选中 ${selectedOrderIds.length} 个「待派单」订单，将统一使用以下派单信息`" type="info" style="margin-bottom: 12px" />
+      </template>
+      <DispatchForm
+        ref="dispatchFormRef"
+        :form="dispatchForm"
+        :employee-options="employeeOptions"
+        :vehicle-options="vehicleOptions"
+        :instrument-options="instrumentOptions"
+      />
+      <a-alert
+        v-if="dispatchBlock"
+        type="error"
+        show-icon
+        style="margin-top: 16px;"
+        :message="`派单被阻断，请调整后重试（共 ${dispatchBlock.split('\n').filter(Boolean).length} 个订单无法派单）`"
+        :description="h('div', { style: 'white-space: pre-line; line-height: 1.6;' }, dispatchBlock)"
+      />
       <template #footer>
         <a-space>
-          <a-button @click="dispatchVisible = false">取消</a-button>
-          <a-button type="primary" :loading="dispatchLoading" @click="submitDispatch">派单</a-button>
+          <a-button @click="closeDispatch">取消</a-button>
+          <a-button type="primary" :loading="dispatchLoading" @click="submitDispatch">{{ isBatch ? '批量派单' : '派单' }}</a-button>
         </a-space>
       </template>
     </a-drawer>
@@ -208,14 +212,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, h } from 'vue'
 import { message } from 'ant-design-vue'
 import { Empty } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
-  getSamplingOrders, createDispatch, searchUsers, listVehicles, listInstruments
+  getDispatchBoardList, createDispatch, batchDispatch, searchUsers, listVehicles, listInstruments, getAvailableVehicles
 } from '../../../api/ems'
 import DispatchDetail from './DispatchDetail.vue'
+import DispatchForm from './DispatchForm.vue'
 import { usePermission } from '../../../composables/usePermission'
 
 const { hasPerm } = usePermission()
@@ -225,7 +230,9 @@ const orders = ref([])
 const loading = ref(false)
 const dispatchVisible = ref(false)
 const dispatchLoading = ref(false)
+const dispatchBlock = ref('') // 批量派单阻断提示（订单号+原因），有值时保留表单不关闭
 const currentOrder = ref(null)
+const isBatch = ref(false)
 const detailVisible = ref(false)
 const detailOrderId = ref(null)
 const employeeOptions = ref([])
@@ -241,6 +248,28 @@ function onModeChange() {
 }
 function onGroupChange() {
   nextTick(syncTableHeight)
+}
+
+// 筛选条件：订单号 / 负责人 / 状态
+const filters = reactive({ orderNo: '', leadName: '', status: undefined })
+function resetFilters() {
+  filters.orderNo = ''
+  filters.leadName = ''
+  filters.status = undefined
+  loadOrders()
+}
+
+// 表格行多选（批量派单）
+const selectedRowKeys = ref([])
+const selectedOrderIds = computed(() => selectedRowKeys.value)
+const rowSelection = computed(() => ({
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: (keys) => { selectedRowKeys.value = keys },
+  // 仅允许「待派单」订单被选入批量派单
+  getCheckboxProps: (record) => ({ disabled: record.status !== '待派单' })
+}))
+function clearSelection() {
+  selectedRowKeys.value = []
 }
 
 // 看板列（固定按状态）
@@ -265,13 +294,31 @@ function statusColor(s) {
   return STATUS_COLOR[s] || 'default'
 }
 
+// 采样订单状态全过程（A - B - C - D ...）
+const ORDER_STATUS_CHAIN = [
+  '待派单', '已派单', '采样执行中', '样品送检', '实验室检测中', '报告编制', '归档完成'
+]
+// 每个状态节点的展示态：done(已完成,绿色) / current(当前,蓝色) / todo(未到达,灰色)
+function statusNodeState(step, current) {
+  const ci = ORDER_STATUS_CHAIN.indexOf(current)
+  const si = ORDER_STATUS_CHAIN.indexOf(step)
+  if (ci < 0) return 'todo'
+  if (si < ci) return 'done'
+  if (si === ci) return 'current'
+  return 'todo'
+}
+// 渲染状态全过程 A - B - C - D ...
+function statusSteps(record) {
+  return ORDER_STATUS_CHAIN.map((step) => ({ label: step, state: statusNodeState(step, record.status) }))
+}
+
 // 表格列
 const orderCols = [
-  { title: '订单号', dataIndex: 'orderNo', key: 'orderNo', width: 160 },
-  { title: '点位ID', dataIndex: 'pointId', key: 'pointId', width: 100 },
-  { title: '计划采样日', dataIndex: 'planDate', key: 'planDate', width: 130 },
-  { title: '负责人', dataIndex: 'samplerLead', key: 'samplerLead', width: 120 },
-  { title: '状态', key: 'status', width: 130 },
+  { title: '订单号', dataIndex: 'orderNo', key: 'orderNo', width: 140 },
+  { title: '点位名称', dataIndex: 'pointName', key: 'pointName', width: 150 },
+  { title: '计划区间', dataIndex: 'planRange', key: 'planRange', width: 180 },
+  { title: '负责人', dataIndex: 'leadName', key: 'leadName', width: 80 },
+  { title: '状态', key: 'status', width: 460 },
   { title: '操作', key: 'op', width: 120, fixed: 'right' }
 ]
 
@@ -294,7 +341,7 @@ const tableGroups = computed(() => {
     if (groupBy.value === 'status') {
       key = o.status || '未知'
     } else {
-      key = o.samplerLead || '未分配'
+      key = o.leadName || '未分配'
     }
     if (!map.has(key)) map.set(key, [])
     map.get(key).push(o)
@@ -353,46 +400,20 @@ const dispatchForm = reactive({
   leadId: undefined, empIds: [], vehicleId: undefined, instrumentIds: [], planStart: null, planEnd: null, note: ''
 })
 
+// 派单必填校验由 DispatchForm 内部 rules 负责，此处仅持有表单 ref
+const dispatchFormRef = ref(null)
+
 function loadOrders() {
   loading.value = true
-  getSamplingOrders({}).then((res) => {
+  const params = {}
+  if (filters.orderNo && filters.orderNo.trim()) params.orderNo = filters.orderNo.trim()
+  if (filters.leadName && filters.leadName.trim()) params.leadName = filters.leadName.trim()
+  if (filters.status) params.status = filters.status
+  getDispatchBoardList(params).then((res) => {
     const data = res.data || res
     orders.value = Array.isArray(data) ? data : (data.list || [])
+    clearSelection()
   }).catch(() => {}).finally(() => { loading.value = false; nextTick(syncTableHeight) })
-}
-
-function loadResources() {
-  onSearchEmployee('')
-  onSearchVehicle('')
-  onSearchInstrument('')
-}
-
-// 负责人/组员：从后台用户管理远程检索
-function onSearchEmployee(keyword) {
-  searchUsers({ keyword: keyword || undefined, page: 1, size: 20 }).then((res) => {
-    const data = res.data || res
-    const list = Array.isArray(data) ? data : (data.list || data.records || [])
-    employeeOptions.value = list.map((u) => ({
-      label: `${u.realName || u.username}（${u.username}）`,
-      value: u.id
-    }))
-  }).catch(() => {})
-}
-
-function onSearchVehicle(keyword) {
-  listVehicles({ keyword: keyword || undefined, page: 1, size: 50 }).then((res) => {
-    const data = res.data || res
-    const list = Array.isArray(data) ? data : (data.list || data.records || [])
-    vehicleOptions.value = list.map((v) => ({ label: `${v.plateNo}${v.model ? ' ' + v.model : ''}`, value: v.id }))
-  }).catch(() => {})
-}
-
-function onSearchInstrument(keyword) {
-  listInstruments({ keyword: keyword || undefined, page: 1, size: 50 }).then((res) => {
-    const data = res.data || res
-    const list = Array.isArray(data) ? data : (data.list || data.records || [])
-    instrumentOptions.value = list.map((i) => ({ label: `${i.name}${i.model ? ' ' + i.model : ''}`, value: i.id }))
-  }).catch(() => {})
 }
 
 function openDetail(order) {
@@ -409,20 +430,68 @@ function openDispatch(order) {
     message.info('仅「待派单」状态可派单')
     return
   }
+  isBatch.value = false
   currentOrder.value = order
   Object.assign(dispatchForm, { leadId: undefined, empIds: [], vehicleId: undefined, instrumentIds: [], planStart: null, planEnd: null, note: '' })
   dispatchVisible.value = true
 }
 
-function submitDispatch() {
-  if (!dispatchForm.leadId) {
-    message.warning('请选择负责人')
+// 批量派单：对当前选中的「待派单」订单统一派发同一组派单信息
+function openBatchDispatch() {
+  if (!hasPerm('ems:dispatch')) {
+    message.warning('无派单权限')
     return
   }
-  const empIds = (dispatchForm.empIds || []).filter((id) => id !== dispatchForm.leadId)
+  if (!selectedOrderIds.value.length) {
+    message.warning('请先勾选「待派单」订单')
+    return
+  }
+  isBatch.value = true
+  currentOrder.value = null
+  dispatchBlock.value = ''
+  Object.assign(dispatchForm, { leadId: undefined, empIds: [], vehicleId: undefined, instrumentIds: [], planStart: null, planEnd: null, note: '' })
+  dispatchVisible.value = true
+}
+
+function closeDispatch() {
+  dispatchVisible.value = false
+  isBatch.value = false
+  currentOrder.value = null
+}
+
+async function submitDispatch() {
+  // 必填校验：负责人、组员、计划开始、计划结束
+  try {
+    await dispatchFormRef.value.validate()
+  } catch (e) {
+    return
+  }
+  // 双保险：校验所选车辆是否在检车时间区间内可用（ISSUE-035）
+  if (dispatchForm.vehicleId && dispatchForm.planStart && dispatchForm.planEnd) {
+    const ps = dayjs(dispatchForm.planStart).format('YYYY-MM-DDTHH:mm:ss')
+    const pe = dayjs(dispatchForm.planEnd).format('YYYY-MM-DDTHH:mm:ss')
+    const availablePromise = getAvailableVehicles({ planStart: ps, planEnd: pe })
+    dispatchLoading.value = true
+    availablePromise.then((res) => {
+      const ids = res.data || res || []
+      if (!ids.includes(dispatchForm.vehicleId)) {
+        dispatchLoading.value = false
+        message.error('所选车辆在检车时间区间内已被占用，请在时间范围内选择可用车辆')
+        if (dispatchFormRef.value && dispatchFormRef.value.reloadVehicles) dispatchFormRef.value.reloadVehicles()
+        return
+      }
+      doSubmitDispatch()
+    }).catch(() => { dispatchLoading.value = false })
+    return
+  }
   dispatchLoading.value = true
-  createDispatch({
-    orderId: currentOrder.value.id,
+  doSubmitDispatch()
+}
+
+// 组装派单参数（单订单 / 批量共用）
+function buildDispatchParams() {
+  const empIds = (dispatchForm.empIds || []).filter((id) => id !== dispatchForm.leadId)
+  return {
     vehicleId: dispatchForm.vehicleId,
     leadId: dispatchForm.leadId,
     empIds,
@@ -430,18 +499,48 @@ function submitDispatch() {
     planStart: dispatchForm.planStart ? dayjs(dispatchForm.planStart).format('YYYY-MM-DDTHH:mm:ss') : null,
     planEnd: dispatchForm.planEnd ? dayjs(dispatchForm.planEnd).format('YYYY-MM-DDTHH:mm:ss') : null,
     note: dispatchForm.note
-  }).then(() => {
-    message.success('派单成功（已通过资质闸门与冲突校验）')
-    dispatchVisible.value = false
-    loadOrders()
-  }).catch((e) => {
-    message.error((e?.response?.data?.message) || '派单失败')
-  }).finally(() => { dispatchLoading.value = false })
+  }
+}
+
+function doSubmitDispatch() {
+  const params = buildDispatchParams()
+  dispatchLoading.value = true
+  if (isBatch.value) {
+    // 批量派单：同一组派单信息依次派发到所有选中的「待派单」订单
+    batchDispatch({ ...params, orderIds: selectedOrderIds.value }).then((res) => {
+      // 仅当全部成功时关闭表单（后端此时返回 code=200）
+      const data = res.data || res
+      const success = data.successCount || 0
+      message.success(`批量派单成功，共 ${success} 个订单`)
+      dispatchBlock.value = ''
+      closeDispatch()
+      loadOrders()
+    }).catch((err) => {
+      // 后端监测到阻断（资源冲突/资质闸门/维修保养等）时返回异常状态值，
+      // 并携带 failList 明细（[{orderId, reason}]）。此时保留表单，展示阻断提示，不关闭。
+      const failList = err && err.res && err.res.data ? err.res.data.failList : null
+      if (failList && failList.length) {
+        const lines = failList.map((f) => `订单 ${f.orderId}：${f.reason}`)
+        dispatchBlock.value = lines.join('\n')
+      } else {
+        // 其他系统错误：由全局拦截器已提示，阻断区展示通用信息
+        dispatchBlock.value = (err && err.res && err.res.message) || (err && err.message) || '派单失败，请重试'
+      }
+      // 注意：阻断时务必不要调用 closeDispatch()，保持表单打开
+    }).finally(() => { dispatchLoading.value = false })
+  } else {
+    createDispatch({ ...params, orderId: currentOrder.value.id }).then(() => {
+      message.success('派单成功（已通过资质闸门与冲突校验）')
+      closeDispatch()
+      loadOrders()
+    }).catch(() => {
+      // 冲突等错误提示已由全局响应拦截器统一多行展示，此处仅做加载状态清理
+    }).finally(() => { dispatchLoading.value = false })
+  }
 }
 
 onMounted(() => {
   loadOrders()
-  loadResources()
   nextTick(() => {
     syncTableHeight()
     const wrap = document.querySelector('.page-wrap')
@@ -488,6 +587,15 @@ onUnmounted(() => {
 }
 .page-title { font-size: 16px; font-weight: 600; }
 
+.filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
 .board { display: flex; gap: 12px; overflow-x: auto; flex: 1; min-height: 0; }
 .board-col { flex: 1; min-width: 200px; background: #fafafa; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; }
 .board-col-title { color: #fff; padding: 6px 10px; border-radius: 6px; font-weight: 600; flex: 0 0 auto; }
@@ -516,4 +624,14 @@ onUnmounted(() => {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+.vehicle-tip { margin-top: 6px; }
+.vehicle-tip .tip-text { color: #52c41a; font-size: 12px; }
+
+/* 状态全过程 A - B - C - D：当前蓝色、完成绿色、未到达灰色 */
+.status-chain { display: inline-flex; align-items: center; flex-wrap: wrap; line-height: 20px; }
+.chain-node { font-size: 12px; padding: 0 2px; border-radius: 4px; }
+.chain-done { color: #52c41a; }      /* 已完成：绿色 */
+.chain-current { color: #1677ff; font-weight: 600; }  /* 当前：蓝色 */
+.chain-todo { color: #bbb; }          /* 未到达：灰色 */
+.chain-sep { color: #ccc; margin: 0 2px; }
 </style>

@@ -83,7 +83,7 @@
           <a-descriptions-item label="复核人">{{ detail.task.reviewBy || '-' }}</a-descriptions-item>
           <a-descriptions-item label="复核意见" :span="2">{{ detail.task.reviewOpinion || '-' }}</a-descriptions-item>
         </a-descriptions>
-        <a-divider>检测结果</a-divider>
+        <a-divider class="title-divider">检测结果</a-divider>
         <a-table :columns="resultColumns" :data-source="detail.results" :pagination="false" size="small" row-key="id">
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'conclusion'">
@@ -93,7 +93,7 @@
             </template>
           </template>
         </a-table>
-        <a-divider v-if="detail.reviews && detail.reviews.length">复核记录</a-divider>
+        <a-divider v-if="detail.reviews && detail.reviews.length" class="title-divider">复核记录</a-divider>
         <a-timeline v-if="detail.reviews && detail.reviews.length">
           <a-timeline-item v-for="r in detail.reviews" :key="r.id" :color="r.decision === '通过' ? 'green' : 'red'">
             {{ r.reviewer }} - {{ r.decision }} - {{ r.opinion }}（{{ r.createTime }}）

@@ -38,10 +38,19 @@ export const batchDeleteEntrusts = (ids) =>
 export const genSamplingOrders = (entrustId) =>
   request.post(`/ems/base/sampling-order/gen`, null, { params: { entrustId } })
 export const getSamplingOrders = (params) => request.get('/ems/base/sampling-orders', { params })
+// 采样调度看板聚合（点位名称/派单计划区间/负责人），支持按订单号/负责人/状态筛选
+export const getDispatchBoardList = (params) => request.get('/ems/base/sampling-orders/dispatch-list', { params })
+// 批量派单：同一派单信息派发到多个订单（参数均为 query）
+export const batchDispatch = (params) => request.post('/ems/base/sampling-orders/batch-dispatch', null, { params })
 // 派单参数均为后端 @RequestParam（query），不含 body
 export const createDispatch = (params) => request.post('/ems/base/dispatch', null, { params })
 export const checkDispatchConflict = (params) => request.get('/ems/base/dispatch/check', { params })
 export const getDispatchDetail = (orderId) => request.get('/ems/base/dispatch', { params: { orderId } })
+// 车辆使用日历（ISSUE-035）
+export const getVehicleUsage = (params) => request.get('/ems/base/dispatch/vehicle-usage', { params })
+// 设备使用日历
+export const getInstrumentUsage = (params) => request.get('/ems/base/dispatch/instrument-usage', { params })
+export const getAvailableVehicles = (params) => request.get('/ems/base/dispatch/available-vehicles', { params })
 
 // 派单人员：从后台用户管理远程检索（支持分页+关键字）
 export const searchUsers = (params) => request.get('/system/users/page', { params })
@@ -51,6 +60,11 @@ export const listVehicles = (params) => request.get('/ems/base/vehicles', { para
 export const createVehicle = (data) => request.post('/ems/base/vehicles', data)
 export const updateVehicle = (id, data) => request.put(`/ems/base/vehicles/${id}`, data)
 export const deleteVehicle = (id) => request.delete(`/ems/base/vehicles/${id}`)
+// 车辆维修保养（ISSUE-036）
+export const createVehicleMaintenance = (vehicleId, data) => request.post(`/ems/base/vehicles/${vehicleId}/maintenances`, data)
+export const listVehicleMaintenances = (vehicleId) => request.get(`/ems/base/vehicles/${vehicleId}/maintenances`)
+export const deleteVehicleMaintenance = (mid) => request.delete(`/ems/base/vehicles/maintenances/${mid}`)
+export const getVehicleDetail = (vehicleId) => request.get(`/ems/base/vehicles/${vehicleId}/detail`)
 
 // 仪器设备全生命周期台账（TRD 5.5）
 export const listInstruments = (params) => request.get('/ems/base/instruments', { params })
@@ -88,6 +102,8 @@ export const deleteSamplingRecord = (id) => request.delete(`/ems/base/sampling/r
 
 // 样品
 export const createSample = (data) => request.post('/ems/base/sampling/samples', data)
+// 手动收集样品（收样工作台，无采样记录/小程序上报场景），创建即收样
+export const manualCollectSample = (data) => request.post('/ems/base/sampling/samples/manual-collect', data)
 export const updateSample = (id, data) => request.put(`/ems/base/sampling/samples/${id}`, data)
 export const receiveSample = (id, params) => request.post(`/ems/base/sampling/samples/${id}/receive`, null, { params })
 export const dispatchSample = (id, params) => request.post(`/ems/base/sampling/samples/${id}/dispatch`, null, { params })

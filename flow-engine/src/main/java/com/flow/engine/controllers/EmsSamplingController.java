@@ -74,6 +74,15 @@ public class EmsSamplingController {
         return Result.ok(samplingService.updateSample(id, sample));
     }
 
+    /**
+     * 手动收集样品：未通过微信小程序上报/采样流程，由收样员在收样工作台直接录入。
+     * 不要求 samplingId/orderId，创建后直接进入已收样状态。
+     */
+    @PostMapping("/samples/manual-collect")
+    public Result<EmsSample> manualCollect(@RequestBody EmsSample sample) {
+        return Result.ok(samplingService.manualCollect(sample));
+    }
+
     @PostMapping("/samples/{id}/receive")
     public Result<EmsSample> receive(@PathVariable Long id,
                                      @RequestParam(required = false) String receiveBy,

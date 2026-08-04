@@ -5,7 +5,8 @@
       <template #extra>
         <a-badge :count="stats.pending" :number-style="{ backgroundColor: '#fa8c16' }" />
         <span style="margin-left:8px;color:#888;">待收样样品</span>
-        <a-button type="primary" style="margin-left:16px;" @click="loadData">刷新</a-button>
+        <a-button type="primary" style="margin-left:16px;" @click="collectOpen = true">手动收集样品</a-button>
+        <a-button type="default" style="margin-left:8px;" @click="loadData">刷新</a-button>
       </template>
 
       <a-alert
@@ -70,6 +71,56 @@
       </a-form>
     </a-modal>
 
+    <!-- 手动收集样品弹窗 -->
+    <a-modal
+      v-model:open="collectOpen"
+      title="手动收集样品"
+      @ok="submitCollect"
+      @cancel="collectOpen = false"
+      :confirm-loading="collecting"
+      :after-close="resetCollectForm"
+    >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" :model="collectForm">
+        <a-form-item label="样品名称" required>
+          <a-input v-model:value="collectForm.name" placeholder="请输入样品名称" />
+        </a-form-item>
+        <a-form-item label="样品类型">
+          <a-input v-model:value="collectForm.type" placeholder="如水样/气样/土壤/固体废物" />
+        </a-form-item>
+        <a-form-item label="来源">
+          <a-input v-model:value="collectForm.source" placeholder="如监测点位/送样单位" />
+        </a-form-item>
+        <a-form-item label="数量/规格">
+          <a-input v-model:value="collectForm.amount" placeholder="如 500mL / 1kg" />
+        </a-form-item>
+        <a-form-item label="容器">
+          <a-input v-model:value="collectForm.container" placeholder="如 聚乙烯瓶/玻璃瓶" />
+        </a-form-item>
+        <a-form-item label="保存条件">
+          <a-input v-model:value="collectForm.preserve" placeholder="如 4℃冷藏/加固定剂" />
+        </a-form-item>
+        <a-form-item label="收样人" required>
+          <a-input v-model:value="collectForm.receiveBy" placeholder="请输入收样人" />
+        </a-form-item>
+        <a-form-item label="收样时间">
+          <a-date-picker
+            v-model:value="collectForm.receiveTime"
+            value-format="YYYY-MM-DD"
+            style="width:100%"
+          />
+        </a-form-item>
+        <a-form-item label="备注">
+          <a-textarea v-model:value="collectForm.remark" rows="2" />
+        </a-form-item>
+      </a-form>
+      <a-alert
+        type="info"
+        show-icon
+        style="margin-top:-8px;"
+        message="手动收集的样品无需依赖小程序上报或采样记录，创建后直接进入「已收样」状态。"
+      />
+    </a-modal>
+
     <!-- 样品详情抽屉 -->
     <a-drawer
       v-model:open="detailOpen"
@@ -92,7 +143,7 @@
         <a-descriptions-item label="收样时间">{{ detail.sample?.receiveTime }}</a-descriptions-item>
       </a-descriptions>
 
-      <a-divider orientation="left">质控样</a-divider>
+      <a-divider class="title-divider" orientation="left">质控样</a-divider>
       <a-table
         v-if="detail.qcList"
         :columns="qcColumns"
@@ -103,7 +154,7 @@
       />
       <a-empty v-else description="无质控样" />
 
-      <a-divider orientation="left">操作日志</a-divider>
+      <a-divider class="title-divider" orientation="left">操作日志</a-divider>
       <a-timeline v-if="detail.logs && detail.logs.length">
         <a-timeline-item v-for="log in detail.logs" :key="log.id">
           <b>{{ log.action }}</b> · {{ log.operator }} · {{ log.detail }}
@@ -121,7 +172,8 @@ import { message } from 'ant-design-vue'
 import {
   getReceiveWorkbench,
   receiveSample,
-  getSampleDetail
+  getSampleDetail,
+  manualCollectSample
 } from '../../../api/ems'
 
 const loading = ref(false)
@@ -154,6 +206,65 @@ const receiveDate = ref(null)
 
 const detailOpen = ref(false)
 const detail = ref(null)
+
+// 手动收集样品
+const collectOpen = ref(false)
+const collecting = ref(false)
+const collectForm = reactive({
+  name: '',
+  type: '',
+  source: '',
+  amount: '',
+  container: '',
+  preserve: '',
+  receiveBy: '',
+  receiveTime: null,
+  remark: ''
+})
+
+function resetCollectForm() {
+  Object.assign(collectForm, {
+    name: '',
+    type: '',
+    source: '',
+    amount: '',
+    container: '',
+    preserve: '',
+    receiveBy: '',
+    receiveTime: null,
+    remark: ''
+  })
+}
+
+async function submitCollect() {
+  if (!collectForm.name) {
+    message.warning('请填写样品名称')
+    return
+  }
+  if (!collectForm.receiveBy) {
+    message.warning('请填写收样人')
+    return
+  }
+  collecting.value = true
+  try {
+    await manualCollectSample({
+      name: collectForm.name,
+      type: collectForm.type || undefined,
+      source: collectForm.source || undefined,
+      amount: collectForm.amount || undefined,
+      container: collectForm.container || undefined,
+      preserve: collectForm.preserve || undefined,
+      receiveBy: collectForm.receiveBy,
+      receiveTime: collectForm.receiveTime || undefined,
+      remark: collectForm.remark || undefined
+    })
+    message.success('已手动收集样品并收样')
+    collectOpen.value = false
+    loadData()
+  } finally {
+    collecting.value = false
+  }
+}
 
 function onTableChange(pag) {
   pagination.current = pag.current

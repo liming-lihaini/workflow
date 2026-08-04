@@ -1,9 +1,30 @@
 import axios from 'axios'
+import { h } from 'vue'
 import { message } from 'ant-design-vue'
 
 const request = axios.create({
   baseURL: '/api/v1',
-  timeout: 15000
+  timeout: 15000,
+  // 数组参数序列化为 key=v1&key=v2（不带方括号），以匹配后端 @RequestParam List<Long>
+  paramsSerializer: {
+    serialize: (params) => {
+      const searchParams = new URLSearchParams()
+      Object.keys(params || {}).forEach((key) => {
+        const value = params[key]
+        if (value === null || value === undefined) return
+        if (Array.isArray(value)) {
+          value.forEach((item) => {
+            if (item !== null && item !== undefined && item !== '') {
+              searchParams.append(key, String(item))
+            }
+          })
+        } else {
+          searchParams.append(key, String(value))
+        }
+      })
+      return searchParams.toString()
+    }
+  }
 })
 
 // 请求拦截器
@@ -27,8 +48,11 @@ request.interceptors.response.use(
       if (res.code === 200 || res.code === 0) {
         return res
       }
+      const err = new Error(res.message || '请求失败')
+      err.res = res
+      err.code = res.code
       message.error(res.message || '请求失败')
-      return Promise.reject(new Error(res.message || '请求失败'))
+      return Promise.reject(err)
     }
     // 非标准格式直接返回
     return res
@@ -36,14 +60,18 @@ request.interceptors.response.use(
   (error) => {
     if (error.response) {
       const { status, data } = error.response
+      const msg = data?.message
       if (status === 401) {
         message.error('登录已过期，请重新登录')
         localStorage.removeItem('token')
         window.location.href = '/login'
       } else if (status === 403) {
         message.error('权限不足')
+      } else if (msg && msg.includes('资源冲突')) {
+        // 资源冲突提示含换行符，按信息自动换行展示
+        message.error({ content: h('div', { style: 'white-space: pre-line; text-align: left; line-height: 1.6;' }, msg), duration: 6 })
       } else {
-        message.error(data?.message || `请求失败 (${status})`)
+        message.error(msg || `请求失败 (${status})`)
       }
     } else {
       message.error('网络异常，请检查后端服务是否启动')
