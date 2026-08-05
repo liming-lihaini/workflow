@@ -18,6 +18,8 @@ public class EmsEntrustVO {
     private String entrustName;
     private String source;         // 来源编码
     private String sourceName;     // 来源名称（关联字典 moni_entrust_source）
+    private String sampleFreq;      // 采集频率编码（关联字典 moni_sample_freq）
+    private String sampleFreqName; // 采集频率名称（关联字典 moni_sample_freq）
     private String status;
     private String description;    // 委托说明（富文本）
     private String submitBy;

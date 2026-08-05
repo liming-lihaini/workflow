@@ -166,6 +166,15 @@ public class DatabaseMigration implements CommandLineRunner {
         initSeqDefs();
         // 将危化品数据基础表抽象为流程管理-数据模型的一条数据模型记录（可在数据模型模块查看）
         initHazardousDataModel();
+
+        // ===== 采样参数配置管理（TRD 5.1） =====
+        createTableIfAbsent("t_sample_param_config",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, item TEXT, standard TEXT, "
+                + "limit_value TEXT, remark TEXT, create_time TEXT, update_time TEXT");
+        createTableIfAbsent("t_sample_param_item",
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, config_id INTEGER, code TEXT, name TEXT, "
+                + "param_type TEXT, unit TEXT, required INTEGER DEFAULT 1, enum_text TEXT, "
+                + "tip TEXT, sort_no INTEGER");
         // 基于危险品数据模型生成「危险品入库申请」表单定义（绑定 hazardous 模型）
         initHazardousInboundForm();
     }

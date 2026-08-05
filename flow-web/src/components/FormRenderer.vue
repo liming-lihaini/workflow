@@ -396,11 +396,11 @@ function getComponentProps(field) {
 
 // 获取字段选项
 function getFieldOptions(field) {
-  // 优先从字典数据获取
+  // 优先从字典数据获取（后端 DictItem 字段为 itemValue/itemText）
   if (field.dictCode && props.dictData[field.dictCode]) {
     return props.dictData[field.dictCode].map(item => ({
-      value: item.value || item.dictValue,
-      text: item.label || item.dictLabel || item.value || item.dictValue
+      value: item.itemValue,
+      text: item.itemText
     }))
   }
   // 手动选项

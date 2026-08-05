@@ -76,6 +76,15 @@ public class WebhookService {
     }
 
     /**
+     * 根据key获取Webhook实体（供内部调度/测试使用，返回持久化实体）
+     */
+    public Webhook getWebhookEntityByKey(String webhookKey) {
+        return webhookMapper.selectOne(
+                new LambdaQueryWrapper<Webhook>().eq(Webhook::getWebhookKey, webhookKey)
+        );
+    }
+
+    /**
      * 根据ID获取Webhook
      */
     public Webhook getWebhookById(Long id) {

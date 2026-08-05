@@ -14,89 +14,70 @@
         </a-space>
         <a-space>
           <a-button type="primary" @click="handleSaveConfig" :loading="saveLoading">保存配置</a-button>
-          <a-button @click="handleOpenDesigner">设计流程图</a-button>
+          <a-button @click="activeTab = 'design'">设计流程图</a-button>
         </a-space>
       </div>
 
       <a-spin :spinning="loading">
-        <!-- 基本信息 -->
-        <a-card title="基本信息" style="margin-bottom: 16px">
-          <a-descriptions :column="2" bordered size="small">
-            <a-descriptions-item label="流程标识">{{ processDef?.processKey }}</a-descriptions-item>
-            <a-descriptions-item label="流程名称">{{ processDef?.processName }}</a-descriptions-item>
-            <a-descriptions-item label="流程类型">
-              <a-tag :color="getTypeColor(processDef?.processType)">{{ getTypeName(processDef?.processType) }}</a-tag>
-            </a-descriptions-item>
-            <a-descriptions-item label="分类">{{ processDef?.category || '-' }}</a-descriptions-item>
-            <a-descriptions-item label="用途描述" :span="2">{{ processDef?.description || '-' }}</a-descriptions-item>
-          </a-descriptions>
-        </a-card>
+        <a-tabs v-model:activeKey="activeTab">
+          <!-- 基本信息 -->
+          <a-tab-pane key="basic" tab="基本信息">
+            <a-card title="基本信息" style="margin-bottom: 16px">
+              <a-descriptions :column="2" bordered size="small">
+                <a-descriptions-item label="流程标识">{{ processDef?.processKey }}</a-descriptions-item>
+                <a-descriptions-item label="流程名称">{{ processDef?.processName }}</a-descriptions-item>
+                <a-descriptions-item label="流程类型">
+                  <a-tag :color="getTypeColor(processDef?.processType)">{{ getTypeName(processDef?.processType) }}</a-tag>
+                </a-descriptions-item>
+                <a-descriptions-item label="分类">{{ processDef?.category || '-' }}</a-descriptions-item>
+                <a-descriptions-item label="用途描述" :span="2">{{ processDef?.description || '-' }}</a-descriptions-item>
+              </a-descriptions>
+            </a-card>
 
-        <!-- 表单配置 -->
-        <a-card title="表单配置" style="margin-bottom: 16px">
-          <a-row :gutter="24">
-            <a-col :span="10">
-              <a-form layout="vertical">
-                <a-form-item label="选择表单">
-                  <a-select
-                    v-model:value="selectedFormKey"
-                    placeholder="请选择流程关联的表单"
-                    allow-clear
-                    show-search
-                    :filter-option="filterOption"
-                    @change="handleFormChange"
-                  >
-                    <a-select-option v-for="form in formList" :key="form.formKey" :value="form.formKey">
-                      {{ form.formName }} ({{ form.formKey }})
-                    </a-select-option>
-                  </a-select>
-                </a-form-item>
-                <a-form-item v-if="selectedFormKey" label="已选表单">
-                  <a-space>
-                    <a-tag color="blue">{{ selectedForm?.formName }}</a-tag>
-                    <span style="color: var(--text-secondary); font-size: 12px">{{ selectedFormKey }}</span>
-                    <a-button size="small" @click="showFormPreview = true">
-                      <template #icon><EyeOutlined /></template>
-                      预览
-                    </a-button>
-                  </a-space>
-                </a-form-item>
-              </a-form>
-            </a-col>
-          </a-row>
-        </a-card>
+            <!-- 表单配置 -->
+            <a-card title="表单配置" style="margin-bottom: 16px">
+              <a-row :gutter="24">
+                <a-col :span="10">
+                  <a-form layout="vertical">
+                    <a-form-item label="选择表单">
+                      <a-select
+                        v-model:value="selectedFormKey"
+                        placeholder="请选择流程关联的表单"
+                        allow-clear
+                        show-search
+                        :filter-option="filterOption"
+                        @change="handleFormChange"
+                      >
+                        <a-select-option v-for="form in formList" :key="form.formKey" :value="form.formKey">
+                          {{ form.formName }} ({{ form.formKey }})
+                        </a-select-option>
+                      </a-select>
+                    </a-form-item>
+                    <a-form-item v-if="selectedFormKey" label="已选表单">
+                      <a-space>
+                        <a-tag color="blue">{{ selectedForm?.formName }}</a-tag>
+                        <span style="color: var(--text-secondary); font-size: 12px">{{ selectedFormKey }}</span>
+                        <a-button size="small" @click="handlePreviewOpen">
+                          <template #icon><EyeOutlined /></template>
+                          预览
+                        </a-button>
+                      </a-space>
+                    </a-form-item>
+                  </a-form>
+                </a-col>
+              </a-row>
+            </a-card>
+          </a-tab-pane>
 
-        <!-- 节点配置说明 -->
-        <a-card title="节点表单权限">
-          <a-alert
-            message="节点级表单权限在设计器中配置"
-            description="点击「设计流程图」按钮打开设计器，选中节点后可在右侧面板配置该节点的表单内容权限（字段编辑/只读/隐藏）。"
-            type="info"
-            show-icon
-          />
-          <div v-if="processDef?.processJson" style="margin-top: 16px">
-            <div class="section-subtitle">已定义的节点</div>
-            <a-table
-              :columns="nodeColumns"
-              :data-source="parsedNodes"
-              :pagination="false"
-              size="small"
-              row-key="id"
-            >
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'formPermissions'">
-                  <template v-if="record.formPermissions">
-                    <a-tag color="green">已配置</a-tag>
-                  </template>
-                  <template v-else>
-                    <a-tag>未配置</a-tag>
-                  </template>
-                </template>
-              </template>
-            </a-table>
-          </div>
-          <a-empty v-else description="尚未设计流程图，请先点击「设计流程图」" />
-        </a-card>
+          <!-- 流程图设计 -->
+          <a-tab-pane key="design" tab="流程图设计">
+            <a-card :body-style="{ padding: 0 }">
+              <div class="designer-embed">
+                <iframe :src="designerUrl" frameborder="0" allowfullscreen />
+              </div>
+            </a-card>
+          </a-tab-pane>
+        </a-tabs>
       </a-spin>
     </div>
 
@@ -105,6 +86,7 @@
       <FormRenderer
         v-if="selectedForm?.formJson"
         :form-json="selectedForm.formJson"
+        :dict-data="dictData"
         v-model="formPreviewValues"
         mode="editable"
       />
@@ -120,6 +102,7 @@ import { message } from 'ant-design-vue'
 import { RollbackOutlined, EyeOutlined } from '@ant-design/icons-vue'
 import { getProcessDefinitionByKey, updateProcessDefinition } from '../../../api/process'
 import { getFormAll, getForm } from '../../../api/form'
+import { getDictItemsByCode } from '../../../api/dict'
 import FormRenderer from '../../../components/FormRenderer.vue'
 
 const router = useRouter()
@@ -133,8 +116,21 @@ const selectedFormKey = ref(null)
 const selectedForm = ref(null)
 const showFormPreview = ref(false)
 const formPreviewValues = ref({})
+const dictData = ref({})
+const activeTab = ref('basic')
 
 const processKey = computed(() => route.query.processKey)
+const definitionId = computed(() => route.query.id || processDef.value?.id || '')
+
+// 内嵌 React 设计器地址（与生产/开发环境一致）
+const designerUrl = computed(() => {
+  const params = new URLSearchParams()
+  if (processKey.value) params.set('processKey', processKey.value)
+  if (definitionId.value) params.set('id', definitionId.value)
+  const queryStr = params.toString() ? `?${params.toString()}` : ''
+  if (import.meta.env.DEV) return `http://localhost:3001${queryStr}`
+  return `/designer${queryStr}`
+})
 
 const typeMap = {
   approval: { name: '审批流', color: 'blue' },
@@ -149,30 +145,6 @@ function getTypeName(type) {
 function getTypeColor(type) {
   return typeMap[type]?.color || 'default'
 }
-
-const nodeColumns = [
-  { title: '节点ID', dataIndex: 'id', key: 'id' },
-  { title: '节点名称', dataIndex: 'name', key: 'name' },
-  { title: '节点类型', dataIndex: 'type', key: 'type' },
-  { title: '关联表单', dataIndex: 'formKey', key: 'formKey' },
-  { title: '表单权限', key: 'formPermissions' }
-]
-
-const parsedNodes = computed(() => {
-  if (!processDef.value?.processJson) return []
-  try {
-    const json = JSON.parse(processDef.value.processJson)
-    return (json.nodes || []).map(n => ({
-      id: n.id,
-      name: n.name,
-      type: n.type,
-      formKey: n.properties?.formKey || '-',
-      formPermissions: n.properties?.formPermissions || null
-    }))
-  } catch {
-    return []
-  }
-})
 
 function filterOption(input, option) {
   return option.children?.[0]?.children?.toLowerCase().includes(input.toLowerCase()) ||
@@ -222,30 +194,54 @@ async function handleFormChange(formKey) {
   }
 }
 
+// 收集表单字段中引用数据字典的 dictCode 并批量加载，供预览渲染下拉项
+function collectFormDictCodes(formJson) {
+  const codes = new Set()
+  try {
+    const json = typeof formJson === 'string' ? JSON.parse(formJson) : formJson
+    ;(json.sections || []).forEach(s => (s.children || []).forEach(r => (r.cells || []).forEach(c => (c.fields || []).forEach(f => {
+      if (f.optionsSource === 'dict' && f.dictCode) codes.add(f.dictCode)
+    }))))
+  } catch { /* ignore */ }
+  return [...codes]
+}
+
+async function loadFormDictData(formJson) {
+  const codes = collectFormDictCodes(formJson)
+  const map = {}
+  await Promise.all(codes.map(async code => {
+    try {
+      const res = await getDictItemsByCode(code)
+      const items = res.data || res || []
+      map[code] = items.map(it => ({ itemValue: it.itemValue, itemText: it.itemText }))
+    } catch { /* 单字典加载失败不影响其余 */ }
+  }))
+  dictData.value = map
+}
+
+async function handlePreviewOpen() {
+  if (selectedForm.value?.formJson) {
+    await loadFormDictData(selectedForm.value.formJson)
+  }
+}
+
 async function handleSaveConfig() {
   if (!processDef.value) return
-  // 表单绑定依赖 processJson 存储，流程图未设计时无法持久化
-  if (selectedFormKey.value && !processDef.value.processJson) {
-    message.warning('请先点击「设计流程图」完成流程设计并保存，再关联表单')
-    return
-  }
   saveLoading.value = true
   try {
-    // 将表单绑定信息写入 processJson
+    // 将表单绑定信息写入 processJson（流程图未设计时初始化空结构，保证表单关联可持久化）
     let processJson = processDef.value.processJson
+    let json
     if (processJson) {
-      try {
-        const json = JSON.parse(processJson)
-        if (selectedFormKey.value) {
-          json.formKey = selectedFormKey.value
-        } else {
-          delete json.formKey
-        }
-        processJson = JSON.stringify(json)
-      } catch {
-        // processJson 解析失败，仅保存基本信息
-      }
+      try { json = JSON.parse(processJson) } catch { json = null }
     }
+    if (!json) json = { nodes: [], edges: [] }
+    if (selectedFormKey.value) {
+      json.formKey = selectedFormKey.value
+    } else {
+      delete json.formKey
+    }
+    processJson = JSON.stringify(json)
 
     await updateProcessDefinition(processDef.value.id, {
       processName: processDef.value.processName,
@@ -260,11 +256,6 @@ async function handleSaveConfig() {
     message.error('保存失败: ' + (e.message || ''))
   }
   saveLoading.value = false
-}
-
-function handleOpenDesigner() {
-  // 跳转到设计器页面，携带 processKey 参数
-  router.push(`/process/designer?processKey=${processKey.value}&id=${processDef.value?.id || ''}`)
 }
 
 onMounted(async () => {
@@ -283,5 +274,14 @@ onMounted(async () => {
   font-weight: 500;
   margin-bottom: 8px;
   color: var(--text-primary, #333);
+}
+.designer-embed {
+  height: calc(100vh - 320px);
+  min-height: 480px;
+}
+.designer-embed iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 </style>

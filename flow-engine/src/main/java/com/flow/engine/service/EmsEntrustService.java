@@ -153,11 +153,13 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
                 .orderByDesc(EmsEntrust::getCreateTime));
         Map<Long, String> custNameMap = loadCustNames(list);
         Map<String, String> sourceNameMap = loadSourceNames();
+        Map<String, String> sampleFreqNameMap = loadSampleFreqNames();
         List<EmsEntrustVO> vos = new ArrayList<>();
         for (EmsEntrust e : list) {
             EmsEntrustVO vo = EmsEntrustVO.from(e);
             vo.setCustName(custNameMap.get(e.getCustId()));
             vo.setSourceName(sourceNameMap.get(e.getSource()));
+            vo.setSampleFreqName(sampleFreqNameMap.get(e.getSampleFreq()));
             vos.add(vo);
         }
         return vos;
@@ -172,6 +174,7 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
             vo.setCustName(c == null ? null : c.getCustName());
         }
         vo.setSourceName(loadSourceNames().get(e.getSource()));
+        vo.setSampleFreqName(loadSampleFreqNames().get(e.getSampleFreq()));
         vo.setPoints(monitorPointService.listByEntrust(id));
         return vo;
     }
@@ -230,6 +233,19 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         Map<String, String> map = new HashMap<>();
         try {
             List<DictItem> items = dictService.getDictItemsByCode(SOURCE_DICT);
+            for (DictItem it : items) {
+                map.put(it.getItemValue(), it.getItemText());
+            }
+        } catch (Exception ignored) {
+            // 字典未初始化时忽略，展示原始编码
+        }
+        return map;
+    }
+
+    private Map<String, String> loadSampleFreqNames() {
+        Map<String, String> map = new HashMap<>();
+        try {
+            List<DictItem> items = dictService.getDictItemsByCode("moni_sample_freq");
             for (DictItem it : items) {
                 map.put(it.getItemValue(), it.getItemText());
             }

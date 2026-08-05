@@ -96,6 +96,22 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         this.removeById(id);
     }
 
+    /**
+     * 清空全部采样派单数据：采样记录 + 采样订单 + 采样照片（bizType='sampling_record'）。
+     * 仅清理采样业务线，不影响委托单/监测点位/样品/人员/设备等基础数据。物理删除，谨慎调用。
+     * @return 清除的采样订单记录数
+     */
+    @Transactional
+    public int clearAll() {
+        // 先删子表，再删主表
+        this.remove(null);                                   // t_sampling_record
+        photoMapperRef.delete(new LambdaQueryWrapper<EmsPhoto>()
+                .eq(EmsPhoto::getBizType, "sampling_record")); // t_photo（采样照片）
+        int count = (int) samplingOrderService.count();
+        samplingOrderService.remove(null);                   // t_sampling_order
+        return count;
+    }
+
     // ===================== 样品 =====================
 
     public EmsSample createSample(EmsSample sample) {

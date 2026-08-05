@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.event.TransactionPhase;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +34,7 @@ public class WebhookEventListener {
     /**
      * 监听流程启动事件
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onProcessStarted(ProcessStartedEvent event) {
         String eventType = "PROCESS_STARTED";
         log.debug("[WebhookEventListener] 处理事件: {}, processInstanceId={}", eventType, event.getProcessInstanceId());
@@ -48,13 +50,13 @@ public class WebhookEventListener {
     /**
      * 监听节点进入事件
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onNodeEntered(NodeEnteredEvent event) {
         String eventType = "NODE_ENTERED";
         log.debug("[WebhookEventListener] 处理事件: {}, nodeId={}", eventType, event.getNodeId());
 
         List<Webhook> webhooks = webhookService.findWebhooksByEvent(event.getProcessKey(), event.getNodeId(), eventType);
-        Map<String, Object> payload = buildNodePayload(event.getProcessInstanceId(), event.getNodeId(), event.getNodeType(), event.getNodeName());
+        Map<String, Object> payload = buildNodePayload(event.getProcessInstanceId(), event.getNodeId(), event.getNodeType(), event.getNodeName(), null);
 
         for (Webhook webhook : webhooks) {
             webhookScheduler.scheduleAsyncWebhook(webhook, eventType, event.getProcessInstanceId(), payload);
@@ -64,13 +66,14 @@ public class WebhookEventListener {
     /**
      * 监听节点完成事件
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onNodeCompleted(NodeCompletedEvent event) {
         String eventType = "NODE_COMPLETED";
         log.debug("[WebhookEventListener] 处理事件: {}, nodeId={}", eventType, event.getNodeId());
 
         List<Webhook> webhooks = webhookService.findWebhooksByEvent(event.getProcessKey(), event.getNodeId(), eventType);
-        Map<String, Object> payload = buildNodePayload(event.getProcessInstanceId(), event.getNodeId(), event.getNodeType(), event.getNodeName());
+        Map<String, Object> payload = buildNodePayload(event.getProcessInstanceId(), event.getNodeId(),
+                event.getNodeType(), event.getNodeName(), event.getVariables());
 
         for (Webhook webhook : webhooks) {
             webhookScheduler.scheduleAsyncWebhook(webhook, eventType, event.getProcessInstanceId(), payload);
@@ -80,7 +83,7 @@ public class WebhookEventListener {
     /**
      * 监听流程完成事件
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onProcessCompleted(ProcessCompletedEvent event) {
         String eventType = "PROCESS_COMPLETED";
         log.debug("[WebhookEventListener] 处理事件: {}, processInstanceId={}", eventType, event.getProcessInstanceId());
@@ -102,13 +105,19 @@ public class WebhookEventListener {
         return payload;
     }
 
-    private Map<String, Object> buildNodePayload(Long processInstanceId, String nodeId, String nodeType, String nodeName) {
+    private Map<String, Object> buildNodePayload(Long processInstanceId, String nodeId, String nodeType, String nodeName, Map<String, Object> variables) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("processInstanceId", processInstanceId);
         payload.put("nodeId", nodeId);
         payload.put("nodeType", nodeType);
         payload.put("nodeName", nodeName);
         payload.put("timestamp", System.currentTimeMillis());
+        if (variables != null) {
+            // 流程变量（含表单字段：casNo、qty、name、category、unit 等）
+            payload.put("variables", variables);
+            // 便于下游接口直接读取表单字段
+            payload.put("formData", variables);
+        }
         return payload;
     }
 }

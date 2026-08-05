@@ -12,6 +12,7 @@ import com.flow.engine.mapper.EmsSamplingOrderMapper;
 import com.flow.engine.mapper.UserMapper;
 import com.flow.engine.util.CodeGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,17 +25,22 @@ import java.util.Map;
 
 /**
  * 环境监测 - 采样订单服务（TRD 5.1+5.2，BR-023-02 拆单）
- * 复用 EmsMonitorPointService 按客户的监测点位拆单：每个点位生成一张「待派单」订单。
+ * 以委托单为主体生成「待派单」订单，支持按采集频率再次派单（redispatch）。
  */
 @Service
 public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper, EmsSamplingOrder> {
 
+    // @Lazy：EmsEntrustService 亦依赖本服务（techConfirm → genFromEntrust），
+    // 使用延迟代理打破启动期循环依赖
     @Autowired
-    private EmsMonitorPointService monitorPointService;
+    @Lazy
+    private EmsEntrustService entrustService;
     @Autowired
     private EmsDispatchMapper dispatchMapper;
     @Autowired
     private UserMapper userMapper;
+    @Autowired
+    private EmsMonitorPointService monitorPointService;
 
     /**
      * 采样调度看板聚合数据：每个订单补充点位名称、派单计划区间、派单负责人姓名。
@@ -52,14 +58,25 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
             m.put("orderNo", o.getOrderNo());
             m.put("status", o.getStatus());
             m.put("entrustId", o.getEntrustId());
-            // 点位名称
-            String pointName = "—";
-            if (o.getPointId() != null) {
-                EmsMonitorPoint p = monitorPointService.getById(o.getPointId());
-                if (p != null && p.getPointName() != null) pointName = p.getPointName();
+            // 派单以委托单为主体：展示委托名称 + 委托单号（不再依赖点位）
+            String entrustName = "—";
+            String entrustNo = "—";
+            if (o.getEntrustId() != null) {
+                EmsEntrust e = entrustService.getById(o.getEntrustId());
+                if (e != null) {
+                    if (e.getEntrustName() != null) entrustName = e.getEntrustName();
+                    if (e.getEntrustNo() != null) entrustNo = e.getEntrustNo();
+                }
             }
-            m.put("pointName", pointName);
-            m.put("pointId", o.getPointId());
+            m.put("entrustName", entrustName);
+            m.put("entrustNo", entrustNo);
+            // 委托单定义的点位数量
+            int pointCount = 0;
+            if (o.getEntrustId() != null) {
+                pointCount = (int) monitorPointService.count(
+                        new LambdaQueryWrapper<EmsMonitorPoint>().eq(EmsMonitorPoint::getEntrustId, o.getEntrustId()));
+            }
+            m.put("pointCount", pointCount);
             // 派单计划区间 + 负责人（取该订单最新一条派单）
             String planStart = null;
             String planEnd = null;
@@ -137,31 +154,52 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
     }
 
 
-    /** 委托确认后拆单：该委托下每个监测点位生成一张待派单订单 */
+    /** 委托确认后拆单：以委托单为主体生成一张待派单订单（不再按点位拆单，点位为采样环节基础信息） */
     @Transactional
     public int genFromEntrust(EmsEntrust entrust) {
-        List<EmsMonitorPoint> points = monitorPointService.listByEntrust(entrust.getId());
-        if (points.isEmpty()) {
-            // 无点位也允许生成一张仅含委托的订单（BR-023-07 在派单时校验点位）
-            points = List.of(new EmsMonitorPoint());
+        // 同一委托已存在订单则不再重复生成（重复派单走 redispatch）
+        long existing = this.count(new LambdaQueryWrapper<EmsSamplingOrder>().eq(EmsSamplingOrder::getEntrustId, entrust.getId()));
+        if (existing > 0) {
+            return 0;
         }
         long seq = this.count() + 1;
-        int created = 0;
-        for (EmsMonitorPoint p : points) {
-            EmsSamplingOrder o = new EmsSamplingOrder();
-            o.setOrderNo(CodeGenerator.generate("SO", (int) (seq++)));
-            o.setEntrustId(entrust.getId());
-            o.setPointId(p.getId());
-            o.setStatus("待派单");
-            o.setCreateTime(LocalDateTime.now());
-            o.setUpdateTime(LocalDateTime.now());
-            this.save(o);
-            created++;
-        }
-        return created;
+        EmsSamplingOrder o = new EmsSamplingOrder();
+        o.setOrderNo(CodeGenerator.generate("SO", (int) (seq)));
+        o.setEntrustId(entrust.getId());
+        // pointId 不在此赋值，留待采样执行环节选择具体点位
+        o.setStatus("待派单");
+        o.setCreateTime(LocalDateTime.now());
+        o.setUpdateTime(LocalDateTime.now());
+        this.save(o);
+        return 1;
     }
 
-    public List<EmsSamplingOrder> listByStatus(String status) {
-        return this.list(new LambdaQueryWrapper<EmsSamplingOrder>().eq(status != null, EmsSamplingOrder::getStatus, status));
+    /** 按采集频率再次派单：同一委托生成下一张待派单订单（委托已确认且已有订单） */
+    @Transactional
+    public EmsSamplingOrder redispatch(Long entrustId) {
+        EmsEntrust entrust = entrustService.getById(entrustId);
+        if (entrust == null) {
+            throw new IllegalArgumentException("委托不存在");
+        }
+        if (!"已确认".equals(entrust.getStatus())) {
+            throw new IllegalStateException("委托未确认，无法再次派单(BR-023-09)");
+        }
+        long existing = this.count(new LambdaQueryWrapper<EmsSamplingOrder>().eq(EmsSamplingOrder::getEntrustId, entrustId));
+        long seq = this.count() + 1;
+        EmsSamplingOrder o = new EmsSamplingOrder();
+        o.setOrderNo(CodeGenerator.generate("SO", (int) (seq)));
+        o.setEntrustId(entrustId);
+        o.setStatus("待派单");
+        o.setCreateTime(LocalDateTime.now());
+        o.setUpdateTime(LocalDateTime.now());
+        this.save(o);
+        return o;
+    }
+
+    public List<EmsSamplingOrder> listByStatus(String status, Long entrustId) {
+        return this.list(new LambdaQueryWrapper<EmsSamplingOrder>()
+                .eq(status != null, EmsSamplingOrder::getStatus, status)
+                .eq(entrustId != null, EmsSamplingOrder::getEntrustId, entrustId)
+                .orderByDesc(EmsSamplingOrder::getId));
     }
 }

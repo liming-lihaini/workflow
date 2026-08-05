@@ -34,10 +34,10 @@
             <span style="font-weight: 500">{{ record.processName || record.processKey || '-' }}</span>
           </template>
           <template v-else-if="column.key === 'assignee'">
-            {{ record.assignee || '-' }}
+            {{ realName(record.assignee) }}
             <a-tag v-if="record.delegatedBy" color="purple" size="small" style="margin-left: 4px">代理</a-tag>
             <div v-if="record.actualOperatorId" style="font-size: 12px; color: #888">
-              实际办理：{{ record.actualOperatorId }}
+              实际办理：{{ realName(record.actualOperatorId) }}
             </div>
           </template>
           <template v-else-if="column.key === 'status'">
@@ -94,9 +94,11 @@ import { getTodoTasks, claimTask, transferTask, searchUsers } from '../../api/ta
 import { renderDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
 import { useResizableColumns, sortClientData } from '../../composables/useResizableTable'
+import { useUserMap } from '../../composables/useUserMap'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { buildUserMap, realName } = useUserMap()
 const loading = ref(false)
 const dataList = ref([])
 const currentTask = ref(null)
@@ -213,6 +215,8 @@ async function loadData() {
     const data = res.data || res
     dataList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     pagination.total = data.total || dataList.value.length
+    // 解析处理人 / 实际办理人真实姓名
+    buildUserMap()
   } catch {}
   loading.value = false
 }

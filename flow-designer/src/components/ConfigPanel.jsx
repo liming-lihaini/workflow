@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { NODE_TYPES_CONFIG, EDGE_SCHEMA } from '../nodeTypes'
-import { getFormAll, getForm, getUsersPage, getRoles, getWebhooks, createWebhook, updateWebhook, deleteWebhook } from '../api'
+import { getFormAll, getForm, getUsersPage, getRoles, getWebhooks, createWebhook, updateWebhook, deleteWebhook, testWebhook } from '../api'
 
-function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigChange, onEdgeConfigChange }) {
+function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, onNodeConfigChange, onEdgeConfigChange }) {
   const [formList, setFormList] = useState([])
   const [formFields, setFormFields] = useState([])
   const [activeSection, setActiveSection] = useState('basic')
@@ -11,9 +11,129 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
   const [processFormName, setProcessFormName] = useState('')
   const [roleList, setRoleList] = useState([])
   const [webhookList, setWebhookList] = useState([])
+  const [webhookLoading, setWebhookLoading] = useState(false)
   const [webhookFormVisible, setWebhookFormVisible] = useState(false)
   const [webhookForm, setWebhookForm] = useState({ webhookKey: '', name: '', url: '', method: 'POST', triggerEvents: [], timeout: 5000, retryCount: 3, processKey: '', nodeId: '' })
+  const [testResult, setTestResult] = useState(null)
   const searchTimer = useRef(null)
+
+  // Webhook 相关：事件中文标签（避免 NODE_/PROCESS_ 去前缀后重复）
+  const WEBHOOK_EVENT_LABELS = {
+    PROCESS_STARTED: '流程启动',
+    NODE_ENTERED: '节点进入',
+    NODE_COMPLETED: '节点完成',
+    PROCESS_COMPLETED: '流程完成'
+  }
+  const ALL_WEBHOOK_EVENTS = ['PROCESS_STARTED', 'NODE_ENTERED', 'NODE_COMPLETED', 'PROCESS_COMPLETED']
+
+  const currentNodeId = selectedNode?.data?.nodeId || selectedNode?.id
+  const [editingKey, setEditingKey] = useState(null)
+
+  // 选中节点时按节点ID加载该节点的 webhook 列表
+  useEffect(() => {
+    if (activeSection === 'webhook' && currentNodeId) {
+      loadWebhooks()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, currentNodeId, processKey])
+
+  async function loadWebhooks() {
+    try {
+      setWebhookLoading(true)
+      const res = await getWebhooks({ processKey: processKey || undefined })
+      const list = Array.isArray(res.data) ? res.data : (res || [])
+      setWebhookList(list.filter(w => (w.nodeId || '') === (currentNodeId || '')))
+    } catch (e) {
+      setWebhookList([])
+    } finally {
+      setWebhookLoading(false)
+    }
+  }
+
+  function openNewWebhook() {
+    setEditingKey(null)
+    setTestResult(null)
+    setWebhookForm({
+      webhookKey: '', name: '', url: '', method: 'POST',
+      triggerEvents: ['NODE_COMPLETED'], timeout: 5000, retryCount: 3,
+      processKey: processKey || '', nodeId: currentNodeId || ''
+    })
+    setWebhookFormVisible(true)
+  }
+
+  function handleEditWebhook(w) {
+    setEditingKey(w.webhookKey)
+    setTestResult(null)
+    setWebhookForm({
+      webhookKey: w.webhookKey,
+      name: w.name || '',
+      url: w.url || '',
+      method: w.method || 'POST',
+      triggerEvents: Array.isArray(w.triggerEvents) ? w.triggerEvents : (w.triggerEvents ? JSON.parse(w.triggerEvents) : []),
+      timeout: w.timeout != null ? w.timeout : 5000,
+      retryCount: w.retryCount != null ? w.retryCount : 3,
+      processKey: w.processKey || processKey || '',
+      nodeId: w.nodeId || currentNodeId || ''
+    })
+    setWebhookFormVisible(true)
+  }
+
+  async function handleSaveWebhook() {
+    try {
+      if (!webhookForm.webhookKey || !webhookForm.url) {
+        alert('请填写 Webhook Key 和回调 URL')
+        return
+      }
+      const payload = {
+        ...webhookForm,
+        processKey: webhookForm.processKey || processKey || '',
+        nodeId: webhookForm.nodeId || currentNodeId || ''
+      }
+      if (editingKey) {
+        await updateWebhook(editingKey, payload)
+      } else {
+        await createWebhook(payload)
+      }
+      setWebhookFormVisible(false)
+      setEditingKey(null)
+      await loadWebhooks()
+    } catch (e) {
+      alert(e.response?.data?.message || e.message)
+    }
+  }
+
+  async function handleDeleteWebhook(w) {
+    if (!window.confirm(`确认删除 Webhook「${w.name || w.webhookKey}」？`)) return
+    try {
+      await deleteWebhook(w.webhookKey)
+      await loadWebhooks()
+    } catch (e) {
+      alert(e.response?.data?.message || e.message)
+    }
+  }
+
+  async function handleTestWebhook(w) {
+    try {
+      setTestResult({ loading: true, key: w.webhookKey })
+      const res = await testWebhook(w.webhookKey)
+      const data = res.data || {}
+      setTestResult({
+        loading: false,
+        key: w.webhookKey,
+        success: !!data.success,
+        message: data.success
+          ? `连通成功 (HTTP ${data.responseStatus || '-'})`
+          : `连通失败 (HTTP ${data.responseStatus || '-'}): ${data.errorMessage || ''}`
+      })
+    } catch (e) {
+      setTestResult({
+        loading: false,
+        key: w.webhookKey,
+        success: false,
+        message: '请求异常: ' + (e.response?.data?.message || e.message)
+      })
+    }
+  }
 
   useEffect(() => {
     getFormAll().then(res => {
@@ -68,30 +188,50 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
   }
 
   function getFormPermissions() {
-    if (!selectedNode?.data?.formPermissions) return {}
-    if (typeof selectedNode.data.formPermissions === 'string') {
-      try { return JSON.parse(selectedNode.data.formPermissions) } catch { return {} }
+    let raw = selectedNode?.data?.formPermissions
+    if (!raw) return { nodePermission: 'edit', fieldPermissions: {}, buttonPermissions: {} }
+    if (typeof raw === 'string') {
+      try { raw = JSON.parse(raw) } catch { raw = {} }
     }
-    return selectedNode.data.formPermissions
+    raw = raw || {}
+    // 兼容旧结构（fields / buttons 嵌套）并归一化为后端期望的扁平结构
+    return {
+      nodePermission: raw.nodePermission || 'edit',
+      fieldPermissions: raw.fieldPermissions || raw.fields || {},
+      buttonPermissions: raw.buttonPermissions || raw.buttons || {}
+    }
   }
 
   function updateFieldPermission(fieldKey, permission) {
     const current = getFormPermissions()
-    const fields = current.fields || {}
-    fields[fieldKey] = permission
-    onNodeConfigChange(selectedNode.id, 'formPermissions', { ...current, fields })
+    const fieldPermissions = { ...current.fieldPermissions, [fieldKey]: permission }
+    onNodeConfigChange(selectedNode.id, 'formPermissions', {
+      nodePermission: current.nodePermission,
+      fieldPermissions,
+      buttonPermissions: current.buttonPermissions
+    })
   }
 
   function updateButtonPermission(buttonKey, key, value) {
     const current = getFormPermissions()
-    const buttons = current.buttons || {}
-    buttons[buttonKey] = { ...buttons[buttonKey], [key]: value }
-    onNodeConfigChange(selectedNode.id, 'formPermissions', { ...current, buttons })
+    const buttonPermissions = {
+      ...current.buttonPermissions,
+      [buttonKey]: { ...current.buttonPermissions[buttonKey], [key]: value }
+    }
+    onNodeConfigChange(selectedNode.id, 'formPermissions', {
+      nodePermission: current.nodePermission,
+      fieldPermissions: current.fieldPermissions,
+      buttonPermissions
+    })
   }
 
   function updateNodePermission(permission) {
     const current = getFormPermissions()
-    onNodeConfigChange(selectedNode.id, 'formPermissions', { ...current, nodePermission: permission })
+    onNodeConfigChange(selectedNode.id, 'formPermissions', {
+      nodePermission: permission,
+      fieldPermissions: current.fieldPermissions,
+      buttonPermissions: current.buttonPermissions
+    })
   }
 
   function handleFormKeyChange(newFormKey) {
@@ -390,7 +530,7 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
                       {formFields.length === 0 && <div style={{ color: '#999', fontSize: 12, padding: 8 }}>无字段</div>}
                       {formFields.map(field => {
                         const fieldKey = field.key || field.id || field.name
-                        const fieldPerm = permissions.fields?.[fieldKey] || 'edit'
+                        const fieldPerm = permissions.fieldPermissions?.[fieldKey] || 'edit'
                         return (
                           <div key={fieldKey} className="perm-field-row">
                             <span className="perm-field-name" title={field.label || field.title || fieldKey}>
@@ -428,7 +568,7 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
                 <>
                   <div className="config-label" style={{ marginBottom: 8, fontWeight: 500 }}>按钮权限</div>
                   {['submit', 'reject', 'transfer', 'addSign'].map(btn => {
-                    const btnPerm = permissions.buttons?.[btn] || {}
+                    const btnPerm = permissions.buttonPermissions?.[btn] || {}
                     const btnLabel = { submit: '提交', reject: '驳回', transfer: '转办', addSign: '加签' }[btn] || btn
                     return (
                       <div key={btn} className="perm-btn-row">
@@ -517,18 +657,23 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div className="config-label" style={{ fontWeight: 500, margin: 0 }}>Webhook 配置</div>
-                <button onClick={() => {
-                  setWebhookForm({ webhookKey: '', name: '', url: '', method: 'POST', triggerEvents: ['NODE_ENTERED'], timeout: 5000, retryCount: 3, processKey: '', nodeId: selectedNode.data.nodeId || '' })
-                  setWebhookFormVisible(true)
-                }} style={{ fontSize: 11, padding: '2px 10px', border: '1px solid #1677ff', background: '#fff', color: '#1677ff', borderRadius: 3, cursor: 'pointer' }}>
-                  + 新建
-                </button>
+                {!webhookFormVisible && (
+                  <button onClick={openNewWebhook}
+                    style={{ fontSize: 11, padding: '2px 10px', border: '1px solid #1677ff', background: '#fff', color: '#1677ff', borderRadius: 3, cursor: 'pointer' }}>
+                    + 新建
+                  </button>
+                )}
               </div>
-              {webhookFormVisible && (
+
+              {webhookFormVisible ? (
                 <div style={{ border: '1px solid #1677ff', borderRadius: 4, padding: 8, marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>
+                    {editingKey ? '编辑 Webhook' : '新建 Webhook'}
+                  </div>
                   <div className="config-form-item">
                     <label className="config-label">Webhook Key</label>
                     <input className="config-input" value={webhookForm.webhookKey}
+                      disabled={!!editingKey}
                       onChange={(e) => setWebhookForm({ ...webhookForm, webhookKey: e.target.value })}
                       placeholder="唯一标识" />
                   </div>
@@ -556,7 +701,7 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
                   <div className="config-form-item">
                     <label className="config-label">触发事件</label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {['PROCESS_STARTED', 'NODE_ENTERED', 'NODE_COMPLETED', 'PROCESS_COMPLETED'].map(ev => (
+                      {ALL_WEBHOOK_EVENTS.map(ev => (
                         <label key={ev} style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 2 }}>
                           <input type="checkbox" checked={webhookForm.triggerEvents.includes(ev)}
                             onChange={(e) => {
@@ -565,29 +710,62 @@ function ConfigPanel({ selectedNode, selectedEdge, processFormKey, onNodeConfigC
                                 : webhookForm.triggerEvents.filter(x => x !== ev)
                               setWebhookForm({ ...webhookForm, triggerEvents: events })
                             }} />
-                          {ev.replace('PROCESS_', '').replace('NODE_', '')}
+                          {WEBHOOK_EVENT_LABELS[ev] || ev}
                         </label>
                       ))}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-                    <button onClick={async () => {
-                      try {
-                        if (webhookForm.webhookKey) {
-                          await createWebhook(webhookForm)
-                        }
-                        setWebhookFormVisible(false)
-                      } catch (e) { alert(e.message) }
-                    }} style={{ fontSize: 11, padding: '4px 12px', background: '#1677ff', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>保存</button>
-                    <button onClick={() => setWebhookFormVisible(false)}
+                    <button onClick={handleSaveWebhook}
+                      style={{ fontSize: 11, padding: '4px 12px', background: '#1677ff', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}>保存</button>
+                    <button onClick={() => { setWebhookFormVisible(false); setEditingKey(null); setTestResult(null) }}
                       style={{ fontSize: 11, padding: '4px 12px', background: '#fff', border: '1px solid #d9d9d9', borderRadius: 3, cursor: 'pointer' }}>取消</button>
                   </div>
                 </div>
+              ) : (
+                <div>
+                  {webhookLoading ? (
+                    <div style={{ fontSize: 11, color: '#999', padding: '8px 0' }}>加载中...</div>
+                  ) : webhookList.length === 0 ? (
+                    <div style={{ fontSize: 11, color: '#999', padding: '8px 0' }}>
+                      <div>当前节点（{currentNodeId}）尚未配置 Webhook。</div>
+                      <div>Webhook 在流程事件发生时自动触发回调。</div>
+                    </div>
+                  ) : (
+                    webhookList.map(w => (
+                      <div key={w.webhookKey} style={{ border: '1px solid #eee', borderRadius: 4, padding: 8, marginBottom: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600 }}>{w.name || w.webhookKey}</span>
+                          <span style={{ fontSize: 10, color: w.enabled === false ? '#f53f3f' : '#00b42a' }}>
+                            {w.enabled === false ? '已停用' : '启用'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11, color: '#666', wordBreak: 'break-all', marginTop: 2 }}>{w.url}</div>
+                        <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
+                          事件：{(Array.isArray(w.triggerEvents) ? w.triggerEvents : (w.triggerEvents ? JSON.parse(w.triggerEvents) : [])).map(ev => WEBHOOK_EVENT_LABELS[ev] || ev).join('、') || '-'}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                          <button onClick={() => handleEditWebhook(w)}
+                            style={{ fontSize: 11, padding: '2px 8px', background: '#fff', border: '1px solid #d9d9d9', borderRadius: 3, cursor: 'pointer' }}>编辑</button>
+                          <button onClick={() => handleTestWebhook(w)}
+                            disabled={testResult?.loading && testResult?.key === w.webhookKey}
+                            style={{ fontSize: 11, padding: '2px 8px', background: '#fff', border: '1px solid #1677ff', color: '#1677ff', borderRadius: 3, cursor: 'pointer' }}>测试连通性</button>
+                          <button onClick={() => handleDeleteWebhook(w)}
+                            style={{ fontSize: 11, padding: '2px 8px', background: '#fff', border: '1px solid #f53f3f', color: '#f53f3f', borderRadius: 3, cursor: 'pointer' }}>删除</button>
+                        </div>
+                        {testResult && testResult.key === w.webhookKey && !testResult.loading && (
+                          <div style={{ fontSize: 11, marginTop: 4, color: testResult.success ? '#00b42a' : '#f53f3f' }}>
+                            {testResult.message}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                  <div style={{ fontSize: 11, color: '#999', padding: '8px 0' }}>
+                    <div>绑定节点ID：{currentNodeId}</div>
+                  </div>
+                </div>
               )}
-              <div style={{ fontSize: 11, color: '#999', padding: '8px 0' }}>
-                <div>Webhook 在流程事件发生时自动触发回调。</div>
-                <div>绑定节点ID：{selectedNode.data.nodeId || selectedNode.id}</div>
-              </div>
             </div>
           )}
         </div>

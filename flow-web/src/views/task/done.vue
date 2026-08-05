@@ -38,6 +38,9 @@
               {{ typeLabelMap[record.processType] || record.processType || '-' }}
             </a-tag>
           </template>
+          <template v-else-if="column.key === 'assignee'">
+            {{ realName(record.assignee) }}
+          </template>
           <template v-else-if="column.key === 'duration'">
             {{ formatDuration(record.duration) }}
           </template>
@@ -56,9 +59,11 @@ import { getDictItemsByCode } from '../../api/dict'
 import { renderDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
 import { useResizableColumns, sortClientData } from '../../composables/useResizableTable'
+import { useUserMap } from '../../composables/useUserMap'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { buildUserMap, realName } = useUserMap()
 const loading = ref(false)
 const dataList = ref([])
 
@@ -172,6 +177,7 @@ async function loadData() {
     const data = res.data || res
     dataList.value = Array.isArray(data) ? data : (data.list || data.records || [])
     pagination.total = data.total || dataList.value.length
+    buildUserMap()
   } catch {}
   loading.value = false
 }

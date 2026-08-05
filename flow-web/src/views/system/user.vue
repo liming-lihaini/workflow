@@ -265,9 +265,9 @@ const pagination = reactive({
 
 const { columns, handleResizeColumn } = useResizableColumns([
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
-  { title: '用户名', dataIndex: 'username', key: 'username', sorter: true },
-  { title: '姓名', dataIndex: 'realName', key: 'realName', sorter: true },
-  { title: '部门', dataIndex: 'deptName', key: 'deptName' },
+  { title: '用户名', dataIndex: 'username', key: 'username', sorter: true,width: 120 },
+  { title: '姓名', dataIndex: 'realName', key: 'realName', sorter: true,width: 120 },
+  { title: '部门', dataIndex: 'deptName', key: 'deptName',width: 180 },
   { title: '状态', key: 'status', dataIndex: 'status', width: 80 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: renderDate, sorter: true },
   { title: '操作', key: 'action', width: 300 }

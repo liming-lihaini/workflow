@@ -104,6 +104,8 @@ public class DictDataInitializer implements CommandLineRunner {
         createDictTypeIfNotExists("车辆维修保养类型", "moni_vehicle_maint_type", 2, "维修保养操作类型：保养/维修/年检/其他");
         // 27. 危化品类别（TRD 5.5 t_hazardous_ledger.category）
         createDictTypeIfNotExists("危化品类别", "moni_hazardous_category", 2, "危化品台账类别枚举：易燃/腐蚀/有毒/易爆");
+        // 28. 采集频率（委托级，TRD 5.1 t_entrust.sample_freq，依据频率重复派单）
+        createDictTypeIfNotExists("采集频率", "moni_sample_freq", 2, "委托单采集频率枚举（按频率重复派单）：每日/每周/每月/每季度/每半年/每年");
     }
 
     private void initDictItems() {
@@ -396,6 +398,17 @@ public class DictDataInitializer implements CommandLineRunner {
             createDictItemIfNotExists(hazardousCategory.getId(), "易爆", "易爆", 4);
             createDictItemIfNotExists(hazardousCategory.getId(), "易制毒", "易制毒", 5);
             createDictItemIfNotExists(hazardousCategory.getId(), "易制爆", "易制爆", 6);
+        }
+
+        // 采集频率（委托级，TRD 5.1 t_entrust.sample_freq）
+        DictType sampleFreq = getDictTypeByCode("moni_sample_freq");
+        if (sampleFreq != null) {
+            createDictItemIfNotExists(sampleFreq.getId(), "每日", "daily", 1);
+            createDictItemIfNotExists(sampleFreq.getId(), "每周", "weekly", 2);
+            createDictItemIfNotExists(sampleFreq.getId(), "每月", "monthly", 3);
+            createDictItemIfNotExists(sampleFreq.getId(), "每季度", "quarterly", 4);
+            createDictItemIfNotExists(sampleFreq.getId(), "每半年", "halfyear", 5);
+            createDictItemIfNotExists(sampleFreq.getId(), "每年", "yearly", 6);
         }
     }
 

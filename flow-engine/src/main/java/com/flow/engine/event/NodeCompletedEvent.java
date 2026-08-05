@@ -3,6 +3,8 @@ package com.flow.engine.event;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
+import java.util.Map;
+
 /**
  * 节点完成事件（ISSUE-012）
  */
@@ -14,13 +16,16 @@ public class NodeCompletedEvent extends ApplicationEvent {
     private final String nodeType;
     private final String nodeName;
     private final String processKey;
+    private final Map<String, Object> variables;
 
-    public NodeCompletedEvent(Object source, Long processInstanceId, String nodeId, String nodeType, String nodeName, String processKey) {
+    public NodeCompletedEvent(Object source, Long processInstanceId, String nodeId, String nodeType,
+                              String nodeName, String processKey, Map<String, Object> variables) {
         super(source);
         this.processInstanceId = processInstanceId;
         this.nodeId = nodeId;
         this.nodeType = nodeType;
         this.nodeName = nodeName;
         this.processKey = processKey;
+        this.variables = variables;
     }
 }

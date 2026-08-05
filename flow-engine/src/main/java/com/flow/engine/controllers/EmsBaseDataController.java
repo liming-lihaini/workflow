@@ -32,9 +32,11 @@ public class EmsBaseDataController {
     private final EmsIntegrationCfgService integrationCfgService;
     private final EmsVehicleService vehicleService;
     private final EmsSamplingOrderService samplingOrderService;
+    private final EmsSamplingService samplingService;
     private final EmsDispatchService dispatchService;
     private final EmsEmployeeService employeeService;
     private final EmsInstrumentService instrumentService;
+    private final EmsSampleParamConfigService sampleParamConfigService;
 
     // ---------- 客户 ----------
     @PostMapping("/customers")
@@ -226,9 +228,23 @@ public class EmsBaseDataController {
         return Result.ok(samplingOrderService.genFromEntrust(e));
     }
 
+    /** 按采集频率再次派单：同一委托单生成下一张待派单订单（委托须已确认且已有订单） */
+    @PostMapping("/sampling-order/redispatch")
+    public Result<EmsSamplingOrder> redispatch(@RequestParam Long entrustId) {
+        try {
+            return Result.ok(samplingOrderService.redispatch(entrustId));
+        } catch (IllegalStateException ex) {
+            return Result.fail(400, ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            return Result.fail(400, ex.getMessage());
+        }
+    }
+
     @GetMapping("/sampling-orders")
-    public Result<List<EmsSamplingOrder>> listSamplingOrders(@RequestParam(required = false) String status) {
-        return Result.ok(samplingOrderService.listByStatus(status));
+    public Result<List<EmsSamplingOrder>> listSamplingOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long entrustId) {
+        return Result.ok(samplingOrderService.listByStatus(status, entrustId));
     }
 
     /** 采样调度看板聚合：补充点位名称、派单计划区间、派单负责人姓名，支持按订单号/负责人/状态筛选 */
@@ -307,6 +323,26 @@ public class EmsBaseDataController {
     @GetMapping("/dispatch")
     public Result<EmsDispatchDetailVO> getDispatchDetail(@RequestParam Long orderId) {
         return Result.ok(dispatchService.getDispatchDetail(orderId));
+    }
+
+    /**
+     * 清空全部派单记录（派单主表 + 设备关联表 + 人员关联表）。
+     * 仅清除派单数据，不影响订单/车辆/人员/设备等基础数据。谨慎调用。
+     */
+    @PostMapping("/dispatch/clear")
+    public Result<Integer> clearAllDispatch() {
+        int count = dispatchService.clearAll();
+        return Result.ok(count);
+    }
+
+    /**
+     * 清空全部采样派单数据（采样记录 + 采样订单 + 采样照片）。
+     * 仅清理采样业务线，不影响委托单/监测点位/样品/人员/设备等基础数据。谨慎调用。
+     */
+    @PostMapping("/sampling/clear")
+    public Result<Integer> clearAllSampling() {
+        int count = samplingService.clearAll();
+        return Result.ok(count);
     }
 
     /**
@@ -411,5 +447,69 @@ public class EmsBaseDataController {
     @GetMapping("/instruments/expiring")
     public Result<List<EmsInstrument>> expiringInstruments() {
         return Result.ok(instrumentService.expiringSoon());
+    }
+
+    // ---------- 采样参数配置（TRD 5.1） ----------
+    /** 列表 + 条件检索：检测类别、检测项目关键字 */
+    @GetMapping("/sample-param-config")
+    public Result<List<Map<String, Object>>> listSampleParamConfigs(
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String keyword) {
+        return Result.ok(sampleParamConfigService.search(type, keyword));
+    }
+
+    /** 详情（含结构化参数明细） */
+    @GetMapping("/sample-param-config/{id}")
+    public Result<Map<String, Object>> getSampleParamConfig(@PathVariable Long id) {
+        try {
+            return Result.ok(sampleParamConfigService.detail(id));
+        } catch (IllegalArgumentException ex) {
+            return Result.fail(404, ex.getMessage());
+        }
+    }
+
+    /** 新建 / 更新（级联保存结构化参数明细） */
+    @PostMapping("/sample-param-config")
+    public Result<Map<String, Object>> saveSampleParamConfig(@RequestBody SampleParamSaveReq req) {
+        com.flow.engine.entity.EmsSampleParamConfig config = new com.flow.engine.entity.EmsSampleParamConfig();
+        config.setId(req.getId());
+        config.setType(req.getType());
+        config.setItem(req.getItem());
+        config.setStandard(req.getStandard());
+        config.setLimitValue(req.getLimit());
+        config.setRemark(req.getRemark());
+        // 明细字段映射：前端 required 为 Boolean，实体 required 为 Integer(1/0)
+        List<com.flow.engine.entity.EmsSampleParamItem> items = (req.getSampleParams() == null)
+                ? new java.util.ArrayList<>()
+                : req.getSampleParams().stream().map(it -> {
+                    com.flow.engine.entity.EmsSampleParamItem e = new com.flow.engine.entity.EmsSampleParamItem();
+                    e.setCode(it.getCode());
+                    e.setName(it.getName());
+                    e.setParamType(it.getParamType());
+                    e.setUnit(it.getUnit());
+                    e.setRequired(Boolean.TRUE.equals(it.getRequired()) ? 1 : 0);
+                    e.setEnumText(it.getEnumText());
+                    e.setTip(it.getTip());
+                    return e;
+                }).collect(java.util.stream.Collectors.toList());
+        try {
+            return Result.ok(sampleParamConfigService.saveConfig(config, items));
+        } catch (IllegalArgumentException ex) {
+            return Result.fail(400, ex.getMessage());
+        }
+    }
+
+    /** 删除单条配置（级联删除明细） */
+    @DeleteMapping("/sample-param-config/{id}")
+    public Result<Void> deleteSampleParamConfig(@PathVariable Long id) {
+        sampleParamConfigService.removeConfig(id);
+        return Result.ok();
+    }
+
+    /** 批量删除配置 */
+    @PostMapping("/sample-param-config/batch-delete")
+    public Result<Void> batchDeleteSampleParamConfig(@RequestBody List<Long> ids) {
+        sampleParamConfigService.removeBatch(ids);
+        return Result.ok();
     }
 }

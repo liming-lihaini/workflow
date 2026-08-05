@@ -4,7 +4,7 @@
       <div class="page-header">
         <span class="page-title">部门管理</span>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <a-radio-group v-model:value="viewMode" button-style="solid" size="small">
+          <a-radio-group v-model:value="viewMode" button-style="solid">
             <a-radio-button value="table">表格视图</a-radio-button>
             <a-radio-button value="tree">树形视图</a-radio-button>
           </a-radio-group>

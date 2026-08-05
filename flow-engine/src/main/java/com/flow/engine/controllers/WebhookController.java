@@ -74,6 +74,27 @@ public class WebhookController {
     }
 
     /**
+     * 测试Webhook连通性（不执行业务，仅探测目标URL是否可达）
+     */
+    @PostMapping("/{webhookKey}/test")
+    public Result<Map<String, Object>> testWebhook(@PathVariable String webhookKey) {
+        Webhook webhook = webhookService.getWebhookEntityByKey(webhookKey);
+        if (webhook == null) {
+            throw new BusinessException(ErrorCode.WEBHOOK_NOT_FOUND);
+        }
+        Map<String, Object> probe = new HashMap<>();
+        probe.put("triggerType", "CONNECTIVITY_TEST");
+        probe.put("test", true);
+        WebhookLog log = webhookScheduler.triggerWebhook(webhook, "CONNECTIVITY_TEST", null, probe);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", log.getStatus() != null && log.getStatus() == 1);
+        result.put("responseStatus", log.getResponseStatus());
+        result.put("errorMessage", log.getErrorMessage());
+        result.put("url", webhook.getUrl());
+        return Result.ok(result);
+    }
+
+    /**
      * 手动触发Webhook回调
      */
     @PostMapping("/{webhookId}/trigger")

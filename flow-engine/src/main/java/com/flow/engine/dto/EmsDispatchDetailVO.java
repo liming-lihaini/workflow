@@ -13,6 +13,11 @@ public class EmsDispatchDetailVO {
     private Long orderId;
     private String orderNo;
     private String orderStatus;
+    private Long entrustId;
+    private String entrustNo;
+    private String entrustName;
+    private String entrustStatus;
+    private Integer pointCount;
     private Long dispatchId;
     private LocalDateTime dispatchTime;
     private LocalDateTime planStart;

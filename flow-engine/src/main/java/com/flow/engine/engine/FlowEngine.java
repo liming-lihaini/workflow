@@ -6,6 +6,7 @@ import com.flow.engine.common.ErrorCode;
 import com.flow.engine.common.enums.ProcessStatus;
 import com.flow.engine.dto.ProcessDefinitionResponse;
 import com.flow.engine.entity.ProcessInstance;
+import com.flow.engine.event.NodeCompletedEvent;
 import com.flow.engine.event.ProcessCompletedEvent;
 import com.flow.engine.event.ProcessStartedEvent;
 import com.flow.engine.mapper.ProcessInstanceMapper;
@@ -135,6 +136,12 @@ public class FlowEngine {
         if (currentNode != null) {
             nodeExecutor.fireAfterComplete(currentNode, context);
         }
+
+        // === 发布节点完成事件，供 Webhook 等监听器消费（携带流程变量） ===
+        eventPublisher.publishEvent(new NodeCompletedEvent(this, instance.getId(), currentNodeId,
+                currentNode != null ? currentNode.getType() : null,
+                currentNode != null ? currentNode.getName() : null,
+                instance.getProcessKey(), allVars));
 
         NodeModel nextNode = jsonParser.getNextNode(model, currentNodeId, allVars);
 

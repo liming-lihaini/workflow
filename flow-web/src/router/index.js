@@ -183,6 +183,12 @@ const routes = [
         meta: { title: '委托管理', permKey: 'ems:entrust' }
       },
       {
+        path: 'ems/base/sample-param-config',
+        name: 'EmsSampleParamConfig',
+        component: () => import('../views/ems/base/SampleParamConfig.vue'),
+        meta: { title: '采样参数配置', permKey: 'ems:base' }
+      },
+      {
         path: 'ems/base/dispatch',
         name: 'EmsDispatch',
         component: () => import('../views/ems/base/DispatchBoard.vue'),

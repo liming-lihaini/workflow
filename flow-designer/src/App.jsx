@@ -535,6 +535,7 @@ function Designer() {
         <ConfigPanel
           selectedNode={selectedNode}
           selectedEdge={selectedEdge}
+          processKey={processKey}
           processFormKey={processFormKey}
           onNodeConfigChange={onNodeConfigChange}
           onEdgeConfigChange={onEdgeConfigChange}

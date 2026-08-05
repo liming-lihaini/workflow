@@ -194,6 +194,7 @@ const menuConfig = [
       { key: 'ems-proficiency', title: '能力验证与比对', path: '/ems/quality/proficiency', permKey: 'ems:quality' },
       { key: 'ems-dashboard', title: '监测驾驶舱', path: '/ems/dashboard', permKey: 'ems:dashboard' },
       { key: 'ems-rule-admin', title: '规则引擎配置', path: '/ems/base/rule-admin', permKey: 'ems:base' },
+      { key: 'ems-sample-param-config', title: '采样参数配置', path: '/ems/base/sample-param-config', permKey: 'ems:base' },
       { key: 'ems-report-generate', title: '报告生成', path: '/ems/report/generate', permKey: 'ems:report' },
       { key: 'ems-report-review', title: '报告审核', path: '/ems/report/review', permKey: 'ems:report' }
     ]

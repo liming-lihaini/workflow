@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.flow.engine.entity.EmsDetectionResult;
 import com.flow.engine.entity.EmsDetectionTask;
 import com.flow.engine.entity.EmsEntrust;
+import com.flow.engine.entity.EmsMonitorPoint;
 import com.flow.engine.entity.EmsReport;
+import com.flow.engine.entity.EmsSamplingOrder;
 import com.flow.engine.mapper.EmsDetectionResultMapper;
 import com.flow.engine.mapper.EmsDetectionTaskMapper;
 import com.flow.engine.mapper.EmsEntrustMapper;
@@ -31,17 +33,23 @@ public class EmsDashboardService {
     private final EmsDetectionResultMapper resultMapper;
     private final EmsReportMapper reportMapper;
     private final EmsReportTemplateMapper templateMapper;
+    private final EmsSamplingOrderService samplingOrderService;
+    private final EmsMonitorPointService monitorPointService;
 
     public EmsDashboardService(EmsEntrustMapper entrustMapper,
                                 EmsDetectionTaskMapper taskMapper,
                                 EmsDetectionResultMapper resultMapper,
                                 EmsReportMapper reportMapper,
-                                EmsReportTemplateMapper templateMapper) {
+                                EmsReportTemplateMapper templateMapper,
+                                EmsSamplingOrderService samplingOrderService,
+                                EmsMonitorPointService monitorPointService) {
         this.entrustMapper = entrustMapper;
         this.taskMapper = taskMapper;
         this.resultMapper = resultMapper;
         this.reportMapper = reportMapper;
         this.templateMapper = templateMapper;
+        this.samplingOrderService = samplingOrderService;
+        this.monitorPointService = monitorPointService;
     }
 
     /** 概览统计。 */
@@ -68,6 +76,45 @@ public class EmsDashboardService {
         data.put("monthlyTrend", buildMonthlyTrend());
 
         return data;
+    }
+
+    /** 委托单看板卡片（含委托信息与派单信息）。返回最近 limit 条委托单。 */
+    public List<Map<String, Object>> entrustCards(int limit) {
+        List<EmsEntrust> entrusts = entrustMapper.selectList(
+                new LambdaQueryWrapper<EmsEntrust>().orderByDesc(EmsEntrust::getId).last("LIMIT " + limit));
+        List<Map<String, Object>> cards = new ArrayList<>();
+        for (EmsEntrust e : entrusts) {
+            Map<String, Object> c = new LinkedHashMap<>();
+            c.put("entrustId", e.getId());
+            c.put("entrustNo", e.getEntrustNo());
+            c.put("entrustName", e.getEntrustName());
+            c.put("status", e.getStatus());
+            c.put("source", e.getSource());
+            c.put("createTime", e.getCreateTime());
+            // 点位数量
+            int pointCount = (int) monitorPointService.count(
+                    new LambdaQueryWrapper<EmsMonitorPoint>().eq(EmsMonitorPoint::getEntrustId, e.getId()));
+            c.put("pointCount", pointCount);
+            // 关联派单信息
+            List<EmsSamplingOrder> orders = samplingOrderService.list(
+                    new LambdaQueryWrapper<EmsSamplingOrder>()
+                            .eq(EmsSamplingOrder::getEntrustId, e.getId())
+                            .orderByDesc(EmsSamplingOrder::getId));
+            List<Map<String, Object>> dispatchList = new ArrayList<>();
+            for (EmsSamplingOrder o : orders) {
+                Map<String, Object> d = new LinkedHashMap<>();
+                d.put("orderId", o.getId());
+                d.put("orderNo", o.getOrderNo());
+                d.put("status", o.getStatus());
+                d.put("leadName", o.getSamplerLead());
+                d.put("planDate", o.getPlanDate());
+                dispatchList.add(d);
+            }
+            c.put("dispatchList", dispatchList);
+            c.put("dispatchCount", dispatchList.size());
+            cards.add(c);
+        }
+        return cards;
     }
 
     private Map<String, Object> buildKpis() {

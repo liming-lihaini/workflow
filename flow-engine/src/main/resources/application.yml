@@ -8,7 +8,9 @@ spring:
     name: flow-engine
   datasource:
     driver-class-name: org.sqlite.JDBC
-    url: jdbc:sqlite:flow_engine.db
+    # busy_timeout: 写锁等待，避免 webhook 异步回调与主流程事务并发写入时出现 SQLITE_BUSY
+    # journal_mode=WAL: 读写可并发，减少写写冲突
+    url: jdbc:sqlite:flow_engine.db?busy_timeout=10000&journal_mode=WAL&synchronous=NORMAL
     username:
     password:
   # 启动时自动执行建表脚本（TRD §2.1，19 张表）

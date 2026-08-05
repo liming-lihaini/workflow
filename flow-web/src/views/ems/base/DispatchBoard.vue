@@ -24,7 +24,6 @@
             <template #title>看板模式已固定按状态分组，切换至表格模式可选择其他分组维度</template>
             <span class="hint">提示</span>
           </a-tooltip>
-          <a-button  :loading="loading" @click="loadOrders">刷新</a-button>
         </a-space>
       </div>
 
@@ -55,13 +54,29 @@
         </a-select>
         <a-button type="primary"  :loading="loading" @click="loadOrders">查询</a-button>
         <a-button  @click="resetFilters">重置</a-button>
-        <a-divider type="vertical" />
-        <a-button
-          type="primary"
-          
-          :disabled="!selectedOrderIds.length"
-          @click="openBatchDispatch"
-        >批量派单{{ selectedOrderIds.length ? `(${selectedOrderIds.length})` : '' }}</a-button>
+      </div>
+
+      <!-- 表格视图：状态统计卡片 + 逾期卡片 -->
+      <div v-show="mode === 'table'" class="stat-cards">
+        <div
+          v-for="s in statusStats"
+          :key="s.status"
+          class="stat-card"
+          :class="{ active: !overdueOnly && filters.status === s.status }"
+          :style="(!overdueOnly && filters.status === s.status) ? { borderColor: antColorHex(s.color), color: antColorHex(s.color) } : {}"
+          @click="applyStatusFilter(s.status)"
+        >
+          <div class="stat-num">{{ s.count }}</div>
+          <div class="stat-label">{{ s.status }}</div>
+        </div>
+        <div
+          class="stat-card overdue"
+          :class="{ active: overdueOnly }"
+          @click="toggleOverdue"
+        >
+          <div class="stat-num">{{ overdueCount }}</div>
+          <div class="stat-label">逾期订单</div>
+        </div>
       </div>
 
       <!-- 看板模式：固定按状态分组 -->
@@ -72,15 +87,38 @@
             <a-card
               v-for="order in boardGrouped[col.status] || []"
               :key="order.id"
-              
               class="order-card"
               hoverable
+              :style="{ borderLeftColor: antColorHex(col.color) }"
               @click="openDispatch(order)"
             >
-              <div class="order-no link" @click.stop="openDetail(order)">{{ order.orderNo }}</div>
-              <div class="order-meta">点位: {{ order.pointName || '—' }}</div>
-              <div class="order-meta">计划: {{ order.planRange || '—' }}</div>
-              <div class="order-meta">负责人: {{ order.leadName || '—' }}</div>
+              <div class="oc-top">
+                <span class="oc-no link" @click.stop="openDetail(order)">{{ order.orderNo }}</span>
+                <a-tag :color="col.color" class="oc-tag">{{ col.title }}</a-tag>
+              </div>
+              <div class="oc-row">
+                <span class="oc-key">名称</span>
+                <span class="oc-val link-text" @click.stop="goEntrust(order)">{{ order.entrustName || '—' }}</span>
+              </div>
+              <div class="oc-row">
+                <span class="oc-key">编号</span>
+                <span class="oc-val link-text" @click.stop="goEntrust(order)">{{ order.entrustNo || '—' }}</span>
+              </div>
+              <div class="oc-row">
+                <span class="oc-key">计划</span>
+                <span class="oc-val">{{ order.planRange || '—' }}</span>
+              </div>
+              <div class="oc-row">
+                <span class="oc-key">负责人</span>
+                <span class="oc-val">{{ order.leadName || '—' }}</span>
+              </div>
+              <div class="oc-foot">
+                <div class="oc-point">
+                  <span class="oc-point-label">监测点位</span>
+                  <a-tag color="#1677ff" class="oc-point-tag">{{ order.pointCount ?? 0 }}</a-tag>
+                </div>
+                <span v-if="isOverdue(order)" class="oc-overdue">逾期</span>
+              </div>
             </a-card>
             <a-empty v-if="!(boardGrouped[col.status] || []).length" description="无" :image="simpleImage" />
           </div>
@@ -91,20 +129,26 @@
       <div v-show="mode === 'table' && groupBy === 'none'" class="tbl-box table-host">
         <a-table
           :columns="orderCols"
-          :data-source="orders"
+          :data-source="displayOrders"
           :loading="loading"
           :scroll="{ y: scrollY }"
           row-key="id"
-          :row-selection="rowSelection"
         >
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'status'">
-              <span class="status-chain">
-                <template v-for="(s, idx) in statusSteps(record)" :key="s.label">
-                  <span v-if="idx" class="chain-sep">-</span>
-                  <span :class="['chain-node', 'chain-' + s.state]">{{ s.label }}</span>
-                </template>
-              </span>
+            <template v-if="column.key === 'orderNo'">
+              <span class="link-text" @click="openDetail(record)">{{ record.orderNo }}</span>
+            </template>
+            <template v-else-if="column.key === 'entrustName'">
+              <span class="link-text" @click="goEntrust(record)">{{ record.entrustName || '—' }}</span>
+            </template>
+            <template v-else-if="column.key === 'entrustNo'">
+              <span class="link-text" @click="goEntrust(record)">{{ record.entrustNo || '—' }}</span>
+            </template>
+            <template v-else-if="column.key === 'pointCount'">
+              {{ record.pointCount ?? 0 }}
+            </template>
+            <template v-else-if="column.key === 'status'">
+              <a-tag :color="statusColor(record.status)">{{ record.status }}</a-tag>
             </template>
             <template v-else-if="column.key === 'op'">
               <a-space>
@@ -117,7 +161,7 @@
             <a-pagination
               v-model:current="tablePage.current"
               v-model:pageSize="tablePage.pageSize"
-              :total="orders.length"
+              :total="displayOrders.length"
               show-size-changer
               show-quick-jumper
               :page-size-options="['10','20','50']"
@@ -146,9 +190,20 @@
             :scroll="{ y: scrollY }"
             :pagination="groupPagination(g.key)"
             row-key="id"
-            :row-selection="rowSelection"
           >
             <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'orderNo'">
+                <span class="link-text" @click="openDetail(record)">{{ record.orderNo }}</span>
+              </template>
+              <template v-else-if="column.key === 'entrustName'">
+                <span class="link-text" @click="goEntrust(record)">{{ record.entrustName || '—' }}</span>
+              </template>
+              <template v-else-if="column.key === 'entrustNo'">
+                <span class="link-text" @click="goEntrust(record)">{{ record.entrustNo || '—' }}</span>
+              </template>
+              <template v-else-if="column.key === 'pointCount'">
+                {{ record.pointCount ?? 0 }}
+              </template>
               <template v-if="column.key === 'status'">
                 <a-tag :color="statusColor(record.status)">{{ record.status }}</a-tag>
               </template>
@@ -168,16 +223,13 @@
     <!-- 派单抽屉（单订单 / 批量共用） -->
     <a-drawer
       v-model:open="dispatchVisible"
-      :title="isBatch ? `批量派单（共 ${selectedOrderIds.length} 个订单）` : '调度派单'"
+      title="调度派单"
       width="1000"
       :confirm-loading="dispatchLoading"
       @close="closeDispatch"
     >
-      <template v-if="!isBatch && currentOrder">
+      <template v-if="currentOrder">
         <a-alert :message="'订单：' + currentOrder.orderNo" type="info" style="margin-bottom: 12px" />
-      </template>
-      <template v-else>
-        <a-alert :message="`批量派单：共选中 ${selectedOrderIds.length} 个「待派单」订单，将统一使用以下派单信息`" type="info" style="margin-bottom: 12px" />
       </template>
       <DispatchForm
         ref="dispatchFormRef"
@@ -197,7 +249,7 @@
       <template #footer>
         <a-space>
           <a-button @click="closeDispatch">取消</a-button>
-          <a-button type="primary" :loading="dispatchLoading" @click="submitDispatch">{{ isBatch ? '批量派单' : '派单' }}</a-button>
+          <a-button type="primary" :loading="dispatchLoading" @click="submitDispatch">派单</a-button>
         </a-space>
       </template>
     </a-drawer>
@@ -215,16 +267,25 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, h } from 'vue'
 import { message } from 'ant-design-vue'
 import { Empty } from 'ant-design-vue'
+import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import {
-  getDispatchBoardList, createDispatch, batchDispatch, searchUsers, listVehicles, listInstruments, getAvailableVehicles
+  getDispatchBoardList, createDispatch, searchUsers, listVehicles, listInstruments, getAvailableVehicles
 } from '../../../api/ems'
 import DispatchDetail from './DispatchDetail.vue'
 import DispatchForm from './DispatchForm.vue'
 import { usePermission } from '../../../composables/usePermission'
 
 const { hasPerm } = usePermission()
+const router = useRouter()
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
+
+// 跳转委托单详情
+function goEntrust(order) {
+  if (order && order.entrustId) {
+    router.push({ path: '/ems/base/entrust', query: { detailId: order.entrustId, tab: 'base' } })
+  }
+}
 
 const orders = ref([])
 const loading = ref(false)
@@ -232,7 +293,6 @@ const dispatchVisible = ref(false)
 const dispatchLoading = ref(false)
 const dispatchBlock = ref('') // 批量派单阻断提示（订单号+原因），有值时保留表单不关闭
 const currentOrder = ref(null)
-const isBatch = ref(false)
 const detailVisible = ref(false)
 const detailOrderId = ref(null)
 const employeeOptions = ref([])
@@ -259,19 +319,6 @@ function resetFilters() {
   loadOrders()
 }
 
-// 表格行多选（批量派单）
-const selectedRowKeys = ref([])
-const selectedOrderIds = computed(() => selectedRowKeys.value)
-const rowSelection = computed(() => ({
-  selectedRowKeys: selectedRowKeys.value,
-  onChange: (keys) => { selectedRowKeys.value = keys },
-  // 仅允许「待派单」订单被选入批量派单
-  getCheckboxProps: (record) => ({ disabled: record.status !== '待派单' })
-}))
-function clearSelection() {
-  selectedRowKeys.value = []
-}
-
 // 看板列（固定按状态）
 const boardColumns = [
   { status: '待派单', title: '待派单', color: '#F59E0B' },
@@ -293,40 +340,37 @@ const STATUS_COLOR = {
 function statusColor(s) {
   return STATUS_COLOR[s] || 'default'
 }
+// Ant tag 颜色名转换为 hex，用于卡片边框/文字着色
+const ANT_HEX = {
+  orange: '#fa8c16', blue: '#1677ff', cyan: '#13c2c2', green: '#52c41a',
+  purple: '#722ed1', geekblue: '#2f54eb', red: '#ff4d4f', default: '#8c8c8c'
+}
+function antColorHex(c) {
+  return ANT_HEX[c] || c || '#8c8c8c'
+}
 
-// 采样订单状态全过程（A - B - C - D ...）
+// 采样订单状态全过程（用于筛选下拉）
 const ORDER_STATUS_CHAIN = [
   '待派单', '已派单', '采样执行中', '样品送检', '实验室检测中', '报告编制', '归档完成'
 ]
-// 每个状态节点的展示态：done(已完成,绿色) / current(当前,蓝色) / todo(未到达,灰色)
-function statusNodeState(step, current) {
-  const ci = ORDER_STATUS_CHAIN.indexOf(current)
-  const si = ORDER_STATUS_CHAIN.indexOf(step)
-  if (ci < 0) return 'todo'
-  if (si < ci) return 'done'
-  if (si === ci) return 'current'
-  return 'todo'
-}
-// 渲染状态全过程 A - B - C - D ...
-function statusSteps(record) {
-  return ORDER_STATUS_CHAIN.map((step) => ({ label: step, state: statusNodeState(step, record.status) }))
-}
 
 // 表格列
 const orderCols = [
-  { title: '订单号', dataIndex: 'orderNo', key: 'orderNo', width: 140 },
-  { title: '点位名称', dataIndex: 'pointName', key: 'pointName', width: 150 },
-  { title: '计划区间', dataIndex: 'planRange', key: 'planRange', width: 180 },
+  { title: '订单号', dataIndex: 'orderNo', key: 'orderNo', width: 160 },
+  { title: '委托名称', dataIndex: 'entrustName', key: 'entrustName', width: 150 },
+  { title: '委托单号', dataIndex: 'entrustNo', key: 'entrustNo', width: 120 },
+  { title: '点位数', dataIndex: 'pointCount', key: 'pointCount', width: 80, align: 'center' },
+  { title: '计划区间', dataIndex: 'planRange', key: 'planRange', width: 200 },
   { title: '负责人', dataIndex: 'leadName', key: 'leadName', width: 80 },
-  { title: '状态', key: 'status', width: 460 },
-  { title: '操作', key: 'op', width: 120, fixed: 'right' }
+  { title: '状态', key: 'status', width: 100 },
+  { title: '操作', key: 'op', width: 60, fixed: 'right' }
 ]
 
 // 看板分组
 const boardGrouped = computed(() => {
   const g = {}
   for (const col of boardColumns) g[col.status] = []
-  for (const o of orders.value) {
+  for (const o of displayOrders.value) {
     if (g[o.status]) g[o.status].push(o)
   }
   return g
@@ -336,7 +380,7 @@ const boardGrouped = computed(() => {
 const tableGroups = computed(() => {
   if (groupBy.value === 'none') return []
   const map = new Map()
-  for (const o of orders.value) {
+  for (const o of displayOrders.value) {
     let key
     if (groupBy.value === 'status') {
       key = o.status || '未知'
@@ -403,6 +447,36 @@ const dispatchForm = reactive({
 // 派单必填校验由 DispatchForm 内部 rules 负责，此处仅持有表单 ref
 const dispatchFormRef = ref(null)
 
+// 逾期判断：未归档完成且计划结束日期早于今天
+function isOverdue(o) {
+  if (!o || !o.planEnd) return false
+  if (o.status === '归档完成') return false
+  return o.planEnd < dayjs().format('YYYY-MM-DD')
+}
+const overdueOnly = ref(false)
+// 统计口径始终基于全量 orders；逾期筛选仅控制展示
+const statusStats = computed(() =>
+  ORDER_STATUS_CHAIN.map((s) => ({
+    status: s,
+    color: statusColor(s),
+    count: orders.value.filter((o) => o.status === s).length
+  }))
+)
+const overdueCount = computed(() => orders.value.filter(isOverdue).length)
+// 展示数据：逾期筛选时仅展示逾期订单
+const displayOrders = computed(() => (overdueOnly.value ? orders.value.filter(isOverdue) : orders.value))
+
+function applyStatusFilter(s) {
+  overdueOnly.value = false
+  filters.status = filters.status === s ? undefined : s
+  loadOrders()
+}
+function toggleOverdue() {
+  overdueOnly.value = !overdueOnly.value
+  if (overdueOnly.value) filters.status = undefined
+  loadOrders()
+}
+
 function loadOrders() {
   loading.value = true
   const params = {}
@@ -412,7 +486,6 @@ function loadOrders() {
   getDispatchBoardList(params).then((res) => {
     const data = res.data || res
     orders.value = Array.isArray(data) ? data : (data.list || [])
-    clearSelection()
   }).catch(() => {}).finally(() => { loading.value = false; nextTick(syncTableHeight) })
 }
 
@@ -430,32 +503,13 @@ function openDispatch(order) {
     message.info('仅「待派单」状态可派单')
     return
   }
-  isBatch.value = false
   currentOrder.value = order
-  Object.assign(dispatchForm, { leadId: undefined, empIds: [], vehicleId: undefined, instrumentIds: [], planStart: null, planEnd: null, note: '' })
-  dispatchVisible.value = true
-}
-
-// 批量派单：对当前选中的「待派单」订单统一派发同一组派单信息
-function openBatchDispatch() {
-  if (!hasPerm('ems:dispatch')) {
-    message.warning('无派单权限')
-    return
-  }
-  if (!selectedOrderIds.value.length) {
-    message.warning('请先勾选「待派单」订单')
-    return
-  }
-  isBatch.value = true
-  currentOrder.value = null
-  dispatchBlock.value = ''
   Object.assign(dispatchForm, { leadId: undefined, empIds: [], vehicleId: undefined, instrumentIds: [], planStart: null, planEnd: null, note: '' })
   dispatchVisible.value = true
 }
 
 function closeDispatch() {
   dispatchVisible.value = false
-  isBatch.value = false
   currentOrder.value = null
 }
 
@@ -505,38 +559,13 @@ function buildDispatchParams() {
 function doSubmitDispatch() {
   const params = buildDispatchParams()
   dispatchLoading.value = true
-  if (isBatch.value) {
-    // 批量派单：同一组派单信息依次派发到所有选中的「待派单」订单
-    batchDispatch({ ...params, orderIds: selectedOrderIds.value }).then((res) => {
-      // 仅当全部成功时关闭表单（后端此时返回 code=200）
-      const data = res.data || res
-      const success = data.successCount || 0
-      message.success(`批量派单成功，共 ${success} 个订单`)
-      dispatchBlock.value = ''
-      closeDispatch()
-      loadOrders()
-    }).catch((err) => {
-      // 后端监测到阻断（资源冲突/资质闸门/维修保养等）时返回异常状态值，
-      // 并携带 failList 明细（[{orderId, reason}]）。此时保留表单，展示阻断提示，不关闭。
-      const failList = err && err.res && err.res.data ? err.res.data.failList : null
-      if (failList && failList.length) {
-        const lines = failList.map((f) => `订单 ${f.orderId}：${f.reason}`)
-        dispatchBlock.value = lines.join('\n')
-      } else {
-        // 其他系统错误：由全局拦截器已提示，阻断区展示通用信息
-        dispatchBlock.value = (err && err.res && err.res.message) || (err && err.message) || '派单失败，请重试'
-      }
-      // 注意：阻断时务必不要调用 closeDispatch()，保持表单打开
-    }).finally(() => { dispatchLoading.value = false })
-  } else {
-    createDispatch({ ...params, orderId: currentOrder.value.id }).then(() => {
-      message.success('派单成功（已通过资质闸门与冲突校验）')
-      closeDispatch()
-      loadOrders()
-    }).catch(() => {
-      // 冲突等错误提示已由全局响应拦截器统一多行展示，此处仅做加载状态清理
-    }).finally(() => { dispatchLoading.value = false })
-  }
+  createDispatch({ ...params, orderId: currentOrder.value.id }).then(() => {
+    message.success('派单成功（已通过资质闸门与冲突校验）')
+    closeDispatch()
+    loadOrders()
+  }).catch(() => {
+    // 冲突等错误提示已由全局响应拦截器统一多行展示，此处仅做加载状态清理
+  }).finally(() => { dispatchLoading.value = false })
 }
 
 onMounted(() => {
@@ -600,11 +629,75 @@ onUnmounted(() => {
 .board-col { flex: 1; min-width: 200px; background: #fafafa; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; }
 .board-col-title { color: #fff; padding: 6px 10px; border-radius: 6px; font-weight: 600; flex: 0 0 auto; }
 .board-col-body { margin-top: 8px; min-height: 120px; overflow-y: auto; flex: 1; }
-.order-card { margin-bottom: 8px; }
-.order-no { font-weight: 600; }
-.order-no.link { color: #2563EB; cursor: pointer; }
-.order-no.link:hover { text-decoration: underline; }
-.order-meta { color: #888; font-size: 12px; }
+.order-card {
+  margin-bottom: 8px;
+  border-left: 4px solid #d9d9d9;
+  border-radius: 8px;
+  transition: all 0.18s ease;
+}
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+.oc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.oc-no {
+  font-weight: 700;
+  font-size: 14px;
+  color: #2563EB;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.oc-no:hover { text-decoration: underline; }
+.oc-tag { margin: 0; flex: 0 0 auto; }
+.oc-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.oc-key {
+  flex: 0 0 42px;
+  color: #bfbfbf;
+}
+.oc-val {
+  flex: 1;
+  color: #595959;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.oc-sub { color: #bfbfbf; }
+.oc-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed #f0f0f0;
+}
+.oc-point { display: flex; align-items: center; gap: 6px; }
+.oc-point-label { color: #8c8c8c; font-size: 12px; }
+.oc-point-tag { margin: 0; border-radius: 10px; font-size: 12px; padding: 0 8px; }
+.oc-point-tag :deep(.ant-tag) { line-height: 18px; }
+.oc-overdue {
+  color: #fff;
+  background: #ff4d4f;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.link-text { color: #2563EB; cursor: pointer; }
+.link-text:hover { text-decoration: underline; }
 
 .tbl-box { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .tbl-box :deep(.ant-table-wrapper) { flex: 1 1 auto; min-height: 0; height: 100%; display: flex; flex-direction: column; }
@@ -626,6 +719,57 @@ onUnmounted(() => {
 }
 .vehicle-tip { margin-top: 6px; }
 .vehicle-tip .tip-text { color: #52c41a; font-size: 12px; }
+
+/* 表格视图：状态统计卡片 + 逾期卡片 */
+.stat-cards {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.stat-card {
+  flex: 1 1 0;
+  min-width: 92px;
+  padding: 10px 16px;
+  border: 1px solid #f0f0f0;
+  border-left: 3px solid #d9d9d9;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.stat-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.stat-card.active {
+  background: #f5f8ff;
+  box-shadow: 0 0 0 1px currentColor inset;
+}
+.stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #262626;
+}
+.stat-label {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+.stat-card.overdue {
+  border-left-color: #ff4d4f;
+}
+.stat-card.overdue .stat-num {
+  color: #ff4d4f;
+}
+.stat-card.overdue.active {
+  background: #fff1f0;
+  box-shadow: 0 0 0 1px #ff4d4f inset;
+}
 
 /* 状态全过程 A - B - C - D：当前蓝色、完成绿色、未到达灰色 */
 .status-chain { display: inline-flex; align-items: center; flex-wrap: wrap; line-height: 20px; }

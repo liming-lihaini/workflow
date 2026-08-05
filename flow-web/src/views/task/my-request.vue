@@ -41,6 +41,12 @@
           <template v-else-if="column.key === 'currentNode'">
             {{ record.currentNodeName || record.currentNodeId || '-' }}
           </template>
+          <template v-else-if="column.key === 'currentAssignee'">
+            {{ realName(record.currentAssignee) }}
+          </template>
+          <template v-else-if="column.key === 'startUser'">
+            {{ realName(record.startUser) }}
+          </template>
           <template v-else-if="column.key === 'duration'">
             {{ formatDuration(record.duration) }}
           </template>
@@ -64,10 +70,12 @@ import { renderDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
 import { usePermission } from '../../composables/usePermission'
 import { useResizableColumns, sortClientData } from '../../composables/useResizableTable'
+import { useUserMap } from '../../composables/useUserMap'
 
 const router = useRouter()
 const userStore = useUserStore()
 const { hasPerm } = usePermission()
+const { buildUserMap, realName } = useUserMap()
 const loading = ref(false)
 const dataList = ref([])
 
@@ -93,6 +101,7 @@ const { columns, handleResizeColumn } = useResizableColumns([
   { title: '状态', key: 'status', dataIndex: 'status', width: 100, sorter: true },
   { title: '当前节点', key: 'currentNode', dataIndex: 'currentNodeName', width: 140 },
   { title: '当前办理人', dataIndex: 'currentAssignee', key: 'currentAssignee', width: 120 },
+  { title: '发起人', dataIndex: 'startUser', key: 'startUser', width: 120 },
   { title: '发起时间', dataIndex: 'startTime', key: 'startTime', width: 120, customRender: renderDate, sorter: true },
   { title: '耗时', key: 'duration', dataIndex: 'duration', width: 120, sorter: true },
   { title: '操作', key: 'action', width: 80 }
@@ -178,6 +187,8 @@ async function loadData() {
     const res = await getMyProcessInstances(userId)
     const data = res.data || res
     dataList.value = Array.isArray(data) ? data : (data.list || data.records || [])
+    // 解析当前办理人 / 发起人真实姓名
+    buildUserMap()
   } catch {}
   loading.value = false
 }

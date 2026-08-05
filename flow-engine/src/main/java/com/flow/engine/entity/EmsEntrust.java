@@ -21,6 +21,7 @@ public class EmsEntrust {
     private String source;
     private String status;
     private String description;  // 委托说明（富文本）
+    private String sampleFreq;    // 委托级采集频率（字典 moni_sample_freq 编码）
     private String submitBy;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

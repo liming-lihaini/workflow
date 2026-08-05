@@ -5,9 +5,6 @@
       :sub-title="vo.entrustNo"
       @back="emit('close')"
     >
-      <template #extra>
-        <a-tag :color="statusColor(vo.status)">{{ vo.status }}</a-tag>
-      </template>
     </a-page-header>
 
     <a-card title="基本信息" size="small" class="block">
@@ -38,17 +35,54 @@
         </template>
       </a-table>
     </a-card>
+
+    <a-card
+      v-if="dispatchOrders.length"
+      title="委托派单"
+      size="small"
+      class="block"
+    >
+      <a-table
+        :columns="dispatchColumns"
+        :data-source="dispatchOrders"
+        :pagination="false"
+        size="small"
+        row-key="id"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'orderNo'">
+            <span class="link-text" @click="goDispatch(record)">{{ record.orderNo }}</span>
+          </template>
+          <template v-else-if="column.key === 'status'">
+            <a-tag :color="statusColor(record.status)">{{ record.status }}</a-tag>
+          </template>
+          <template v-else-if="column.key === 'planRange'">
+            {{ (record.planStart || '') + (record.planEnd ? ' ~ ' + record.planEnd : '') }}
+          </template>
+          <template v-else-if="column.key === 'createTime'">
+            {{ renderDate(record.createTime) }}
+          </template>
+        </template>
+      </a-table>
+    </a-card>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getEntrust } from '../../../api/ems'
+import { useRouter } from 'vue-router'
+import { getEntrust, getSamplingOrders } from '../../../api/ems'
 
 const props = defineProps({ id: { type: [Number, String], required: true } })
 const emit = defineEmits(['close'])
+const router = useRouter()
 
 const vo = ref({})
+const dispatchOrders = ref([])
+
+function goDispatch(order) {
+  router.push({ path: '/ems/base/dispatch-detail', query: { id: order.id } })
+}
 const pointColumns = [
   { title: '#', key: 'seq', width: 50 },
   { title: '点位编号', dataIndex: 'pointNo', key: 'pointNo', width: 120 },
@@ -74,16 +108,33 @@ function renderDate(v) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
+const dispatchColumns = [
+  { title: '订单号', key: 'orderNo', width: 140 },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
+  { title: '负责人', dataIndex: 'leadName', key: 'leadName', width: 90 },
+  { title: '采样人', dataIndex: 'samplerNames', key: 'samplerNames', width: 120 },
+  { title: '计划区间', key: 'planRange', width: 200 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120 }
+]
+
+function loadDispatchOrders() {
+  getSamplingOrders({ entrustId: props.id }).then((res) => {
+    dispatchOrders.value = res.data || res || []
+  }).catch(() => {})
+}
+
 onMounted(() => {
   getEntrust(props.id).then((res) => {
     vo.value = res.data || res
   }).catch(() => {})
+  loadDispatchOrders()
 })
 </script>
 
 <style scoped>
 .detail-wrap {
   padding: 0 16px 16px;
+  background-color: #FFF;
 }
 .block {
   margin-bottom: 16px;
@@ -95,5 +146,12 @@ onMounted(() => {
   min-height: 60px;
   font-size: 14px;
   line-height: 1.6;
+}
+.link-text {
+  color: #2563EB;
+  cursor: pointer;
+}
+.link-text:hover {
+  text-decoration: underline;
 }
 </style>

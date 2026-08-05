@@ -3,6 +3,7 @@ package com.flow.engine.service;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -11,11 +12,18 @@ import java.util.Map;
  * 脚本执行服务
  * <p>
  * 支持 Groovy 和 Python（通过 GraalVM Polyglot 或回退到 SpEL）脚本执行。
- * 脚本可访问流程变量作为绑定上下文。
+ * 脚本可访问流程变量作为绑定上下文，并注入 {@code jdbcTemplate}（org.springframework.jdbc.core.JdbcTemplate）
+ * 用于查询/更新业务表（如危险品台账 t_hazardous_ledger）。
  */
 @Slf4j
 @Service
 public class ScriptExecutionService {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public ScriptExecutionService(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     /**
      * 执行脚本并返回结果
@@ -56,6 +64,8 @@ public class ScriptExecutionService {
         if (variables != null) {
             variables.forEach(binding::setVariable);
         }
+        // 注入数据库访问能力，使节点事件脚本可查询/更新业务表（如危险品台账）
+        binding.setVariable("jdbcTemplate", jdbcTemplate);
 
         GroovyShell shell = new GroovyShell(binding);
         try {

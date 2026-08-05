@@ -97,5 +97,8 @@ export function updateWebhook(webhookKey, data) {
 export function deleteWebhook(webhookKey) {
   return request.delete(`/webhooks/${webhookKey}`)
 }
+export function testWebhook(webhookKey, data) {
+  return request.post(`/webhooks/${webhookKey}/test`, data || {})
+}
 
 export default request

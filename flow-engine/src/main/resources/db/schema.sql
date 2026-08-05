@@ -434,6 +434,7 @@ CREATE TABLE IF NOT EXISTS t_entrust (
     source       TEXT,
     status       TEXT DEFAULT '草稿',  -- 草稿/待技术确认/已确认/已退回
     description   TEXT,                -- 委托说明（富文本）
+    sample_freq   TEXT,                -- 委托级采集频率（字典 moni_sample_freq 编码）
     submit_by    TEXT,
     create_time  TEXT,
     update_time  TEXT
@@ -941,5 +942,33 @@ CREATE TABLE IF NOT EXISTS t_report_audit (
     decision      TEXT,         -- 通过/退回
     opinion       TEXT,         -- 审核意见
     create_time   TEXT
+);
+
+-- ============ TRD 5.1 采样参数配置管理 ============
+
+-- 采样参数配置主表（检测类别 + 检测项目 + 执行标准 + 限值 + 备注）
+CREATE TABLE IF NOT EXISTS t_sample_param_config (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    type          TEXT,         -- 检测类别（废气/废水/土壤...）
+    item          TEXT,         -- 检测项目（颗粒物/CODcr...）
+    standard      TEXT,         -- 执行标准编号
+    limit_value   TEXT,         -- 标准限值 / 管控要求
+    remark        TEXT,         -- 采样备注说明
+    create_time   TEXT,
+    update_time   TEXT
+);
+
+-- 采样参数配置明细（现场结构化必填采样参数，与主表一对多）
+CREATE TABLE IF NOT EXISTS t_sample_param_item (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    config_id     INTEGER,      -- 关联主表 t_sample_param_config.id
+    code          TEXT,         -- 参数编码（如 flue_area）
+    name          TEXT,         -- 参数名称（如 烟道截面积）
+    param_type    TEXT,         -- number/text/select/bool/datetime
+    unit          TEXT,         -- 单位（如 m²）
+    required      INTEGER DEFAULT 1, -- 1 必填 / 0 选填
+    enum_text     TEXT,         -- 下拉选项，逗号分隔（仅 select 类型）
+    tip           TEXT,         -- 提示备注
+    sort_no       INTEGER       -- 排序
 );
 

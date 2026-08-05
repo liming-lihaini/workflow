@@ -6,6 +6,7 @@ import com.flow.engine.common.BusinessException;
 import com.flow.engine.dto.EmsDispatchDetailVO;
 import com.flow.engine.entity.*;
 import com.flow.engine.mapper.EmsDispatchMapper;
+import com.flow.engine.service.EmsMonitorPointService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,8 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
     private EmsVehicleService vehicleService;
     @Autowired
     private EmsEntrustService entrustService;
+    @Autowired
+    private EmsMonitorPointService monitorPointService;
 
     @Autowired(required = false)
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
@@ -67,10 +70,7 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
         if (!"待派单".equals(order.getStatus())) {
             throw new BusinessException("仅待派单状态可派单，当前：" + order.getStatus());
         }
-        // BR-023-07 最小集校验
-        if (order.getPointId() == null) {
-            throw new BusinessException("订单缺少点位，不可派单(BR-023-07)");
-        }
+        // 派单以委托单为主体，点位在采样执行环节选择，故不再校验 pointId（原 BR-023-07 已移除）
         // BR-023-03 资质闸门：人员状态有效 + 设备校准有效期
         gateCheck(leadId, empIds, instrumentIds);
         // BR-023-04 资源冲突检测（返回详细冲突信息）
@@ -253,6 +253,18 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
         if (order != null) {
             vo.setOrderNo(order.getOrderNo());
             vo.setOrderStatus(order.getStatus());
+            vo.setEntrustId(order.getEntrustId());
+            if (order.getEntrustId() != null) {
+                EmsEntrust entrust = entrustService.getById(order.getEntrustId());
+                if (entrust != null) {
+                    vo.setEntrustNo(entrust.getEntrustNo());
+                    vo.setEntrustName(entrust.getEntrustName());
+                    vo.setEntrustStatus(entrust.getStatus());
+                }
+                int pc = (int) monitorPointService.count(
+                        new LambdaQueryWrapper<EmsMonitorPoint>().eq(EmsMonitorPoint::getEntrustId, order.getEntrustId()));
+                vo.setPointCount(pc);
+            }
         }
         EmsDispatch dispatch = this.getOne(new LambdaQueryWrapper<EmsDispatch>()
                 .eq(EmsDispatch::getOrderId, orderId)
@@ -610,6 +622,21 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
         List<Map<String, Object>> dispatches = listByVehicle(vehicleId);
         detail.put("dispatches", dispatches);
         return detail;
+    }
+
+    /**
+     * 清空全部派单记录：主表 + 设备关联表 + 人员关联表（物理删除，谨慎调用）。
+     * 仅清除派单数据，不影响订单/车辆/人员/设备等基础数据。
+     * @return 清除的派单主表记录数
+     */
+    @Transactional
+    public int clearAll() {
+        // 先删从表，再删主表，避免外键/关联悬挂
+        dispatchDeviceService.remove(null);
+        dispatchMemberService.remove(null);
+        int count = (int) this.count();
+        this.remove(null);
+        return count;
     }
 
     /** BR-023-03 资质闸门：人员为有效后台用户 + 设备校准有效期未过期（物资闸门） */

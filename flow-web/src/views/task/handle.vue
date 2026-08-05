@@ -120,7 +120,7 @@
             <a-spin :spinning="historyLoading">
               <div class="history-inner" v-if="enhancedHistory.length > 0">
                 <div :class="['history-item', item.isStartNode ? 'history-start' : '', item.isEndNode ? 'history-end' : '']" v-for="(item, idx) in enhancedHistory" :key="idx">
-                  <div class="history-user">{{ item.assignee || '-' }}（{{ item.nodeName || item.nodeId }}）</div>
+                  <div class="history-user">{{ realName(item.assignee) }}（{{ item.nodeName || item.nodeId }}）</div>
                   <div class="history-row">
                     <span :class="['history-opt', getActionTagClass(item.taskAction)]">
                       {{ getActionLabel(item) }}
@@ -128,7 +128,7 @@
                     <span class="history-time">{{ formatDate(item.completeTime || item.createTime) }}</span>
                   </div>
                   <div v-if="item.actualOperatorId && item.actualOperatorId !== item.assignee" style="font-size: 12px; color: #8c8c8c; margin-top: 2px">
-                    实际办理人：{{ item.actualOperatorId }}
+                    实际办理人：{{ realName(item.actualOperatorId) }}
                   </div>
                   <div class="history-opinion" v-if="getOpinion(item)">
                     {{ getOpinion(item) }}
@@ -225,6 +225,7 @@ import { getForm } from '../../api/form'
 import { formatDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
 import { usePermission } from '../../composables/usePermission'
+import { useUserMap } from '../../composables/useUserMap'
 import FormRenderer from '../../components/FormRenderer.vue'
 import FlowViewer from '../../components/FlowViewer.vue'
 
@@ -232,6 +233,7 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const { hasPerm } = usePermission()
+const { buildUserMap, realName } = useUserMap()
 
 const taskId = computed(() => route.query.id)
 const instanceId = computed(() => route.query.instanceId)
@@ -423,8 +425,8 @@ const flowSequence = computed(() => {
       // 找到该节点对应的办理人
       const hist = taskHistory.value.find(h => h.nodeId === (n.id || n.nodeId))
       let assignee = hist?.assignee || ''
-      if (st === 'current' && currentTask.value) assignee = '当前：' + (currentTask.value.assignee || '')
-      if (nt === 'start') assignee = processInfo.value.startUser || ''
+      if (st === 'current' && currentTask.value) assignee = '当前：' + realName(currentTask.value.assignee || '')
+      if (nt === 'start') assignee = realName(processInfo.value.startUser || '')
       return {
         id: n.id || n.nodeId,
         name: n.name || NT_LABELS[nt] || nt,
@@ -444,7 +446,7 @@ const enhancedHistory = computed(() => {
   list.push({
     isStartNode: true,
     nodeName: '开始节点',
-    assignee: processInfo.value.startUser || '-',
+    assignee: realName(processInfo.value.startUser || '-'),
     completeTime: processInfo.value.startTime,
     taskAction: -1
   })
@@ -453,9 +455,9 @@ const enhancedHistory = computed(() => {
   // 结束节点（流程已完成时）
   if (processInstanceStatus.value === 1) {
     list.push({
-      isEndNode: true,
-      nodeName: '结束节点',
-      assignee: processInfo.value.startUser || '-',
+    isEndNode: true,
+    nodeName: '结束节点',
+    assignee: realName(processInfo.value.startUser || '-'),
       completeTime: processInfo.value.endTime,
       taskAction: -2
     })
@@ -618,6 +620,9 @@ async function loadAll() {
         .filter(t => t.status === 'completed' || t.status === 'COMPLETED' || t.status === 2)
     } catch { taskHistory.value = [] }
     historyLoading.value = false
+
+    // 解析办理人 / 当前办理人 / 发起人真实姓名
+    buildUserMap()
 
     // 如果是我的申请入口且无当前任务，隐藏审批操作按钮
     if (instanceId.value && !currentTask.value) {

@@ -51,6 +51,7 @@
                 <FormRenderer
                   :form-json="formJson"
                   :fields="formFields"
+                  :dict-data="dictData"
                   v-model="formValues"
                   mode="editable"
                 />
@@ -121,6 +122,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { getProcessDefinitionByKey, startProcessInstance } from '../../api/process'
 import { getForm } from '../../api/form'
+import { getDictItemsByCode } from '../../api/dict'
 import { useUserStore } from '../../stores/user'
 import FormRenderer from '../../components/FormRenderer.vue'
 import FlowViewer from '../../components/FlowViewer.vue'
@@ -139,6 +141,7 @@ const submitLoading = ref(false)
 const formJson = ref(null)
 const formFields = ref([])
 const formValues = ref({})
+const dictData = ref({})
 
 // 流程图
 const flowNodesRaw = ref([])
@@ -259,6 +262,9 @@ async function loadAll() {
             const fj = typeof formDef.formJson === 'string' ? JSON.parse(formDef.formJson) : formDef.formJson
             formJson.value = fj
 
+            // 加载表单字段中引用数据字典的选项
+            loadFormDictData(fj)
+
             // 初始化表单值
             const vals = {}
             if (fj.sections && Array.isArray(fj.sections)) {
@@ -286,6 +292,26 @@ async function loadAll() {
     message.error('加载流程定义失败: ' + (e.message || ''))
   }
   formLoading.value = false
+}
+
+// 收集表单字段中引用数据字典的 dictCode 并批量加载，供表单渲染下拉项
+async function loadFormDictData(formJson) {
+  const codes = new Set()
+  try {
+    const json = typeof formJson === 'string' ? JSON.parse(formJson) : formJson
+    ;(json.sections || []).forEach(s => (s.children || []).forEach(r => (r.cells || []).forEach(c => (c.fields || []).forEach(f => {
+      if (f.optionsSource === 'dict' && f.dictCode) codes.add(f.dictCode)
+    }))))
+  } catch { /* ignore */ }
+  const map = {}
+  await Promise.all([...codes].map(async code => {
+    try {
+      const res = await getDictItemsByCode(code)
+      const items = res.data || res || []
+      map[code] = items.map(it => ({ itemValue: it.itemValue, itemText: it.itemText }))
+    } catch { /* 单字典加载失败不影响其余 */ }
+  }))
+  dictData.value = map
 }
 
 // ====== 提交 ======

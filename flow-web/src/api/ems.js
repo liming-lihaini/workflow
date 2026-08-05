@@ -37,6 +37,21 @@ export const batchDeleteEntrusts = (ids) =>
 // 采样订单 / 调度派单（ISSUE-023）
 export const genSamplingOrders = (entrustId) =>
   request.post(`/ems/base/sampling-order/gen`, null, { params: { entrustId } })
+// 按采集频率再次派单：同一委托追加生成一张待派单订单（要求委托已确认，BR-023-09）
+export const redispatchSamplingOrder = (entrustId) =>
+  request.post(`/ems/base/sampling-order/redispatch`, null, { params: { entrustId } })
+
+// ===== 采样参数配置（TRD 5.1）=====
+export const getSampleParamConfigs = (params) =>
+  request.get('/ems/base/sample-param-config', { params })
+export const getSampleParamConfig = (id) =>
+  request.get(`/ems/base/sample-param-config/${id}`)
+export const saveSampleParamConfig = (data) =>
+  request.post('/ems/base/sample-param-config', data)
+export const deleteSampleParamConfig = (id) =>
+  request.delete(`/ems/base/sample-param-config/${id}`)
+export const batchDeleteSampleParamConfig = (ids) =>
+  request.post('/ems/base/sample-param-config/batch-delete', ids)
 export const getSamplingOrders = (params) => request.get('/ems/base/sampling-orders', { params })
 // 采样调度看板聚合（点位名称/派单计划区间/负责人），支持按订单号/负责人/状态筛选
 export const getDispatchBoardList = (params) => request.get('/ems/base/sampling-orders/dispatch-list', { params })
@@ -199,6 +214,8 @@ export const rejectReport = (id, data) =>
 // ===== 监测数据驾驶舱与统计（ISSUE-028，路径 /api/v1/ems/dashboard/*）=====
 export const getDashboardOverview = () =>
   request.get('/ems/dashboard/overview')
+export const getEntrustCards = (params) =>
+  request.get('/ems/dashboard/entrust-cards', { params })
 
 // ===== 基础设施底座（ISSUE-029，路径 /api/v1/*）=====
 // 状态机：驱动迁移

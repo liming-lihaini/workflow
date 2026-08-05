@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
@@ -66,6 +67,23 @@ public class WebhookScheduler {
             // 触发重试
             if (webhook.getRetryCount() > 0) {
                 retryWebhook(webhookLog, webhook);
+            }
+
+        } catch (HttpStatusCodeException e) {
+            // 目标服务返回非 2xx（含 5xx 瞬时错误，如 SQLite SQLITE_BUSY 导致的 500）
+            webhookLog.setStatus(0);
+            webhookLog.setErrorMessage("HTTP " + e.getStatusCode().value() + " 错误: " + e.getResponseBodyAsString());
+            webhookLog.setResponseStatus(e.getStatusCode().value());
+            webhookLog.setResponseBody(e.getResponseBodyAsString());
+            webhookLog.setCompleteTime(LocalDateTime.now());
+            webhookLogMapper.updateById(webhookLog);
+
+            // 5xx 视为可重试的瞬时错误（如数据库锁冲突），4xx 为业务错误不重试
+            if (e.getStatusCode().is5xxServerError() && webhook.getRetryCount() > 0) {
+                log.warn("Webhook触发返回5xx，准备重试: key={}, status={}", webhook.getWebhookKey(), e.getStatusCode().value());
+                retryWebhook(webhookLog, webhook);
+            } else {
+                log.error("Webhook触发HTTP错误(不重试): key={}, status={}", webhook.getWebhookKey(), e.getStatusCode().value());
             }
 
         } catch (Exception e) {

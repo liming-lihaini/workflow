@@ -73,6 +73,13 @@
             >
               <span class="action-link danger" @click.stop="rejectForm.record = record">退回</span>
             </a-popconfirm>
+            <a-popconfirm
+              v-if="record.status === '已确认'"
+              :title="`按采集频率${record.sampleFreqName ? '（' + record.sampleFreqName + '）' : ''}再生成一张待派单订单？`"
+              @confirm="handleRedispatch(record)"
+            >
+              <span class="action-link">再次派单</span>
+            </a-popconfirm>
           </template>
         </template>
       </a-table>
@@ -110,8 +117,8 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item label="状态">
-              <a-input :value="editingRecord ? editingRecord.status : '草稿'" disabled />
+            <a-form-item label="采集频率">
+              <a-select v-model:value="formState.sampleFreq" placeholder="选择采集频率" :options="sampleFreqOptions" />
             </a-form-item>
           </a-col>
         </a-row>
@@ -156,28 +163,26 @@
               <a-input v-model:value="record.lat" placeholder="纬度" />
             </template>
             <template v-else-if="column.key === 'pointType'">
-              <a-select v-model:value="record.pointType" placeholder="类型" :options="pointTypeOptions" style="width: 110px" />
+              <a-select
+                v-model:value="record.pointType"
+                placeholder="监测类别"
+                :options="configTypeOptions"
+                style="width: 130px"
+                @change="() => { record.factors = undefined; record.standardCode = ''; record.standardName = '' }"
+              />
             </template>
             <template v-else-if="column.key === 'factors'">
               <a-select
                 v-model:value="record.factors"
-                mode="multiple"
-                placeholder="监测因子"
-                :options="factorOptions"
+                placeholder="检测项目"
+                :options="configItemOptions(record.pointType)"
                 style="width: 190px"
+                :disabled="!record.pointType"
+                @change="(val) => { const o = configItemOptions(record.pointType).find(s => s.value === val); record.standardCode = o ? o.standard : ''; record.standardName = o ? o.standard : '' }"
               />
             </template>
             <template v-else-if="column.key === 'standard'">
-              <a-select
-                v-model:value="record.standardCode"
-                placeholder="执行标准"
-                :options="standardOptions"
-                style="width: 190px"
-                @change="(val) => { const o = standardOptions.find(s => s.value === val); record.standardName = o ? o.name : '' }"
-              />
-            </template>
-            <template v-else-if="column.key === 'freq'">
-              <a-select v-model:value="record.freq" placeholder="频次" :options="freqOptions" style="width: 120px" />
+              <a-input v-model:value="record.standardCode" placeholder="选择检测项目后自动回填" readonly />
             </template>
             <template v-else-if="column.key === 'envCondition'">
               <a-textarea v-model:value="record.condition" placeholder="工况要求" :rows="1" auto-size />
@@ -207,9 +212,10 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import {
-  getEntrusts, getEntrust, saveEntrust, submitEntrust, techConfirmEntrust, rejectEntrust, batchDeleteEntrusts, getCustomers, getDictItems
+  getEntrusts, getEntrust, saveEntrust, submitEntrust, techConfirmEntrust, rejectEntrust, batchDeleteEntrusts, getCustomers, getDictItems, redispatchSamplingOrder, getSampleParamConfigs
 } from '../../../api/ems'
 import EntrustDetail from './EntrustDetail.vue'
 import { usePermission } from '../../../composables/usePermission'
@@ -224,10 +230,23 @@ const editingRecord = ref(null)
 const searchText = ref('')
 const customerOptions = ref([])
 const sourceOptions = ref([])
+const sampleFreqOptions = ref([])
 const pointTypeOptions = ref([])
 const factorOptions = ref([])
 const standardOptions = ref([])
 const freqOptions = ref([])
+// 采样参数配置（监测类别/检测项目/执行标准 联动数据源）
+const configTypeOptions = ref([])          // 监测类别下拉
+const configList = ref([])                  // 全部采样参数配置 [{type,item,standard}]
+function configItemOptions(type) {
+  if (!type) return []
+  // 同一类别+项目取第一个标准回填
+  const map = new Map()
+  configList.value.filter(c => c.type === type).forEach(c => {
+    if (!map.has(c.item)) map.set(c.item, { label: c.item, value: c.item, standard: c.standard || '' })
+  })
+  return [...map.values()]
+}
 
 const rejectVisible = ref(false)
 const rejectForm = reactive({ record: null, opinion: '' })
@@ -286,6 +305,7 @@ const { columns } = useResizableColumns([
   { title: '委托名称', dataIndex: 'entrustName', key: 'entrustName', sorter: true },
   { title: '客户', dataIndex: 'custName', key: 'custName', width: 240 },
   { title: '来源', dataIndex: 'sourceName', key: 'sourceName', width: 110 },
+  { title: '采集频率', dataIndex: 'sampleFreqName', key: 'sampleFreqName', width: 110, customRender: ({ text }) => text || '—' },
   { title: '状态', key: 'status', dataIndex: 'status', width: 100 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: ({ text }) => renderDate(text) },
   { title: '操作', key: 'action', width: 220 }
@@ -295,15 +315,14 @@ const pointColumns = [
   { title: '点位名称', key: 'pointName', width: 140 },
   { title: '经度', key: 'longitude', width: 100 },
   { title: '纬度', key: 'latitude', width: 100 },
-  { title: '介质类型', key: 'pointType', width: 120 },
-  { title: '监测因子', key: 'factors', width: 200 },
-  { title: '执行标准', key: 'standard', width: 200 },
-  { title: '监测频次', key: 'freq', width: 130 },
+  { title: '监测类别', key: 'pointType', width: 140 },
+  { title: '检测项目', key: 'factors', width: 200 },
+  { title: '执行标准', key: 'standard', width: 220 },
   { title: '备注(工况要求)', key: 'envCondition', width: 160 },
   { title: '操作', key: 'op', width: 70 }
 ]
 
-const formState = reactive({ id: undefined, entrustName: '', custId: undefined, source: undefined, status: undefined })
+const formState = reactive({ id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, status: undefined })
 const statusOptions = ref([])
 
 function renderDate(v) {
@@ -359,11 +378,18 @@ function loadDicts() {
       }))
     }
   }).catch(() => {})
-  // 监测频次（moni_monitor_freq）
+  // 监测频次（moni_monitor_freq，点位级）
   getDictItems('moni_monitor_freq').then((res) => {
     const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data || [])
     if (list.length) {
       freqOptions.value = list.map((i) => ({ label: i.itemText, value: i.itemValue }))
+    }
+  }).catch(() => {})
+  // 采集频率（moni_sample_freq，委托级，按频率重复派单）
+  getDictItems('moni_sample_freq').then((res) => {
+    const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data || [])
+    if (list.length) {
+      sampleFreqOptions.value = list.map((i) => ({ label: i.itemText, value: i.itemValue }))
     }
   }).catch(() => {})
   // 委托状态（moni_entrust_status）：状态值为中文文本，value 用 itemText
@@ -371,6 +397,15 @@ function loadDicts() {
     const list = Array.isArray(res.data) ? res.data : (res.data?.list || res.data || [])
     if (list.length) {
       statusOptions.value = list.map((i) => ({ label: i.itemText, value: i.itemText }))
+    }
+  }).catch(() => {})
+  // 采样参数配置：监测类别/检测项目/执行标准 联动数据源
+  getSampleParamConfigs({}).then((res) => {
+    const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+    if (list.length) {
+      configList.value = list.map(c => ({ type: c.type, item: c.item, standard: c.standard || '' }))
+      const typeSet = new Set(configList.value.map(c => c.type))
+      configTypeOptions.value = [...typeSet].map(t => ({ label: t, value: t }))
     }
   }).catch(() => {})
 }
@@ -392,7 +427,7 @@ function addPoint() {
   points.value.push({
     rowKey: `rp_${Date.now()}_${points.value.length}`,
     pointNo: '', pointName: '', lng: '', lat: '', pointType: undefined,
-    factors: [], standardCode: undefined, standardName: '', freq: undefined, condition: ''
+    factors: undefined, standardCode: '', standardName: '', freq: undefined, condition: ''
   })
 }
 
@@ -429,7 +464,7 @@ function showDrawer(record) {
     loadEntrustDetail(record.id)
   } else {
     editingRecord.value = null
-    Object.assign(formState, { id: undefined, entrustName: '', custId: undefined, source: undefined, description: '' })
+    Object.assign(formState, { id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, description: '' })
     setEditorHtml('')
     points.value = []
     drawerVisible.value = true
@@ -444,6 +479,7 @@ function loadEntrustDetail(id) {
       entrustName: vo.entrustName,
       custId: vo.custId,
       source: vo.source,
+      sampleFreq: vo.sampleFreq,
       description: vo.description || ''
     })
     setEditorHtml(vo.description || '')
@@ -455,8 +491,8 @@ function loadEntrustDetail(id) {
       lng: p.lng ?? '',
       lat: p.lat ?? '',
       pointType: p.pointType || undefined,
-      factors: p.factors ? String(p.factors).split(',') : [],
-      standardCode: p.standardCode || undefined,
+      factors: p.factors ? String(p.factors).split(',')[0] : undefined,
+      standardCode: p.standardCode || '',
       standardName: p.standardName || '',
       freq: p.freq || undefined,
       condition: p.condition || ''
@@ -476,8 +512,9 @@ function handleSave() {
     entrustName: formState.entrustName,
     custId: formState.custId,
     source: formState.source,
+    sampleFreq: formState.sampleFreq,
     description: getEditorHtml(),
-    status: editingRecord.value ? editingRecord.value.status : '草稿'
+    status: '草稿'
   }
   const payload = {
     entrust,
@@ -519,6 +556,15 @@ function handleTechConfirm(record) {
   }).catch(() => {})
 }
 
+// 按采集频率再次派单：委托已确认时追加生成一张待派单订单（校验由后端 BR-023-09 兜底）
+function handleRedispatch(record) {
+  redispatchSamplingOrder(record.id).then((res) => {
+    const orderNo = res?.data?.orderNo
+    message.success(orderNo ? `已生成采样订单 ${orderNo}，请到采样调度看板派单` : '已生成采样订单，请到采样调度看板派单')
+    loadData()
+  }).catch(() => {})
+}
+
 function handleReject(record) {
   rejectForm.record = record
   rejectForm.opinion = ''
@@ -547,6 +593,11 @@ onMounted(() => {
   loadCustomers()
   loadDicts()
   loadData()
+  // 支持从采样调度等页面通过 query.detailId 直接跳转打开委托详情
+  const rq = useRoute()
+  if (rq.query && rq.query.detailId) {
+    detailId.value = Number(rq.query.detailId)
+  }
   nextTick(() => {
     syncTableHeight()
     const wrap = document.querySelector('.page-wrap')
