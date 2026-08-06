@@ -3,6 +3,7 @@ package com.flow.engine.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.flow.engine.entity.EmsDispatch;
+import com.flow.engine.entity.EmsCustomer;
 import com.flow.engine.entity.EmsEntrust;
 import com.flow.engine.entity.EmsMonitorPoint;
 import com.flow.engine.entity.EmsSamplingOrder;
@@ -41,6 +42,8 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
     private UserMapper userMapper;
     @Autowired
     private EmsMonitorPointService monitorPointService;
+    @Autowired
+    private EmsCustomerService customerService;
 
     /**
      * 采样调度看板聚合数据：每个订单补充点位名称、派单计划区间、派单负责人姓名。
@@ -61,15 +64,21 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
             // 派单以委托单为主体：展示委托名称 + 委托单号（不再依赖点位）
             String entrustName = "—";
             String entrustNo = "—";
+            String custName = "—";
             if (o.getEntrustId() != null) {
                 EmsEntrust e = entrustService.getById(o.getEntrustId());
                 if (e != null) {
                     if (e.getEntrustName() != null) entrustName = e.getEntrustName();
                     if (e.getEntrustNo() != null) entrustNo = e.getEntrustNo();
+                    if (e.getCustId() != null) {
+                        EmsCustomer c = customerService.getById(e.getCustId());
+                        if (c != null && c.getCustName() != null) custName = c.getCustName();
+                    }
                 }
             }
             m.put("entrustName", entrustName);
             m.put("entrustNo", entrustNo);
+            m.put("custName", custName);
             // 委托单定义的点位数量
             int pointCount = 0;
             if (o.getEntrustId() != null) {

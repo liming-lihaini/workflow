@@ -8,3 +8,5 @@ node_modules/
 
 # 流程附件本地存储目录（AttachmentController）
 flow-engine/upload/
+
+*.log

@@ -177,6 +177,20 @@ public class DatabaseMigration implements CommandLineRunner {
                 + "tip TEXT, sort_no INTEGER");
         // 基于危险品数据模型生成「危险品入库申请」表单定义（绑定 hazardous 模型）
         initHazardousInboundForm();
+
+        // ===== 收样工作台-样品采集（手动收集样品扩展字段） =====
+        // 样品关联采样派单/委托单/点位，并存储检测类别、检测项目、采样参数值、
+        // 固定剂、现场质控方式、留样标记、现场照片。
+        addColumnIfAbsent("t_sample", "dispatch_id", "INTEGER");
+        addColumnIfAbsent("t_sample", "entrust_id", "INTEGER");
+        addColumnIfAbsent("t_sample", "sample_no", "TEXT");
+        addColumnIfAbsent("t_sample", "category", "TEXT");
+        addColumnIfAbsent("t_sample", "item", "TEXT");
+        addColumnIfAbsent("t_sample", "sample_params", "TEXT");
+        addColumnIfAbsent("t_sample", "preservatives", "TEXT");
+        addColumnIfAbsent("t_sample", "qc_types", "TEXT");
+        addColumnIfAbsent("t_sample", "retain_sample", "INTEGER DEFAULT 0");
+        addColumnIfAbsent("t_sample", "sample_photo", "TEXT");
     }
 
     /**

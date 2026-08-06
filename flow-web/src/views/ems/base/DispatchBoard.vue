@@ -36,12 +36,14 @@
           style="width: 180px"
           @press-enter="loadOrders"
         />
-        <a-input
+        <a-select
           v-model:value="filters.leadName"
           placeholder="负责人（模糊）"
           allow-clear
+          show-search
           style="width: 160px"
-          @press-enter="loadOrders"
+          :options="leadOptions"
+          @change="loadOrders"
         />
         <a-select
           v-model:value="filters.status"
@@ -463,6 +465,15 @@ const statusStats = computed(() =>
   }))
 )
 const overdueCount = computed(() => orders.value.filter(isOverdue).length)
+// 负责人下拉：基于当前已加载订单中实际出现的真实负责人姓名去重（排除占位符）
+const leadOptions = computed(() => {
+  const set = new Set()
+  for (const o of orders.value) {
+    const ln = o.leadName
+    if (ln && ln !== '—') set.add(ln)
+  }
+  return Array.from(set).map((n) => ({ value: n, label: n }))
+})
 // 展示数据：逾期筛选时仅展示逾期订单
 const displayOrders = computed(() => (overdueOnly.value ? orders.value.filter(isOverdue) : orders.value))
 

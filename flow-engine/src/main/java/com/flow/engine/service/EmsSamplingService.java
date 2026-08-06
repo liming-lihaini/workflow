@@ -4,12 +4,16 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.flow.engine.common.BusinessException;
+import com.flow.engine.common.utils.JsonUtils;
+import com.flow.engine.dto.ReceiveReq;
+import com.flow.engine.dto.SampleCollectReq;
 import com.flow.engine.entity.EmsPhoto;
 import com.flow.engine.entity.EmsSample;
 import com.flow.engine.entity.EmsSampleLog;
 import com.flow.engine.entity.EmsSampleQcBinding;
 import com.flow.engine.entity.EmsSamplingOrder;
 import com.flow.engine.entity.EmsRetain;
+import com.flow.engine.entity.EmsEntrust;
 import com.flow.engine.entity.EmsSamplingRecord;
 import com.flow.engine.mapper.EmsSampleMapper;
 import com.flow.engine.mapper.EmsSampleQcBindingMapper;
@@ -44,6 +48,10 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
     private EmsSamplingOrderService samplingOrderService;
     @Autowired
     private EmsRetainService retainService;
+    @Autowired
+    private EmsEntrustService entrustService;
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     // ===================== 采样记录 =====================
 
@@ -153,6 +161,84 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         return sample;
     }
 
+    /**
+     * 收样工作台-手动收集样品（采集版）：接收完整采集表单数据。
+     * 关联采样派单/委托单/点位，保存检测类别/项目、采样参数值、固定剂、现场质控、
+     * 留样标记与现场照片，生成样品条码并进入已收样状态。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public EmsSample manualCollect(SampleCollectReq req) {
+        if (req.getDispatchId() == null) throw new BusinessException("请选择采样派单");
+        if (req.getPointId() == null) throw new BusinessException("请选择监测点位");
+        if (!StringUtils.hasText(req.getItem())) throw new BusinessException("请选择检测项目");
+        if (!StringUtils.hasText(req.getName())) req.setName(
+                (StringUtils.hasText(req.getCustName()) ? req.getCustName() : "样品")
+                        + "-" + req.getItem());
+
+        EmsSample sample = new EmsSample();
+        sample.setDispatchId(req.getDispatchId());
+        sample.setOrderId(req.getDispatchId());
+        sample.setEntrustId(req.getEntrustId());
+        sample.setPointId(req.getPointId());
+        sample.setName(req.getName());
+        sample.setType(req.getType());
+        sample.setSource(req.getSource());
+        sample.setAmount(req.getAmount());
+        sample.setContainer(req.getContainer());
+        sample.setPreserve(req.getPreserve());
+        sample.setWeather(req.getWeather());
+        sample.setRemark(req.getRemark());
+        sample.setSampleNo(req.getSampleNo());
+        sample.setCategory(req.getCategory());
+        sample.setItem(req.getItem());
+        // 采样参数值：列表序列化为 JSON 存储
+        if (req.getSampleParams() != null && !req.getSampleParams().isEmpty()) {
+            sample.setSampleParams(JsonUtils.toJson(req.getSampleParams()));
+        }
+        // 固定剂：多选合并
+        sample.setPreservatives(req.getPreservatives() == null ? null
+                : String.join(",", req.getPreservatives()));
+        // 现场质控方式：多选合并
+        sample.setQcTypes(req.getQcTypes() == null ? null : String.join(",", req.getQcTypes()));
+        Integer retainSample = req.getRetainSample() == null ? 0 : req.getRetainSample();
+        sample.setRetainSample(retainSample);
+        // 现场照片：逗号分隔
+        sample.setSamplePhoto(req.getPhotos() == null ? null : String.join(",", req.getPhotos()));
+
+        sample.setSource("手动收集");
+        int seq = (int) (sampleMapper.selectCount(new LambdaQueryWrapper<>()) + 1);
+        sample.setBarcode(CodeGenerator.generate("YP", seq));
+        sample.setReceiveBy(StringUtils.hasText(req.getReceiveBy()) ? req.getReceiveBy() : "收样员");
+        sample.setReceiveTime(LocalDate.now().toString());
+        sample.setCreateTime(LocalDateTime.now());
+        sample.setUpdateTime(LocalDateTime.now());
+        sampleMapper.insert(sample);
+        // 留样信息：写入留样字段并登记留样库
+        if (retainSample == 1) {
+            Integer retainDays = req.getRetainDays() == null ? 0 : req.getRetainDays();
+            String retainBy = StringUtils.hasText(req.getRetainBy()) ? req.getRetainBy() : sample.getReceiveBy();
+            String retainDate = StringUtils.hasText(req.getRetainDate()) ? req.getRetainDate() : LocalDate.now().toString();
+            if (StringUtils.hasText(req.getRetainLocation())) sample.setRetainLocation(req.getRetainLocation());
+            sample.setRetainFlag(1);
+            sample.setRetainBy(retainBy);
+            sample.setRetainDate(retainDate);
+            sample.setRetainDays(retainDays);
+            LocalDate until = LocalDate.parse(retainDate).plusDays(retainDays);
+            sample.setRetainUntil(until.toString());
+            sample.setStatus("留样中");
+            sampleMapper.updateById(sample);
+            retain(sample.getId(), retainDays, retainBy, retainDate, "手动收集留样");
+            writeLog(sample.getId(), "留样", retainBy, "手动收集留样至 " + until + "（" + retainDays + "天）");
+        } else {
+            sample.setStatus("已收样");
+            sampleMapper.updateById(sample);
+        }
+        writeLog(sample.getId(), "手动收样", sample.getReceiveBy(),
+                "手动收集样品: " + sample.getName() + "（条码 " + sample.getBarcode() + "，派单 "
+                        + req.getDispatchNo() + "，检测项目 " + req.getItem() + "）");
+        return sample;
+    }
+
     public EmsSample updateSample(Long id, EmsSample sample) {
         EmsSample exist = sampleMapper.selectById(id);
         if (exist == null) throw new BusinessException("样品不存在: " + id);
@@ -165,18 +251,59 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
 
     /** 收样：样品 待收样 → 已收样，记录收样人与收样时间 */
     @Transactional(rollbackFor = Exception.class)
-    public EmsSample receive(Long id, String receiveBy, String receiveTime, String remark) {
+    public EmsSample receive(Long id, ReceiveReq req) {
         EmsSample exist = sampleMapper.selectById(id);
         if (exist == null) throw new BusinessException("样品不存在: " + id);
         if (!"待收样".equals(exist.getStatus())) throw new BusinessException("仅待收样状态可登记收样");
         exist.setStatus("已收样");
-        exist.setReceiveBy(receiveBy);
-        exist.setReceiveTime(receiveTime == null ? LocalDate.now().toString() : receiveTime);
-        if (StringUtils.hasText(remark)) exist.setRemark(remark);
-        exist.setUpdateTime(LocalDateTime.now());
-        sampleMapper.updateById(exist);
-        writeLog(id, "收样", receiveBy, "收样时间: " + exist.getReceiveTime());
+        exist.setReceiveBy(req.getReceiveBy());
+        exist.setReceiveTime(req.getReceiveTime() == null ? LocalDate.now().toString() : req.getReceiveTime());
+        if (StringUtils.hasText(req.getRemark())) exist.setRemark(req.getRemark());
+        if (StringUtils.hasText(req.getAmount())) exist.setAmount(req.getAmount());
+        if (StringUtils.hasText(req.getContainer())) exist.setContainer(req.getContainer());
+        if (StringUtils.hasText(req.getPreserve())) exist.setPreserve(req.getPreserve());
+        // 留样信息
+        Integer retainFlag = req.getRetainFlag() == null ? 0 : req.getRetainFlag();
+        exist.setRetainFlag(retainFlag);
+        if (retainFlag == 1) {
+            Integer retainDays = req.getRetainDays() == null ? 0 : req.getRetainDays();
+            String retainBy = req.getRetainBy();
+            String retainDate = req.getRetainDate() == null ? LocalDate.now().toString() : req.getRetainDate();
+            if (StringUtils.hasText(req.getRetainLocation())) exist.setRetainLocation(req.getRetainLocation());
+            if (StringUtils.hasText(retainBy)) exist.setRetainBy(retainBy);
+            exist.setRetainDate(retainDate);
+            exist.setRetainDays(retainDays);
+            LocalDate until = LocalDate.parse(retainDate).plusDays(retainDays);
+            exist.setRetainUntil(until.toString());
+            exist.setStatus("留样中");
+            exist.setUpdateTime(LocalDateTime.now());
+            sampleMapper.updateById(exist);
+            // 写入留样库
+            retain(id, retainDays, retainBy, retainDate, "收样登记留样");
+            writeLog(id, "收样", req.getReceiveBy(), "收样时间: " + exist.getReceiveTime() + "，已登记留样");
+        } else {
+            exist.setUpdateTime(LocalDateTime.now());
+            sampleMapper.updateById(exist);
+            writeLog(id, "收样", req.getReceiveBy(), "收样时间: " + exist.getReceiveTime());
+        }
+        // 收样完成后，若所属委托单下所有样品均已收样，则委托单自动推进至「已收样」
+        advanceEntrustIfAllReceived(exist.getOrderId());
         return exist;
+    }
+
+    /** 委托单下全部样品完成收样时，自动将其状态推进为「已收样」 */
+    private void advanceEntrustIfAllReceived(Long orderId) {
+        if (orderId == null) return;
+        EmsSamplingOrder order = samplingOrderService.getById(orderId);
+        if (order == null || order.getEntrustId() == null) return;
+        Long entrustId = order.getEntrustId();
+        Integer pending = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM t_sample s JOIN t_sampling_order o ON s.order_id = o.id " +
+                "WHERE o.entrust_id = ? AND s.status = '待收样'",
+                Integer.class, entrustId);
+        if (pending != null && pending == 0) {
+            entrustService.markReceived(entrustId);
+        }
     }
 
     /** 送检：样品 已收样 → 实验室检测（dispatch_time 记录下发时间） */

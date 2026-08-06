@@ -119,8 +119,21 @@ export const deleteSamplingRecord = (id) => request.delete(`/ems/base/sampling/r
 export const createSample = (data) => request.post('/ems/base/sampling/samples', data)
 // 手动收集样品（收样工作台，无采样记录/小程序上报场景），创建即收样
 export const manualCollectSample = (data) => request.post('/ems/base/sampling/samples/manual-collect', data)
+// 收样工作台-样品采集：按状态（默认已派单）拉取采样派单列表
+export const getCollectDispatchList = (params) =>
+  request.get('/ems/base/sampling-orders/dispatch-list', { params })
+// 收样工作台-样品采集：提交完整采集数据（关联派单/点位，含采样参数/固定剂/质控/留样/照片）
+export const collectSample = (data) => request.post('/ems/base/sampling/samples/collect', data)
+// 现场照片批量上传（返回相对路径数组）
+export const uploadSamplePhoto = (file) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return request.post('/ems/base/sampling/samples/photo-upload', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
 export const updateSample = (id, data) => request.put(`/ems/base/sampling/samples/${id}`, data)
-export const receiveSample = (id, params) => request.post(`/ems/base/sampling/samples/${id}/receive`, null, { params })
+export const receiveSample = (id, data) => request.post(`/ems/base/sampling/samples/${id}/receive`, data)
 export const dispatchSample = (id, params) => request.post(`/ems/base/sampling/samples/${id}/dispatch`, null, { params })
 export const getSamples = (params) => request.get('/ems/base/sampling/samples', { params })
 export const getSampleDetail = (id) => request.get(`/ems/base/sampling/samples/${id}/detail`)

@@ -1,7 +1,10 @@
 package com.flow.engine.controllers;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.flow.engine.common.ErrorCode;
 import com.flow.engine.common.Result;
+import com.flow.engine.dto.ReceiveReq;
+import com.flow.engine.dto.SampleCollectReq;
 import com.flow.engine.entity.EmsPhoto;
 import com.flow.engine.entity.EmsRetain;
 import com.flow.engine.entity.EmsSample;
@@ -10,11 +13,23 @@ import com.flow.engine.entity.EmsSampleQcBinding;
 import com.flow.engine.entity.EmsSamplingRecord;
 import com.flow.engine.service.EmsRetainService;
 import com.flow.engine.service.EmsSamplingService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * 环境监测 - 采样与样品管理（TRD 5.3 / ISSUE-024）
@@ -83,12 +98,77 @@ public class EmsSamplingController {
         return Result.ok(samplingService.manualCollect(sample));
     }
 
+    /**
+     * 收样工作台-手动收集样品（采集版）：接收完整采集表单。
+     * 关联采样派单/委托单/点位，保存检测类别/项目、采样参数值、固定剂、现场质控、留样与照片。
+     */
+    @PostMapping("/samples/collect")
+    public Result<EmsSample> collectSample(@RequestBody SampleCollectReq req) {
+        return Result.ok(samplingService.manualCollect(req));
+    }
+
+    /**
+     * 现场照片批量上传：单文件上传，返回相对存储路径（dateDir/uuid.ext）。
+     * 前端批量选择时多次调用，收集返回的路径列表存入 sample_photo。
+     */
+    @Value("${flow.sample.photo.dir:upload/samples}")
+    private String samplePhotoDir;
+
+    @PostMapping("/samples/photo-upload")
+    public Result<Map<String, Object>> uploadSamplePhoto(@RequestParam("file") MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            return Result.error(ErrorCode.PARAM_INVALID, "上传文件不能为空");
+        }
+        String originalName = StringUtils.hasText(file.getOriginalFilename())
+                ? Paths.get(file.getOriginalFilename()).getFileName().toString() : "photo";
+        String ext = "";
+        int dotIdx = originalName.lastIndexOf('.');
+        if (dotIdx >= 0 && dotIdx < originalName.length() - 1) {
+            String rawExt = originalName.substring(dotIdx + 1);
+            if (rawExt.matches("[A-Za-z0-9]{1,10}")) {
+                ext = "." + rawExt.toLowerCase();
+            }
+        }
+        String dateDir = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+        String storedName = UUID.randomUUID() + ext;
+        Path dir = Paths.get(samplePhotoDir, dateDir);
+        Files.createDirectories(dir);
+        Path target = dir.resolve(storedName);
+        file.transferTo(target.toAbsolutePath());
+
+        String relativePath = dateDir + "/" + storedName;
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("name", originalName);
+        data.put("path", relativePath);
+        data.put("url", "/api/v1/ems/base/sampling/samples/photo/" + relativePath);
+        data.put("size", file.getSize());
+        return Result.ok(data);
+    }
+
+    /**
+     * 现场照片访问：按相对路径返回图片二进制。
+     */
+    @GetMapping("/samples/photo/{dateDir}/{fileName}")
+    public void getSamplePhoto(@PathVariable String dateDir,
+                               @PathVariable String fileName,
+                               HttpServletResponse response) throws IOException {
+        Path file = Paths.get(samplePhotoDir, dateDir, fileName);
+        if (!Files.isRegularFile(file)) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        String contentType = Files.probeContentType(file);
+        if (contentType == null) contentType = "application/octet-stream";
+        response.setContentType(contentType);
+        response.setContentLengthLong(Files.size(file));
+        Files.copy(file, response.getOutputStream());
+        response.flushBuffer();
+    }
+
     @PostMapping("/samples/{id}/receive")
     public Result<EmsSample> receive(@PathVariable Long id,
-                                     @RequestParam(required = false) String receiveBy,
-                                     @RequestParam(required = false) String receiveTime,
-                                     @RequestParam(required = false) String remark) {
-        return Result.ok(samplingService.receive(id, receiveBy, receiveTime, remark));
+                                     @RequestBody ReceiveReq req) {
+        return Result.ok(samplingService.receive(id, req));
     }
 
     @PostMapping("/samples/{id}/dispatch")

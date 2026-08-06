@@ -84,6 +84,7 @@ public class DictDataInitializer implements CommandLineRunner {
         createDictTypeIfNotExists("样品类型", "moni_sample_type", 2, "样品分样类型：原样/检测样/平行样/留样/质控样");
         // 17. 样品状态（TRD 5.4 t_sample.status）
         createDictTypeIfNotExists("样品状态", "moni_sample_status", 2, "样品状态机：待检/检测中/待复测/已完成/过期作废");
+        createDictTypeIfNotExists("固定剂", "sample_preservative", 2, "样品采集使用的固定剂：硫酸/盐酸/硝酸/氢氧化钠/硫代硫酸钠等");
         // 18. 质控类型（TRD 5.3/5.6 qc_type）
         createDictTypeIfNotExists("质控类型", "moni_qc_type", 2, "现场/实验室质控类型枚举");
         // 19. 预警类型（TRD 4.3 t_alert.type）
@@ -287,6 +288,18 @@ public class DictDataInitializer implements CommandLineRunner {
             createDictItemIfNotExists(qcType.getId(), "运输空白", "transport_blank", 3);
             createDictItemIfNotExists(qcType.getId(), "加标回收", "spiked_recovery", 4);
             createDictItemIfNotExists(qcType.getId(), "空白对照", "blank_control", 5);
+        }
+
+        // 固定剂（收样工作台-样品采集 固定剂面板，多选来源）
+        DictType preservative = getDictTypeByCode("sample_preservative");
+        if (preservative != null) {
+            createDictItemIfNotExists(preservative.getId(), "硫酸", "sulfuric_acid", 1);
+            createDictItemIfNotExists(preservative.getId(), "盐酸", "hydrochloric_acid", 2);
+            createDictItemIfNotExists(preservative.getId(), "硝酸", "nitric_acid", 3);
+            createDictItemIfNotExists(preservative.getId(), "氢氧化钠", "sodium_hydroxide", 4);
+            createDictItemIfNotExists(preservative.getId(), "硫代硫酸钠", "sodium_thiosulfate", 5);
+            createDictItemIfNotExists(preservative.getId(), "冷藏", "refrigeration", 6);
+            createDictItemIfNotExists(preservative.getId(), "甲醛", "formaldehyde", 7);
         }
 
         // 预警类型（TRD 4.3 t_alert.type）

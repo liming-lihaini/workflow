@@ -1,3 +1,36 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.flow:flow-engine >------------------------
+[INFO] Building flow-engine 1.0.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.2.0:run (default-cli) > test-compile @ flow-engine >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ flow-engine ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ flow-engine ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 328 source files with javac [debug release 17] to target\classes
+[INFO] /D:/source_code/workflow/flow-engine/src/main/java/com/flow/engine/controllers/EmsBaseDataController.java: 某些输入文件使用了未经检查或不安全的操作。
+[INFO] /D:/source_code/workflow/flow-engine/src/main/java/com/flow/engine/controllers/EmsBaseDataController.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ flow-engine ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ flow-engine ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 36 source files with javac [debug release 17] to target\test-classes
+[INFO] /D:/source_code/workflow/flow-engine/src/test/java/com/flow/engine/controller/TaskApiTest.java: D:\source_code\workflow\flow-engine\src\test\java\com\flow\engine\controller\TaskApiTest.java使用了未经检查或不安全的操作。
+[INFO] /D:/source_code/workflow/flow-engine/src/test/java/com/flow/engine/controller/TaskApiTest.java: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+[INFO] 
+[INFO] <<< spring-boot:3.2.0:run (default-cli) < test-compile @ flow-engine <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.2.0:run (default-cli) @ flow-engine ---
+[INFO] Attaching agents: []
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -7,45 +40,62 @@
  =========|_|==============|___/=/_/_/_/
  :: Spring Boot ::                (v3.2.0)
 
-2026-08-05T21:08:11.865+08:00  INFO 6388 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : Starting FlowEngineApplication using Java 17.0.12 with PID 6388 (D:\source_code\workflow\flow-engine\target\classes started by chengJin-huawei in D:\source_code\workflow\flow-engine)
-2026-08-05T21:08:11.867+08:00  INFO 6388 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : No active profile set, falling back to 1 default profile: "default"
-2026-08-05T21:08:13.765+08:00  INFO 6388 --- [flow-engine] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
-2026-08-05T21:08:13.785+08:00  INFO 6388 --- [flow-engine] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-08-05T21:08:13.786+08:00  INFO 6388 --- [flow-engine] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.16]
-2026-08-05T21:08:13.852+08:00  INFO 6388 --- [flow-engine] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-08-05T21:08:13.853+08:00  INFO 6388 --- [flow-engine] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1734 ms
-2026-08-05T21:08:14.086+08:00  INFO 6388 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-08-05T21:08:14.282+08:00  INFO 6388 --- [flow-engine] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.sqlite.jdbc4.JDBC4Connection@40a8a26f
-2026-08-05T21:08:14.285+08:00  INFO 6388 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-06T20:12:20.941+08:00  INFO 24160 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : Starting FlowEngineApplication using Java 17.0.12 with PID 24160 (D:\source_code\workflow\flow-engine\target\classes started by chengJin-huawei in D:\source_code\workflow\flow-engine)
+2026-08-06T20:12:20.952+08:00  INFO 24160 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-08-06T20:12:23.724+08:00  INFO 24160 --- [flow-engine] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-08-06T20:12:23.738+08:00  INFO 24160 --- [flow-engine] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-08-06T20:12:23.739+08:00  INFO 24160 --- [flow-engine] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.16]
+2026-08-06T20:12:23.841+08:00  INFO 24160 --- [flow-engine] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-08-06T20:12:23.842+08:00  INFO 24160 --- [flow-engine] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2456 ms
+2026-08-06T20:12:24.132+08:00  INFO 24160 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-06T20:12:24.388+08:00  INFO 24160 --- [flow-engine] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.sqlite.jdbc4.JDBC4Connection@603d25db
+2026-08-06T20:12:24.390+08:00  INFO 24160 --- [flow-engine] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
  _ _   |_  _ _|_. ___ _ |    _ 
 | | |\/|_)(_| | |_\  |_)||_|_\ 
      /               |         
                         3.5.5 
-2026-08-05T21:08:16.080+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=dummy, class=com.flow.engine.node.DummyNodeHandler
-2026-08-05T21:08:16.090+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=customDemo, class=com.flow.engine.node.impl.CustomDemoNodeHandler
-2026-08-05T21:08:16.091+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=end, class=com.flow.engine.node.impl.EndNodeHandler
-2026-08-05T21:08:16.091+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=exclusiveGateway, class=com.flow.engine.node.impl.ExclusiveGatewayNodeHandler
-2026-08-05T21:08:16.091+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=inclusiveGateway, class=com.flow.engine.node.impl.InclusiveGatewayNodeHandler
-2026-08-05T21:08:16.091+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=parallelGateway, class=com.flow.engine.node.impl.ParallelGatewayNodeHandler
-2026-08-05T21:08:16.092+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=scriptTask, class=com.flow.engine.node.impl.ScriptTaskNodeHandler
-2026-08-05T21:08:16.092+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=serviceTask, class=com.flow.engine.node.impl.ServiceTaskNodeHandler
-2026-08-05T21:08:16.092+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=start, class=com.flow.engine.node.impl.StartNodeHandler
-2026-08-05T21:08:16.093+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=subProcess, class=com.flow.engine.node.impl.SubProcessNodeHandler
-2026-08-05T21:08:16.093+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=userTask, class=com.flow.engine.node.impl.UserTaskNodeHandler
-2026-08-05T21:08:16.691+08:00  WARN 6388 --- [flow-engine] [           main] .b.a.g.t.GroovyTemplateAutoConfiguration : Cannot find template location: classpath:/templates/ (please add some templates, check your Groovy configuration, or set spring.groovy.template.check-template-location=false)
-2026-08-05T21:08:16.986+08:00  INFO 6388 --- [flow-engine] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
-2026-08-05T21:08:17.117+08:00  INFO 6388 --- [flow-engine] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
-2026-08-05T21:08:17.131+08:00  INFO 6388 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : Started FlowEngineApplication in 5.618 seconds (process running for 5.927)
-2026-08-05T21:08:17.167+08:00  INFO 6388 --- [flow-engine] [           main] c.f.engine.config.DictDataInitializer    : [DictDataInitializer] 开始初始化系统内置字典数据...
-2026-08-05T21:08:17.390+08:00  INFO 6388 --- [flow-engine] [           main] c.f.engine.config.DictDataInitializer    : [DictDataInitializer] 系统内置字典数据初始化完成
-2026-08-05T21:08:17.404+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.config.CustomerDataInitializer     : [CustomerDataInitializer] t_customer 已存在 100 条数据，跳过初始化
-2026-08-05T21:08:17.404+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.config.TripleAdminInitializer      : [TripleAdminInitializer] 开始初始化三员账号...
-2026-08-05T21:08:17.404+08:00  INFO 6388 --- [flow-engine] [           main] c.f.engine.service.TripleAdminService    : [TripleAdminService] 开始初始化三员账号...
-2026-08-05T21:08:17.414+08:00  INFO 6388 --- [flow-engine] [           main] c.f.engine.service.TripleAdminService    : [TripleAdminService] 三员账号初始化完成
-2026-08-05T21:08:17.415+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.config.TripleAdminInitializer      : [TripleAdminInitializer] 三员账号初始化完成
-2026-08-05T21:08:17.415+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.config.EntrustDataInitializer      : [EntrustDataInitializer] t_entrust 已存在 100 条，跳过初始化
-2026-08-05T21:08:17.415+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 开始初始化权限数据...
-2026-08-05T21:08:17.423+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 权限数据已存在且完整，跳过初始化
-2026-08-05T21:08:17.458+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 权限数据初始化完成
-2026-08-05T21:08:17.458+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.c.SamplingOrderDataInitializer     : [SamplingOrderDataInitializer] 采样订单负责人均已分配，跳过
-2026-08-05T21:08:17.519+08:00  INFO 6388 --- [flow-engine] [           main] c.f.e.c.SampleParamConfigInitializer     : [采样参数配置] 初始化完成，共写入 20 条配置
+2026-08-06T20:12:26.938+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=dummy, class=com.flow.engine.node.DummyNodeHandler
+2026-08-06T20:12:26.973+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=customDemo, class=com.flow.engine.node.impl.CustomDemoNodeHandler
+2026-08-06T20:12:26.975+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=end, class=com.flow.engine.node.impl.EndNodeHandler
+2026-08-06T20:12:26.975+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=exclusiveGateway, class=com.flow.engine.node.impl.ExclusiveGatewayNodeHandler
+2026-08-06T20:12:26.976+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=inclusiveGateway, class=com.flow.engine.node.impl.InclusiveGatewayNodeHandler
+2026-08-06T20:12:26.976+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=parallelGateway, class=com.flow.engine.node.impl.ParallelGatewayNodeHandler
+2026-08-06T20:12:26.976+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=scriptTask, class=com.flow.engine.node.impl.ScriptTaskNodeHandler
+2026-08-06T20:12:26.977+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=serviceTask, class=com.flow.engine.node.impl.ServiceTaskNodeHandler
+2026-08-06T20:12:26.977+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=start, class=com.flow.engine.node.impl.StartNodeHandler
+2026-08-06T20:12:26.977+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=subProcess, class=com.flow.engine.node.impl.SubProcessNodeHandler
+2026-08-06T20:12:26.978+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.node.NodeHandlerAutoConfiguration  : [NodeHandler] 自动注册节点处理器: type=userTask, class=com.flow.engine.node.impl.UserTaskNodeHandler
+2026-08-06T20:12:27.751+08:00  WARN 24160 --- [flow-engine] [           main] .b.a.g.t.GroovyTemplateAutoConfiguration : Cannot find template location: classpath:/templates/ (please add some templates, check your Groovy configuration, or set spring.groovy.template.check-template-location=false)
+2026-08-06T20:12:28.142+08:00  INFO 24160 --- [flow-engine] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-08-06T20:12:28.283+08:00  INFO 24160 --- [flow-engine] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2026-08-06T20:12:28.301+08:00  INFO 24160 --- [flow-engine] [           main] com.flow.engine.FlowEngineApplication    : Started FlowEngineApplication in 7.847 seconds (process running for 8.299)
+2026-08-06T20:12:28.360+08:00  INFO 24160 --- [flow-engine] [           main] c.f.engine.config.DictDataInitializer    : [DictDataInitializer] 开始初始化系统内置字典数据...
+2026-08-06T20:12:28.675+08:00  INFO 24160 --- [flow-engine] [           main] c.f.engine.config.DictDataInitializer    : [DictDataInitializer] 系统内置字典数据初始化完成
+2026-08-06T20:12:28.715+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.config.CustomerDataInitializer     : [CustomerDataInitializer] t_customer 已存在 100 条数据，跳过初始化
+2026-08-06T20:12:28.717+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.config.TripleAdminInitializer      : [TripleAdminInitializer] 开始初始化三员账号...
+2026-08-06T20:12:28.717+08:00  INFO 24160 --- [flow-engine] [           main] c.f.engine.service.TripleAdminService    : [TripleAdminService] 开始初始化三员账号...
+2026-08-06T20:12:28.727+08:00  INFO 24160 --- [flow-engine] [           main] c.f.engine.service.TripleAdminService    : [TripleAdminService] 三员账号初始化完成
+2026-08-06T20:12:28.728+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.config.TripleAdminInitializer      : [TripleAdminInitializer] 三员账号初始化完成
+2026-08-06T20:12:28.728+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.config.EntrustDataInitializer      : [EntrustDataInitializer] t_entrust 已存在 100 条，跳过初始化
+2026-08-06T20:12:28.729+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 开始初始化权限数据...
+2026-08-06T20:12:28.741+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 权限数据已存在且完整，跳过初始化
+2026-08-06T20:12:28.777+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.config.PermissionDataInitializer   : [PermissionDataInitializer] 权限数据初始化完成
+2026-08-06T20:12:28.777+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.c.SamplingOrderDataInitializer     : [SamplingOrderDataInitializer] 为 7 条采样订单分配负责人...
+2026-08-06T20:12:28.783+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.c.SamplingOrderDataInitializer     : [SamplingOrderDataInitializer] 负责人分配完成
+2026-08-06T20:12:28.787+08:00  INFO 24160 --- [flow-engine] [           main] c.f.e.c.SampleParamConfigInitializer     : [采样参数配置] 已存在 20 条数据，跳过初始化
+2026-08-06T20:12:56.823+08:00  INFO 24160 --- [flow-engine] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-08-06T20:12:56.824+08:00  INFO 24160 --- [flow-engine] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-08-06T20:12:56.827+08:00  INFO 24160 --- [flow-engine] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  15:11 min
+[INFO] Finished at: 2026-08-06T20:27:07+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.2.0:run (default-cli) on project flow-engine: Process terminated with exit code: 1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

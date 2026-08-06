@@ -123,6 +123,21 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         return this.list(new LambdaQueryWrapper<EmsEntrust>().eq(status != null, EmsEntrust::getStatus, status));
     }
 
+    /** 收样完成：委托单自动推进至「已收样」（BR：仅当尚未进入后续流程时） */
+    public EmsEntrust markReceived(Long id) {
+        EmsEntrust e = this.getById(id);
+        if (e == null) return null;
+        if ("已收样".equals(e.getStatus())
+                || "报告编制".equals(e.getStatus())
+                || "归档完成".equals(e.getStatus())) {
+            return e; // 已是或已超过该状态，不回退
+        }
+        e.setStatus("已收样");
+        e.setUpdateTime(LocalDateTime.now());
+        this.updateById(e);
+        return e;
+    }
+
     /** 批量删除委托（ISSUE-026：先删关联子表，再删主表，避免外键约束） */
     @Transactional
     public void batchDelete(List<Long> ids) {

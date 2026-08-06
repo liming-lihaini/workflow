@@ -26,14 +26,40 @@ public class EmsSample {
     private String amount;       // 数量/规格
     private String container;    // 容器
     private String preserve;     // 保存条件/固定剂
+    private String weather;      // 采样天气状况
     private String status;       // 待收样/已收样/留样中/已处置
     private String receiveTime;  // 收样时间
     private String receiveBy;    // 收样人
     private Integer retainFlag;  // 是否留样（0/1）
     private Integer retainDays;  // 留样天数
     private String retainUntil;  // 留样到期日
+    private String retainBy;     // 留样人
+    private String retainDate;   // 留样日期
+    private String retainLocation; // 存放位置
     private String dispatchTime; // 送检/检测下发时间
     private String remark;
+
+    /** 采样派单ID（关联 t_sampling_order.id） */
+    private Long dispatchId;
+    /** 委托单ID（关联 t_entrust.id），采集录入时冗余存储便于检索 */
+    private Long entrustId;
+    /** 样品编号（如 SP-20260801-001），由采集表单录入 */
+    private String sampleNo;
+    /** 检测类别（如 水质/大气等业务分类） */
+    private String category;
+    /** 检测项目（监测因子，来自点位 factors） */
+    private String item;
+    /** 采样参数值：JSON 数组，元素 {code,name,value,unit} */
+    private String sampleParams;
+    /** 固定剂（多选，逗号分隔数据字典值），来源 sample_preservative */
+    private String preservatives;
+    /** 现场质控方式（多选，逗号分隔数据字典值），来源 moni_qc_type */
+    private String qcTypes;
+    /** 是否留样 0否 1是 */
+    private Integer retainSample;
+    /** 现场照片（逗号分隔的相对路径/URL） */
+    private String samplePhoto;
+
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }
