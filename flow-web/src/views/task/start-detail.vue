@@ -284,6 +284,9 @@ async function loadAll() {
               }
             }
             formValues.value = vals
+
+            // 外部跳转带入的预填参数（如留样销毁申请 LYXHSQ）：按名称自动回填表单字段
+            applyPrefill()
           }
         } catch { /* ignore */ }
       }
@@ -312,6 +315,34 @@ async function loadFormDictData(formJson) {
     } catch { /* 单字典加载失败不影响其余 */ }
   }))
   dictData.value = map
+}
+
+// 将路由 query 中的预填参数按名称自动回填到表单字段（通用：参数名与表单字段名同名即赋值，
+// 支持驼峰/下划线/连字符归一化匹配，如 sample_no、sample-no 均可匹配 sampleNo）
+function applyPrefill() {
+  const q = route.query || {}
+  const vals = formValues.value || {}
+  if (!q || Object.keys(q).length === 0) return
+
+  // 建立「归一化字段名 -> 真实字段名」索引
+  const normalize = (name) => String(name || '').replace(/[-_\s]/g, '').toLowerCase()
+  const index = {}
+  Object.keys(vals).forEach((k) => { index[normalize(k)] = k })
+
+  Object.keys(q).forEach((param) => {
+    const raw = q[param]
+    if (raw === undefined || raw === null || raw === '') return
+    // 1) 同名直接匹配
+    if (param in vals) {
+      vals[param] = raw
+      return
+    }
+    // 2) 归一化后匹配（忽略 - _ 及大小写）
+    const key = index[normalize(param)]
+    if (key) vals[key] = raw
+  })
+
+  formValues.value = vals
 }
 
 // ====== 提交 ======

@@ -10,9 +10,11 @@ import com.flow.engine.dto.WebhookResponse;
 import com.flow.engine.entity.Webhook;
 import com.flow.engine.entity.WebhookLog;
 import com.flow.engine.mapper.WebhookLogMapper;
+import com.flow.engine.service.EmsRetainService;
 import com.flow.engine.service.WebhookScheduler;
 import com.flow.engine.service.WebhookService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -31,6 +33,30 @@ public class WebhookController {
     private final WebhookService webhookService;
     private final WebhookScheduler webhookScheduler;
     private final WebhookLogMapper webhookLogMapper;
+    private final EmsRetainService retainService;
+
+    /**
+     * 修改留样状态的 Webhook 回调接口
+     * <p>
+     * 接收 { retainNo, status }，按留样编号更新留样状态。
+     * 设计为可被「编号 LYXHSQ 的留样销毁流程」节点 Webhook 调用：
+     * 流程节点完成时，引擎回调此接口并携带流程变量 formData.retainNo，
+     * 由 webhook 配置的 payloadTemplate 拼装为 { retainNo, status }。
+     */
+    @PostMapping("/retain-status/{status}")
+    public Result<Map<String, Object>> updateRetainStatus(@PathVariable("status") String status,
+                                                           @RequestBody Map<String, Object> body) {
+        String retainNo = body == null ? null : (String) body.get("retainNo");
+        if (!StringUtils.hasText(retainNo) || !StringUtils.hasText(status)) {
+            return Result.fail(400, "retainNo 与 status 均为必填");
+        }
+        int updated = retainService.updateStatusByRetainNo(retainNo, status);
+        Map<String, Object> result = new HashMap<>();
+        result.put("retainNo", retainNo);
+        result.put("status", status);
+        result.put("updated", updated);
+        return Result.ok(result);
+    }
 
     /**
      * 创建Webhook配置

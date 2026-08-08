@@ -333,24 +333,8 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
             sampleMapper.updateById(exist);
             writeLog(id, "收样", req.getReceiveBy(), "收样时间: " + exist.getReceiveTime());
         }
-        // 收样完成后，若所属委托单下所有样品均已收样，则委托单自动推进至「已收样」
-        advanceEntrustIfAllReceived(exist.getOrderId());
+        // 收样完成后不再自动推进委托单状态（样品提交不驱动检测委托单状态修改）
         return exist;
-    }
-
-    /** 委托单下全部样品完成收样时，自动将其状态推进为「已收样」 */
-    private void advanceEntrustIfAllReceived(Long orderId) {
-        if (orderId == null) return;
-        EmsSamplingOrder order = samplingOrderService.getById(orderId);
-        if (order == null || order.getEntrustId() == null) return;
-        Long entrustId = order.getEntrustId();
-        Integer pending = jdbcTemplate.queryForObject(
-                "SELECT COUNT(1) FROM t_sample s JOIN t_sampling_order o ON s.order_id = o.id " +
-                "WHERE o.entrust_id = ? AND s.status = '待收样'",
-                Integer.class, entrustId);
-        if (pending != null && pending == 0) {
-            entrustService.markReceived(entrustId);
-        }
     }
 
     /** 送检：样品 已收样 → 实验室检测（dispatch_time 记录下发时间） */

@@ -49,7 +49,7 @@
               <a-divider type="vertical" v-if="record.status === '异常拒收' || record.status === '检测异常'" />
               <a-button type="link" size="small" @click="openReceive(record)" :disabled="record.status !== '待收样'">收样</a-button>
               <a-divider type="vertical" />
-              <a-button type="link" size="small" @click="openRetain(record)" :disabled="record.status !== '已收样'">留样</a-button>
+              <a-button type="link" size="small" @click="openRetain(record)">留样</a-button>
               <a-divider type="vertical" />
               <a-button type="link" size="small" @click="openQc(record)">质控</a-button>
               <a-divider type="vertical" />
@@ -939,8 +939,8 @@ async function loadCollectDicts() {
 
 async function loadCollectDispatchOptions() {
   try {
-    // 仅拉取「采样执行中」状态的检测派单，待派单/已完成的不在收样工作台可选
-    const res = await getCollectDispatchList({ status: '采样执行中' })
+    // 仅拉取「已派单」状态的检测派单，待派单/采样执行中/已完成的不在收样工作台可选
+    const res = await getCollectDispatchList({ status: '已派单' })
     const arr = res.data || []
     dispatchOptions.value = arr.map(d => {
       // 后端派单看板接口返回的派单号字段是 orderNo（非 dispatchNo），同时无 points/items
@@ -1248,9 +1248,9 @@ async function submitReceive(action) {
 function openRetain(record) {
   current.value = record
   retainForm.retainDays = 30
-  retainForm.retainBy = ''
+  retainForm.retainBy = record?.retainBy || (userStore.realName || userStore.username || undefined)
   retainForm.remark = ''
-  retainDate.value = null
+  retainDate.value = record?.retainTime || todayStr()
   retainOpen.value = true
 }
 

@@ -164,6 +164,8 @@ public class DatabaseMigration implements CommandLineRunner {
         initHazardousDataModel();
         // 将样品留样信息表抽象为流程管理-数据模型的一条数据模型记录（可在数据模型模块查看）
         initRetainDataModel();
+        // 注册「修改留样状态」Webhook，绑定到 LYXHSQ 留样销毁流程节点
+        initRetainDisposeWebhook();
 
         // ===== 采样参数配置管理（TRD 5.1） =====
         createTableIfAbsent("t_sample_param_config",
@@ -327,6 +329,49 @@ public class DatabaseMigration implements CommandLineRunner {
             }
         } catch (Exception ignored) {
             // 幂等保护；若表/字段不存在则跳过，不影响主流程
+        }
+    }
+
+    /**
+     * 注册「修改留样状态」Webhook 配置，绑定到编号 LYXHSQ 的留样销毁流程节点。
+     * 流程节点（NODE_COMPLETED）触发时回调本系统接口 /api/v1/webhooks/retain-status，
+     * 由 payloadTemplate 携带流程变量中的留样编号与目標状态，自动更新留样状态。
+     * <p>
+     * 说明：
+     * - node_id 留空表示「流程级 Webhook」，LYXHSQ 的任意节点完成都会触发（如需限定到具体节点，
+     *   可在前端 Webhook 配置中将 node_id 设为该流程节点的实际节点ID）。
+     * - payloadTemplate 中 ${formData.retainNo} 取自流程变量（LYXHSQ 启动即写入）。
+     * - status 目前默认写为「销毁审批中」，可按需在配置中改为其他状态值。
+     */
+    private void initRetainDisposeWebhook() {
+        String webhookKey = "retain_dispose_status";
+        String name = "留样销毁-修改留样状态";
+        String url = "http://localhost:8080/api/v1/webhooks/retain-status/销毁审批中";
+        String method = "POST";
+        String payloadTemplate = "{\"retainNo\":\"${formData.retainNo}\"}";
+        String triggerEvents = "[\"NODE_COMPLETED\"]";
+        String processKey = "LYXHSQ";
+
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM wf_webhook WHERE webhook_key='" + webhookKey + "'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) {
+                st.executeUpdate("UPDATE wf_webhook SET name='" + name + "', url='" + url + "', method='" + method
+                        + "', payload_template='" + payloadTemplate + "', trigger_events='" + triggerEvents
+                        + "', process_key='" + processKey + "', node_id=NULL, status=1 WHERE webhook_key='" + webhookKey + "'");
+            } else {
+                st.executeUpdate("INSERT INTO wf_webhook (webhook_key, name, url, method, payload_template, "
+                        + "timeout, retry_count, trigger_events, process_key, node_id, status, create_time, update_time) "
+                        + "VALUES ('" + webhookKey + "', '" + name + "', '" + url + "', '" + method + "', '"
+                        + payloadTemplate + "', 5000, 3, '" + triggerEvents + "', '" + processKey + "', NULL, 1, "
+                        + "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+            }
+        } catch (Exception ignored) {
+            // 幂等保护；若 wf_webhook 表不存在则跳过，不影响主流程
         }
     }
 

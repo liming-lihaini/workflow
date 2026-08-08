@@ -154,20 +154,22 @@ public class WebhookService {
         if (StringUtils.hasText(processKey)) {
             wrapper.eq(Webhook::getProcessKey, processKey);
         }
-        if (StringUtils.hasText(nodeId)) {
-            wrapper.eq(Webhook::getNodeId, nodeId);
-        }
         List<Webhook> webhooks = webhookMapper.selectList(wrapper);
-        // 过滤包含该事件类型的webhook
+        // 过滤：事件类型匹配；节点匹配（webhook.nodeId 为空表示匹配流程任意节点，非空则必须等于当前节点）
         return webhooks.stream()
                 .filter(w -> {
-                    if (w.getTriggerEvents() == null) return true;
-                    try {
-                        List<String> events = JsonUtils.fromJson(w.getTriggerEvents(), new TypeReference<List<String>>() {});
-                        return events.contains(eventType);
-                    } catch (Exception e) {
-                        return true;
+                    if (w.getTriggerEvents() != null) {
+                        try {
+                            List<String> events = JsonUtils.fromJson(w.getTriggerEvents(), new TypeReference<List<String>>() {});
+                            if (!events.contains(eventType)) return false;
+                        } catch (Exception e) {
+                            return false;
+                        }
                     }
+                    if (StringUtils.hasText(w.getNodeId())) {
+                        return w.getNodeId().equals(nodeId);
+                    }
+                    return true;
                 })
                 .collect(Collectors.toList());
     }

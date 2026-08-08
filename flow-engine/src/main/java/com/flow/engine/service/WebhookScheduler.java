@@ -43,7 +43,7 @@ public class WebhookScheduler {
 
             HttpMethod method = HttpMethod.valueOf(webhook.getMethod().toUpperCase());
             ResponseEntity<String> response = webhookRestTemplate.exchange(
-                    webhook.getUrl(), method, entity, String.class
+                    buildEncodedUri(webhook.getUrl()), method, entity, String.class
             );
 
             // 记录成功
@@ -125,7 +125,7 @@ public class WebhookScheduler {
 
             HttpMethod method = HttpMethod.valueOf(webhookLog.getRequestMethod().toUpperCase());
             ResponseEntity<String> response = webhookRestTemplate.exchange(
-                    webhookLog.getRequestUrl(), method, entity, String.class
+                    buildEncodedUri(webhookLog.getRequestUrl()), method, entity, String.class
             );
 
             webhookLog.setResponseStatus(response.getStatusCode().value());
@@ -189,19 +189,46 @@ public class WebhookScheduler {
         return headers;
     }
 
+    /** 对含中文等非法字符的 URL 做 URI 编码（支持路径参数中的中文），避免 RestTemplate 解析失败 */
+    private java.net.URI buildEncodedUri(String url) {
+        try {
+            return org.springframework.web.util.UriComponentsBuilder.fromHttpUrl(url).build().toUri();
+        } catch (Exception e) {
+            return java.net.URI.create(url);
+        }
+    }
+
     private String buildBody(Webhook webhook, Map<String, Object> payload) {
         if (webhook.getPayloadTemplate() != null && !webhook.getPayloadTemplate().isEmpty()) {
-            // 简单模板替换：${variable}
+            // 模板替换，支持嵌套路径：${a.b.c} 与 ${a}
             String body = webhook.getPayloadTemplate();
-            if (payload != null) {
-                for (Map.Entry<String, Object> entry : payload.entrySet()) {
-                    body = body.replace("${" + entry.getKey() + "}", String.valueOf(entry.getValue()));
-                }
+            java.util.regex.Matcher matcher = PAYLOAD_TEMPLATE_PATTERN.matcher(body);
+            StringBuffer sb = new StringBuffer();
+            while (matcher.find()) {
+                Object val = resolveTemplatePath(payload, matcher.group(1));
+                matcher.appendReplacement(sb, val == null ? "" : java.util.regex.Matcher.quoteReplacement(String.valueOf(val)));
             }
-            return body;
+            matcher.appendTail(sb);
+            return sb.toString();
         }
         // 默认使用payload JSON
         return payload != null ? JsonUtils.toJson(payload) : "{}";
+    }
+
+    private static final java.util.regex.Pattern PAYLOAD_TEMPLATE_PATTERN =
+            java.util.regex.Pattern.compile("\\$\\{([\\w.]+)\\}");
+
+    /** 按点号路径（a.b.c）从 payload Map 中取值，支持嵌套 Map */
+    private Object resolveTemplatePath(Map<String, Object> payload, String path) {
+        if (payload == null || path == null || path.isEmpty()) return null;
+        String[] parts = path.split("\\.");
+        Object cur = payload;
+        for (String part : parts) {
+            if (!(cur instanceof Map)) return null;
+            cur = ((Map<?, ?>) cur).get(part);
+            if (cur == null) return null;
+        }
+        return cur;
     }
 
     private void retryWebhook(WebhookLog webhookLog, Webhook webhook) {

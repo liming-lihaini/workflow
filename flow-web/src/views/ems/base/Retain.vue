@@ -209,13 +209,17 @@ const filteredList = computed(() => {
   return arr
 })
 
-// 销毁申请
+// 销毁申请：打开编号为 LYXHSQ 的流程，并自动回填留样编号与样品编号
 function openDisposeModal(record) {
   currentRetain.value = record
-  disposeForm.disposeReason = ''
-  disposeForm.disposeMethod = undefined
-  disposeForm.disposeDate = ''
-  disposeModalOpen.value = true
+  router.push({
+    path: '/task/start-detail',
+    query: {
+      processKey: 'LYXHSQ',
+      retainNo: record.retainNo || '',
+      sampleNo: record.barcode || record.sampleId || '',
+    },
+  })
 }
 
 async function submitDispose() {
