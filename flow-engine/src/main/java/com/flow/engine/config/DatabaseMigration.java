@@ -147,9 +147,6 @@ public class DatabaseMigration implements CommandLineRunner {
         createTableIfAbsent("t_transition_def",
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_type TEXT, from_state TEXT, event TEXT, " +
                 "to_state TEXT, guard_expr TEXT, guard_fail_msg TEXT");
-        createTableIfAbsent("t_rule_def",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, rule_key TEXT, rule_name TEXT, expr TEXT, " +
-                "enabled INTEGER DEFAULT 1, version INTEGER DEFAULT 1, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_seq_def",
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_key TEXT, prefix TEXT, seq_date TEXT, " +
                 "current_val INTEGER DEFAULT 0, step INTEGER DEFAULT 1");
@@ -159,13 +156,14 @@ public class DatabaseMigration implements CommandLineRunner {
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_type TEXT, biz_id INTEGER, event TEXT, " +
                 "event_name TEXT, from_state TEXT, to_state TEXT, operator TEXT, opinion TEXT, create_time TEXT");
 
-        // 初始化内置状态机/规则/编号（幂等）
+        // 初始化内置状态机/编号（幂等）
         // 注：操作审计复用现有 ISSUE-014 的 sys_operation_log + @OpLog 切面，不再重复建表
         initStateMachineDefs();
-        initRuleDefs();
         initSeqDefs();
         // 将危化品数据基础表抽象为流程管理-数据模型的一条数据模型记录（可在数据模型模块查看）
         initHazardousDataModel();
+        // 将样品留样信息表抽象为流程管理-数据模型的一条数据模型记录（可在数据模型模块查看）
+        initRetainDataModel();
 
         // ===== 采样参数配置管理（TRD 5.1） =====
         createTableIfAbsent("t_sample_param_config",
@@ -283,6 +281,55 @@ public class DatabaseMigration implements CommandLineRunner {
         }
     }
 
+    /**
+     * 将样品留样信息表（t_retain）抽象为流程管理-数据模型的一条数据模型记录，
+     * 可在「数据模型」模块查看/绑定留样库业务表单。状态机：留样中 → 销毁审批中 → 已销毁。
+     */
+    private void initRetainDataModel() {
+        String modelJson = "{\"modelKey\":\"retain\",\"modelName\":\"样品留样\",\"mainTable\":{"
+                + "\"tableName\":\"t_retain\",\"label\":\"样品留样信息表\",\"fields\":["
+                + "{\"fieldKey\":\"id\",\"label\":\"ID\",\"type\":\"number\",\"hidden\":true},"
+                + "{\"fieldKey\":\"retainNo\",\"label\":\"留样编号\",\"type\":\"text\",\"required\":true,\"writable\":true,\"columnWidth\":160},"
+                + "{\"fieldKey\":\"sampleId\",\"label\":\"样品ID\",\"type\":\"number\",\"columnWidth\":100},"
+                + "{\"fieldKey\":\"barcode\",\"label\":\"样品条码\",\"type\":\"text\",\"writable\":true,\"columnWidth\":140},"
+                + "{\"fieldKey\":\"name\",\"label\":\"样品名称\",\"type\":\"text\",\"required\":true,\"writable\":true,\"columnWidth\":160},"
+                + "{\"fieldKey\":\"category\",\"label\":\"监测类别\",\"type\":\"text\",\"writable\":true,\"columnWidth\":120},"
+                + "{\"fieldKey\":\"retainLocation\",\"label\":\"库位\",\"type\":\"text\",\"writable\":true,\"columnWidth\":120},"
+                + "{\"fieldKey\":\"pointId\",\"label\":\"点位ID\",\"type\":\"number\",\"columnWidth\":100},"
+                + "{\"fieldKey\":\"disposeReason\",\"label\":\"销毁原因\",\"type\":\"textarea\",\"writable\":true,\"columnWidth\":160},"
+                + "{\"fieldKey\":\"disposeMethod\",\"label\":\"销毁方式\",\"type\":\"text\",\"writable\":true,\"columnWidth\":120},"
+                + "{\"fieldKey\":\"disposeDate\",\"label\":\"预计销毁日期\",\"type\":\"date\",\"writable\":true,\"columnWidth\":140},"
+                + "{\"fieldKey\":\"disposeTime\",\"label\":\"实际处置时间\",\"type\":\"datetime\",\"columnWidth\":160},"
+                + "{\"fieldKey\":\"processInstanceId\",\"label\":\"流程实例ID\",\"type\":\"number\",\"hidden\":true},"
+                + "{\"fieldKey\":\"retainBy\",\"label\":\"留样人\",\"type\":\"text\",\"writable\":true,\"columnWidth\":100},"
+                + "{\"fieldKey\":\"retainTime\",\"label\":\"留样时间\",\"type\":\"datetime\",\"columnWidth\":160},"
+                + "{\"fieldKey\":\"retainDays\",\"label\":\"留样天数\",\"type\":\"number\",\"writable\":true,\"columnWidth\":100},"
+                + "{\"fieldKey\":\"retainUntil\",\"label\":\"留样到期日\",\"type\":\"date\",\"columnWidth\":140},"
+                + "{\"fieldKey\":\"disposeBy\",\"label\":\"处置人\",\"type\":\"text\",\"writable\":true,\"columnWidth\":100},"
+                + "{\"fieldKey\":\"status\",\"label\":\"留样状态\",\"type\":\"text\",\"required\":true,\"writable\":true,\"columnWidth\":100},"
+                + "{\"fieldKey\":\"remark\",\"label\":\"备注\",\"type\":\"textarea\",\"writable\":true,\"columnWidth\":200},"
+                + "{\"fieldKey\":\"createTime\",\"label\":\"创建时间\",\"type\":\"datetime\",\"hidden\":true},"
+                + "{\"fieldKey\":\"updateTime\",\"label\":\"更新时间\",\"type\":\"datetime\",\"hidden\":true}"
+                + "]}}";
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM wf_data_model WHERE model_key='retain'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) {
+                st.executeUpdate("UPDATE wf_data_model SET model_json='" + modelJson
+                        + "', model_name='样品留样', version=1, status=1 WHERE model_key='retain'");
+            } else {
+                st.executeUpdate("INSERT INTO wf_data_model (model_key, model_name, model_json, version, status) "
+                        + "VALUES ('retain', '样品留样', '" + modelJson + "', 1, 1)");
+            }
+        } catch (Exception ignored) {
+            // 幂等保护；若表/字段不存在则跳过，不影响主流程
+        }
+    }
+
     /** 内置通用校验状态机 + 示例业务状态机定义（幂等插入）。 */
     private void initStateMachineDefs() {
         try (Connection conn = dataSource.getConnection();
@@ -323,26 +370,6 @@ public class DatabaseMigration implements CommandLineRunner {
         }
     }
 
-    /** 内置规则定义（QLExpress/SpEL 等价表达式，可配置热更）。 */
-    private void initRuleDefs() {
-        try (Connection conn = dataSource.getConnection();
-             Statement st = conn.createStatement()) {
-            // 派单资质闸门：context 含 staffQualified、instAvailable
-            ensureRule(st, "dispatch_gate", "派单资质闸门",
-                    "#staffQualified == true && #instAvailable == true", "派单前校验人员资质与仪器可用");
-            // 物资校准闸门：context 含 calibrated
-            ensureRule(st, "material_calib_gate", "物资校准闸门",
-                    "#calibrated == true", "使用前校验物资/仪器已校准");
-            // 超标判定：value > limit
-            ensureRule(st, "exceed_judge", "超标判定",
-                    "#value > #limit", "检测结果是否超标");
-            // 质控判定：偏差在允许范围内
-            ensureRule(st, "qc_pass", "质控判定",
-                    "#deviation <= #allowDeviation", "质控活动是否通过");
-        } catch (Exception ignored) {
-        }
-    }
-
     /** 内置编号序列定义（前缀 + 日期段 + 序列）。 */
     private void initSeqDefs() {
         try (Connection conn = dataSource.getConnection();
@@ -371,16 +398,6 @@ public class DatabaseMigration implements CommandLineRunner {
         var rs = st.executeQuery("SELECT 1 FROM t_state_def WHERE biz_type='" + biz + "' AND state_key='" + key + "'");
         if (!rs.next()) {
             st.execute("INSERT INTO t_state_def(biz_type,state_key,state_name,sort) VALUES('" + biz + "','" + key + "','" + name + "',0)");
-        }
-        rs.close();
-    }
-
-    private void ensureRule(Statement st, String key, String name, String expr, String remark) throws Exception {
-        var rs = st.executeQuery("SELECT 1 FROM t_rule_def WHERE rule_key='" + key + "'");
-        if (!rs.next()) {
-            String now = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
-            st.execute("INSERT INTO t_rule_def(rule_key,rule_name,expr,enabled,version,remark,create_time,update_time) " +
-                    "VALUES('" + key + "','" + name + "','" + expr + "',1,1,'" + remark + "','" + now + "','" + now + "')");
         }
         rs.close();
     }

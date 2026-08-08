@@ -8,10 +8,12 @@ import com.flow.engine.entity.EmsDetectionResult;
 import com.flow.engine.entity.EmsDetectionReview;
 import com.flow.engine.entity.EmsDetectionTask;
 import com.flow.engine.entity.EmsSample;
+import com.flow.engine.entity.EmsSamplingOrder;
 import com.flow.engine.mapper.EmsDetectionResultMapper;
 import com.flow.engine.mapper.EmsDetectionReviewMapper;
 import com.flow.engine.mapper.EmsDetectionTaskMapper;
 import com.flow.engine.mapper.EmsSampleMapper;
+import com.flow.engine.service.EmsSamplingOrderService;
 import com.flow.engine.mapper.EmsSampleParamConfigMapper;
 import com.flow.engine.util.CodeGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +40,8 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
     private EmsSampleMapper sampleMapper;
     @Autowired
     private EmsSampleParamConfigMapper configMapper;
+    @Autowired
+    private EmsSamplingOrderService samplingOrderService;
 
     /** 为已收样样品创建检测任务（幂等：已存在则跳过）。 */
     public EmsDetectionTask createTask(Long sampleId, String monitorItems, String entryBy, String reviewBy) {
@@ -70,6 +74,10 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
         // 检测任务创建完成，关联样品状态变更为「实验室监测中」
         if (sample != null) {
             updateSampleStatus(sampleId, "实验室监测中");
+            // 同步关联采样订单状态为「实验室监测中」
+            if (sample.getOrderId() != null) {
+                updateOrderStatus(sample.getOrderId(), "实验室监测中");
+            }
         }
         return task;
     }
@@ -82,6 +90,16 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
                 = new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
         uw.eq(EmsSample::getId, sampleId).set(EmsSample::getStatus, status);
         sampleMapper.update(null, uw);
+    }
+
+    /** 联动更新关联采样订单状态。 */
+    private void updateOrderStatus(Long orderId, String status) {
+        EmsSamplingOrder order = samplingOrderService.getById(orderId);
+        if (order == null || status.equals(order.getStatus())) return;
+        com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<EmsSamplingOrder> uw
+                = new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<>();
+        uw.eq(EmsSamplingOrder::getId, orderId).set(EmsSamplingOrder::getStatus, status);
+        samplingOrderService.update(null, uw);
     }
 
     /** 保存/更新检测结果明细（先删除旧结果再批量写入），并记录环境条件与综合结论。 */

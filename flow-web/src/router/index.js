@@ -177,10 +177,22 @@ const routes = [
         meta: { title: '客户管理', permKey: 'ems:customer' }
       },
       {
+        path: 'ems/base/customer/:id',
+        name: 'EmsCustomerDetail',
+        component: () => import('../views/ems/base/CustomerDetail.vue'),
+        meta: { title: '客户详情', permKey: 'ems:customer', hideInMenu: true }
+      },
+      {
+        path: 'ems/base/dispatch/:id',
+        name: 'EmsDispatchDetail',
+        component: () => import('../views/ems/base/DispatchDetail.vue'),
+        meta: { title: '派单详情', permKey: 'ems:dispatch', hideInMenu: true }
+      },
+      {
         path: 'ems/base/entrust',
         name: 'EmsEntrust',
         component: () => import('../views/ems/base/Entrust.vue'),
-        meta: { title: '委托管理', permKey: 'ems:entrust' }
+        meta: { title: '检测委托', permKey: 'ems:entrust' }
       },
       {
         path: 'ems/base/vehicle',
@@ -257,13 +269,6 @@ const routes = [
         name: 'EmsDashboard',
         component: () => import('../views/ems/dashboard/Dashboard.vue'),
         meta: { title: '监测驾驶舱', permKey: 'ems:dashboard' }
-      },
-      // ===== 基础设施底座：规则引擎配置（ISSUE-029）=====
-      {
-        path: 'ems/base/rule-admin',
-        name: 'EmsRuleAdmin',
-        component: () => import('../views/ems/base/RuleAdmin.vue'),
-        meta: { title: '规则引擎配置', permKey: 'ems:base' }
       },
       // ===== 报告生成与审核（ISSUE-027）=====
       {

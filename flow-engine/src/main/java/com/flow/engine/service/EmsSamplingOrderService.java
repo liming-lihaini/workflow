@@ -211,4 +211,13 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
                 .eq(entrustId != null, EmsSamplingOrder::getEntrustId, entrustId)
                 .orderByDesc(EmsSamplingOrder::getId));
     }
+
+    /**
+     * 删除采样订单：级联删除关联派单（避免孤儿数据），再删除订单本身。
+     */
+    @Transactional
+    public void deleteOrder(Long id) {
+        dispatchMapper.delete(new LambdaQueryWrapper<EmsDispatch>().eq(EmsDispatch::getOrderId, id));
+        this.removeById(id);
+    }
 }

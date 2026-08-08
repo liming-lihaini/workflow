@@ -1,15 +1,18 @@
 <template>
-  <div class="detail-wrap">
-    <a-page-header
-      :title="vo.entrustName || '委托详情'"
-      :sub-title="vo.entrustNo"
-      @back="emit('close')"
-    >
-    </a-page-header>
+  <div class="page-container">
+    <div class="page-toolbar">
+      <a-button @click="emit('close')">
+        <template #icon><span class="btn-icon">←</span></template>
+        返回
+      </a-button>
+      <span class="page-title">{{ vo.entrustName || '委托详情' }}<span class="page-sub">{{ vo.entrustNo }}</span></span>
+    </div>
 
     <a-card title="基本信息" size="small" class="block">
-      <a-descriptions :column="2" bordered size="small">
-        <a-descriptions-item label="委托名称">{{ vo.entrustName || '-' }}</a-descriptions-item>
+      <a-descriptions :column="2" bordered size="small" :label-style="{ width: '120px' }">
+        <a-descriptions-item label="委托名称">
+          <a-tag v-if="vo.urgent" color="red" style="margin-right: 4px">紧急</a-tag>{{ vo.entrustName || '-' }}
+        </a-descriptions-item>
         <a-descriptions-item label="委托编号">{{ vo.entrustNo || '系统自动生成' }}</a-descriptions-item>
         <a-descriptions-item label="客户">{{ vo.custName || '-' }}</a-descriptions-item>
         <a-descriptions-item label="来源">{{ vo.sourceName || vo.source || '-' }}</a-descriptions-item>
@@ -22,6 +25,25 @@
 
       <a-divider class="title-divider" orientation="left">委托说明</a-divider>
       <div class="rich-view" v-html="vo.description || '<span style=\'color:#bfbfbf\'>暂无说明</span>'"></div>
+
+      <a-divider class="title-divider" orientation="left">委托附件</a-divider>
+      <div v-if="attachments.length">
+        <a-list :data-source="attachments" size="small" bordered>
+          <template #renderItem="{ item }">
+            <a-list-item>
+              <a-list-item-meta>
+                <template #title>
+                  <a :href="attachmentUrl(item)" target="_blank" rel="noopener" class="link-text">{{ item.fileName }}</a>
+                </template>
+                <template #description>
+                  <span v-if="item.size">{{ (item.size / 1024).toFixed(1) }} KB</span>
+                </template>
+              </a-list-item-meta>
+            </a-list-item>
+          </template>
+        </a-list>
+      </div>
+      <div v-else class="empty-tip">暂无附件</div>
     </a-card>
 
     <a-card title="监测点位（委托基础信息）" size="small" class="block">
@@ -74,7 +96,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getEntrust, getSamplingOrders } from '../../../api/ems'
+import { getEntrust, getSamplingOrders, getFiles } from '../../../api/ems'
 
 const props = defineProps({ id: { type: [Number, String], required: true } })
 const emit = defineEmits(['close'])
@@ -82,6 +104,12 @@ const router = useRouter()
 
 const vo = ref({})
 const dispatchOrders = ref([])
+const attachments = ref([])
+
+function attachmentUrl(file) {
+  // 后端下载接口：GET /api/v1/attachments/download?path=&name=
+  return `/api/v1/attachments/download?path=${encodeURIComponent(file.filePath)}&name=${encodeURIComponent(file.fileName)}`
+}
 
 function goDispatch(order) {
   router.push({ path: '/ems/base/dispatch-detail', query: { id: order.id } })
@@ -95,7 +123,6 @@ const pointColumns = [
   { title: '介质类型', dataIndex: 'pointType', key: 'pointType', width: 120 },
   { title: '监测因子', dataIndex: 'factors', key: 'factors', width: 200 },
   { title: '执行标准(编号+全称)', key: 'standard', width: 220 },
-  { title: '监测频次', dataIndex: 'freq', key: 'freq', width: 130 },
   { title: '备注(工况要求)', dataIndex: 'condition', key: 'condition', width: 160 }
 ]
 
@@ -105,10 +132,10 @@ function statusColor(s) {
 
 function renderDate(v) {
   if (!v) return '-'
-  const d = new Date(v.replace(' ', 'T'))
-  if (isNaN(d.getTime())) return v
-  const p = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  // 后端返回 yyyy-MM-ddTHH:mm:ss[.nnn]，直接取前 10 位（年月日），避免高精度小数导致 Date 解析失败
+  const str = String(v)
+  if (str.length >= 10) return str.substring(0, 10)
+  return str
 }
 
 const dispatchColumns = [
@@ -126,18 +153,50 @@ function loadDispatchOrders() {
   }).catch(() => {})
 }
 
+function loadAttachments() {
+  getFiles({ bizType: 'entrust', bizId: props.id }).then((res) => {
+    const list = res.data || res || []
+    attachments.value = list.map((f) => ({
+      id: f.id,
+      fileName: f.fileName,
+      filePath: f.filePath,
+      size: f.size
+    }))
+  }).catch(() => {})
+}
+
 onMounted(() => {
   getEntrust(props.id).then((res) => {
     vo.value = res.data || res
   }).catch(() => {})
   loadDispatchOrders()
+  loadAttachments()
 })
 </script>
 
 <style scoped>
-.detail-wrap {
-  padding: 0 16px 16px;
+.page-container {
+  padding: 16px;
   background-color: #FFF;
+}
+.page-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+.page-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.page-sub {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #8c8c8c;
+}
+.btn-icon {
+  display: inline-block;
 }
 .block {
   margin-bottom: 16px;
@@ -149,6 +208,11 @@ onMounted(() => {
   min-height: 60px;
   font-size: 14px;
   line-height: 1.6;
+}
+.empty-tip {
+  color: #bfbfbf;
+  font-size: 13px;
+  padding: 8px 0;
 }
 .link-text {
   color: #2563EB;

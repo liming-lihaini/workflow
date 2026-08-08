@@ -3,7 +3,7 @@
     <!-- 委托列表 -->
     <div v-if="!detailId" class="card-wrap">
       <div class="page-header">
-        <span class="page-title">委托管理</span>
+        <span class="page-title">检测委托</span>
         <a-space wrap>
           <a-input-search
             v-model:value="searchText"
@@ -35,15 +35,14 @@
         :data-source="dataList"
         :loading="loading"
         :pagination="pagination"
-        :scroll="{ x: 1100, y: scrollY }"
-        :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
-        :resize-column="true"
-        @resizeColumn="handleResizeColumn"
+        :scroll="{ x: 1200, y: scrollY }"
+        :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChangeArr }"
         row-key="id"
         @change="handleTableChange"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'entrustName'">
+            <a-tag v-if="record.urgent" color="red" style="margin-right: 4px">紧急</a-tag>
             <span class="title-link" @click="openDetail(record.id)">{{ record.entrustName }}</span>
           </template>
           <template v-if="column.key === 'status'">
@@ -92,15 +91,16 @@
             </a-popconfirm>
           </template>
         </template>
+        <template #emptyText>
+          <span style="color:#999">暂无数据</span>
+        </template>
       </a-table>
       </div>
     </div>
 
     <!-- 委托详情（独立界面，主页内打开） -->
     <EntrustDetail v-else :id="detailId" @close="closeDetail" />
-
-    <!-- 新建/编辑抽屉 -->
-
+    
     <!-- 新建/编辑抽屉 -->
     <a-drawer
       v-model:open="drawerVisible"
@@ -114,6 +114,11 @@
           <a-col :span="12">
             <a-form-item label="委托名称" required>
               <a-input v-model:value="formState.entrustName" placeholder="请输入委托名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="是否紧急">
+              <a-switch v-model:checked="formState.urgent" :checked-value="1" :un-checked-value="0" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
@@ -133,21 +138,21 @@
           </a-col>
           <a-col :span="24">
             <a-form-item label="委托说明" style="width: 100%">
-              <div class="editor-toolbar">
-                <a-space size="small">
-                  <a-button size="small" @click="execCmd('bold')"><b>B</b></a-button>
-                  <a-button size="small" @click="execCmd('italic')"><i>I</i></a-button>
-                  <a-button size="small" @click="execCmd('underline')"><u>U</u></a-button>
-                  <a-button size="small" @click="execCmd('insertUnorderedList')">• 列表</a-button>
-                </a-space>
-              </div>
-              <div
-                ref="editorRef"
-                class="rich-editor"
-                contenteditable="true"
-                placeholder="请输入委托说明（支持富文本）"
-                @input="onEditorInput"
-              ></div>
+              <RichTextEditor v-model:value="formState.description" placeholder="请输入委托说明（支持完整富文本编辑）" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="24">
+            <a-form-item label="委托附件" style="width: 100%">
+              <a-upload
+                multiple
+                list-type="text"
+                :file-list="attachments"
+                :custom-request="handleAttachmentUpload"
+                @remove="handleAttachmentRemove"
+              >
+                <a-button><upload-outlined /> 上传附件（可多选）</a-button>
+              </a-upload>
+              <div class="field-tip">支持多文件，保存委托后附件自动归档关联。</div>
             </a-form-item>
           </a-col>
         </a-row>
@@ -210,6 +215,8 @@
               <a-textarea v-model:value="record.condition" placeholder="工况要求" :rows="1" auto-size />
             </template>
             <template v-else-if="column.key === 'op'">
+              <span class="action-link" @click="copyPoint(index)">复制</span>
+              <a-divider type="vertical" />
               <a-popconfirm title="删除该点位？" @confirm="removePoint(index)">
                 <span class="action-link danger">删除</span>
               </a-popconfirm>
@@ -236,10 +243,13 @@
 import { ref, reactive, onMounted, onUnmounted, nextTick, h } from 'vue'
 import { useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
+import { UploadOutlined } from '@ant-design/icons-vue'
 import {
-  getEntrusts, getEntrust, saveEntrust, submitEntrust, techConfirmEntrust, rejectEntrust, batchDeleteEntrusts, getCustomers, getDictItems, redispatchSamplingOrder, getSampleParamConfigs
+  getEntrusts, getEntrust, saveEntrust, submitEntrust, techConfirmEntrust, rejectEntrust, batchDeleteEntrusts, getCustomers, getDictItems, redispatchSamplingOrder, getSampleParamConfigs, archiveFile, getFiles
 } from '../../../api/ems'
+import { uploadAttachment } from '../../../api/attachment'
 import EntrustDetail from './EntrustDetail.vue'
+import RichTextEditor from '../../../components/RichTextEditor.vue'
 import { usePermission } from '../../../composables/usePermission'
 import { useResizableColumns } from '../../../composables/useResizableTable'
 
@@ -273,11 +283,12 @@ function configItemOptions(type) {
 const rejectVisible = ref(false)
 const rejectForm = reactive({ record: null, opinion: '' })
 
+// 委托附件（多附件上传）
+const attachments = ref([])              // [{ uid, name, path, status }]
+const archivedPaths = ref(new Set())     // 已提交到后端的附件路径，避免重复归档
+
 const selectedRowKeys = ref([])
 const scrollY = ref(420)
-function onSelectChange(keys) {
-  selectedRowKeys.value = keys
-}
 function syncTableHeight() {
   const box = document.querySelector('.page-wrap .tbl-box')
   if (!box) return
@@ -325,21 +336,20 @@ function handleDeleteOne(record) {
     .catch(() => {})
 }
 
-const editorRef = ref(null)
 const points = ref([])
 const detailId = ref(null)  // 非空时主页展示详情界面
 
 const pagination = reactive({ current: 1, pageSize: 10, total: 0, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` })
 
 const { columns } = useResizableColumns([
-  { title: '序号', dataIndex: 'id', key: 'index', width: 60,customRender: (opts) => (opts?.index ?? 0) + 1 },
-  { title: '委托单号', dataIndex: 'entrustNo', key: 'entrustNo', width: 140, customRender: ({ text, record }) => h('a', { href: 'javascript:void(0)', onClick: (e) => { e.preventDefault(); openDetail(record.id); } }, text || '-') },
-  { title: '委托名称', dataIndex: 'entrustName', key: 'entrustName', sorter: true, width: 200, resizable: true },
-  { title: '客户', dataIndex: 'custName', key: 'custName', width: 240, resizable: true },
-  { title: '来源', dataIndex: 'sourceName', key: 'sourceName', width: 110, resizable: true },
-  { title: '状态', key: 'status', dataIndex: 'status', width: 100, resizable: true },
-  { title: '创建人', dataIndex: 'createName', key: 'createName', width: 110, resizable: true },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, resizable: true, customRender: ({ text }) => renderDate(text) },
+  { title: '序号', dataIndex: 'id', key: 'index', width: 60, customRender: (opts) => (opts?.index ?? 0) + 1 },
+  { title: '委托单号', dataIndex: 'entrustNo', key: 'entrustNo', width: 150, customRender: ({ text, record }) => h('a', { href: 'javascript:void(0)', onClick: (e) => { e.preventDefault(); openDetail(record.id); } }, text || '-') },
+  { title: '委托名称', dataIndex: 'entrustName', key: 'entrustName', sorter: true, width: 300, ellipsis: true },
+  { title: '客户', dataIndex: 'custName', key: 'custName', width: 240 },
+  { title: '来源', dataIndex: 'sourceName', key: 'sourceName', width: 110 },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 100 },
+  { title: '创建人', dataIndex: 'createName', key: 'createName', width: 120 },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: ({ text }) => renderDate(text) },
   { title: '操作', key: 'action', width: 220, fixed: 'right' }
 ])
 
@@ -351,19 +361,18 @@ const pointColumns = [
   { title: '检测项目', key: 'factors', width: 280, required: true },
   { title: '执行标准', key: 'standard', width: 260 },
   { title: '备注(工况要求)', key: 'envCondition', width: 160 },
-  { title: '操作', key: 'op', width: 70 }
+  { title: '操作', key: 'op', width: 110 }
 ]
 
-const formState = reactive({ id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, status: undefined })
+const formState = reactive({ id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, urgent: 0, status: undefined })
 const statusOptions = ref([])
 
 function renderDate(v) {
   if (!v) return '-'
-  // 后端返回 yyyy-MM-ddTHH:mm:ss[.nnn]
-  const d = new Date(v.replace(' ', 'T'))
-  if (isNaN(d.getTime())) return v
-  const p = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  // 后端返回 yyyy-MM-ddTHH:mm:ss[.nnn]，直接取前 10 位（年月日），避免高精度小数导致 Date 解析失败
+  const str = String(v)
+  if (str.length >= 10) return str.substring(0, 10)
+  return str
 }
 
 function statusColor(s) {
@@ -446,9 +455,17 @@ function loadDicts() {
   }).catch(() => {})
 }
 
+const sortField = ref('')
+const sortOrder = ref('')
+
 function loadData() {
   loading.value = true
-  getEntrusts({ page: pagination.current, size: pagination.pageSize, keyword: searchText.value || undefined, status: formState.status })
+  const params = { page: pagination.current, size: pagination.pageSize, keyword: searchText.value || undefined, status: formState.status }
+  if (sortField.value && sortOrder.value) {
+    params.sortField = sortField.value
+    params.sortOrder = sortOrder.value
+  }
+  getEntrusts(params)
     .then((res) => {
       const data = res.data || res
       const list = Array.isArray(data) ? data : (data.list || [])
@@ -471,19 +488,22 @@ function removePoint(index) {
   points.value.splice(index, 1)
 }
 
+// 复制新建一行：深拷贝当前行数据，插入到原行之后（生成新 rowKey）
+function copyPoint(index) {
+  const src = points.value[index]
+  if (!src) return
+  const clone = JSON.parse(JSON.stringify(src))
+  clone.rowKey = `rp_${Date.now()}_${points.value.length}_${Math.floor(Math.random() * 1000)}`
+  clone.pointName = src.pointName ? `${src.pointName}_副本` : ''
+  clone.pointNo = ''   // 新行重置编号，由后端重新生成
+  points.value.splice(index + 1, 0, clone)
+}
+
 function setEditorHtml(html) {
-  if (editorRef.value) editorRef.value.innerHTML = html || ''
+  formState.description = html || ''
 }
 function getEditorHtml() {
-  return editorRef.value ? editorRef.value.innerHTML : ''
-}
-function onEditorInput() {
-  formState.description = getEditorHtml()
-}
-function execCmd(cmd) {
-  document.execCommand(cmd, false, null)
-  editorRef.value && editorRef.value.focus()
-  formState.description = getEditorHtml()
+  return formState.description || ''
 }
 
 function openDetail(id) {
@@ -502,9 +522,11 @@ function showDrawer(record) {
   } else {
     editingRecord.value = null
     loadCustomers(true)   // 新建时过滤已停用客户
-    Object.assign(formState, { id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, description: '' })
+    Object.assign(formState, { id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, urgent: 0, description: '' })
     setEditorHtml('')
     points.value = []
+    attachments.value = []
+    archivedPaths.value = new Set()
     drawerVisible.value = true
   }
 }
@@ -518,9 +540,21 @@ function loadEntrustDetail(id) {
       custId: vo.custId,
       source: vo.source,
       sampleFreq: vo.sampleFreq,
+      urgent: vo.urgent ? 1 : 0,
       description: vo.description || ''
     })
     setEditorHtml(vo.description || '')
+    // 加载已有附件
+    getFiles({ bizType: 'entrust', bizId: vo.id }).then((fr) => {
+      const list = fr.data || fr || []
+      attachments.value = list.map((f) => ({
+        uid: f.id,
+        name: f.fileName,
+        path: f.filePath,
+        status: 'done'
+      }))
+      archivedPaths.value = new Set(attachments.value.map((a) => a.path))
+    }).catch(() => {})
     points.value = (vo.points || []).map((p) => ({
       rowKey: `rp_${p.id || Date.now()}_${Math.random()}`,
       id: p.id,
@@ -559,6 +593,7 @@ function handleSave() {
     custId: formState.custId,
     source: formState.source,
     sampleFreq: formState.sampleFreq,
+    urgent: formState.urgent ? 1 : 0,
     description: getEditorHtml(),
     status: '草稿'
   }
@@ -579,7 +614,25 @@ function handleSave() {
     }))
   }
   saveEntrust(payload)
-    .then(() => {
+    .then((res) => {
+      const saved = res.data || res
+      const entrustId = saved && saved.id ? saved.id : formState.id
+      // 归档附件（仅提交尚未归档的）
+      const pending = attachments.value.filter((a) => a.path && !archivedPaths.value.has(a.path))
+      if (pending.length && entrustId) {
+        return Promise.all(pending.map((a) =>
+          archiveFile({ bizType: 'entrust', bizId: entrustId, fileName: a.name, filePath: a.path })
+            .then(() => {
+              archivedPaths.value.add(a.path)
+              return true
+            })
+            .catch(() => false)
+        )).then(() => {
+          message.success(pending.length > 0 ? '保存成功，附件已归档' : '保存成功')
+          drawerVisible.value = false
+          loadData()
+        })
+      }
       message.success('保存成功')
       drawerVisible.value = false
       loadData()
@@ -594,6 +647,31 @@ function handleSubmit(record) {
     loadData()
   }).catch(() => {})
 }
+
+// 多附件上传：自定义上传动作，调用后端 /attachments/upload
+async function handleAttachmentUpload({ file, onSuccess, onError }) {
+  try {
+    const res = await uploadAttachment(file)
+    const data = res.data || res
+    const item = {
+      uid: file.uid,
+      name: data.name || file.name,
+      path: data.path,
+      status: 'done'
+    }
+    attachments.value.push(item)
+    onSuccess({}, file)
+  } catch (e) {
+    onError(e)
+    message.error(`附件「${file.name}」上传失败`)
+  }
+}
+
+function handleAttachmentRemove(file) {
+  const idx = attachments.value.findIndex((a) => a.uid === file.uid)
+  if (idx >= 0) attachments.value.splice(idx, 1)
+}
+
 
 function handleTechConfirm(record) {
   techConfirmEntrust(record.id, 1, '方法适用、能力满足').then(() => {
@@ -629,10 +707,21 @@ function confirmReject() {
   }).catch(() => {})
 }
 
-function handleTableChange(pag) {
+function handleTableChange(pag, filters, sorter) {
   pagination.current = pag.current
   pagination.pageSize = pag.pageSize
+  if (sorter && sorter.field) {
+    sortField.value = sorter.field
+    sortOrder.value = sorter.order === 'ascend' ? 'asc' : (sorter.order === 'descend' ? 'desc' : '')
+  } else {
+    sortField.value = ''
+    sortOrder.value = ''
+  }
   loadData()
+}
+
+function onSelectChangeArr(keys) {
+  selectedRowKeys.value = keys
 }
 
 onMounted(() => {
@@ -714,59 +803,50 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
 }
-.tbl-box :deep(.ant-table-wrapper) {
+/* vxe-table 列宽可拖拽列表 */
+.tbl-box :deep(.vxe-table) {
   flex: 1;
   min-height: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  font-size: 14px;
 }
-.tbl-box :deep(.ant-spin-nested-loading) {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+.tbl-box :deep(.vxe-table .vxe-table--header-wrapper) {
+  background-color: #fafafa;
 }
-.tbl-box :deep(.ant-spin-container) {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+.tbl-box :deep(.vxe-table .vxe-header--column) {
+  color: rgba(0, 0, 0, 0.88);
+  font-weight: 600;
 }
-.tbl-box :deep(.ant-table) {
-  flex: 1;
-  min-height: 0;
+.tbl-box :deep(.vxe-table .vxe-body--column) {
+  line-height: 22px;
 }
-.tbl-box :deep(.ant-table-pagination) {
-  margin: 8px 0 16px !important;
+.tbl-box :deep(.vxe-table.size--small) {
+  font-size: 13px;
+}
+.tbl-box :deep(.vxe-pager) {
+  margin-top: 8px;
   flex: 0 0 auto;
 }
-.rich-editor {
-  min-height: 120px;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
-  padding: 8px 12px;
-  outline: none;
-  font-size: 14px;
-  line-height: 1.6;
-}
-.rich-editor:focus {
-  border-color: #4096ff;
-  box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1);
-}
-.rich-editor:empty::before {
-  content: attr(placeholder);
-  color: #bfbfbf;
-}
-.editor-toolbar {
-  margin-bottom: 6px;
+.tbl-box :deep(.vxe-table--resizable-bar) {
+  cursor: col-resize;
 }
 .point-toolbar {
   margin-bottom: 8px;
 }
+.field-tip {
+  color: #999;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
 .title-link {
   color: #1677ff;
   cursor: pointer;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 .title-link:hover {
   text-decoration: underline;

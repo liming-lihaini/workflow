@@ -177,19 +177,19 @@ const menuConfig = [
   },
   {
     key: 'ems',
-    title: '环境监测LIMS',
+    title: '环境检测',
     permKey: 'ems',
     icon: markRaw(EnvironmentOutlined),
     children: [
       { key: 'ems-customer', title: '客户管理', path: '/ems/base/customer', permKey: 'ems:customer' },
-      { key: 'ems-entrust', title: '委托管理', path: '/ems/base/entrust', permKey: 'ems:entrust' },
+      { key: 'ems-entrust', title: '检测委托', path: '/ems/base/entrust', permKey: 'ems:entrust' },
       { key: 'ems-dispatch', title: '采样订单', path: '/ems/base/dispatch', permKey: 'ems:dispatch' },
       { key: 'ems-sample', title: '样品管理', path: '/ems/base/sample', permKey: 'ems:sample' },
       { key: 'ems-retain', title: '留样库管理', path: '/ems/base/retain', permKey: 'ems:sample' },
       { key: 'ems-data-entry', title: '检测管理', path: '/ems/base/data-entry', permKey: 'ems:detection' },
       { key: 'ems-qcplan', title: '质控计划', path: '/ems/quality/plan', permKey: 'ems:quality' },
       { key: 'ems-dashboard', title: '监测驾驶舱', path: '/ems/dashboard', permKey: 'ems:dashboard' },
-      { key: 'ems-rule-admin', title: '规则引擎配置', path: '/ems/base/rule-admin', permKey: 'ems:base' },
+
       { key: 'ems-report-generate', title: '报告生成', path: '/ems/report/generate', permKey: 'ems:report' },
       { key: 'ems-report-review', title: '报告审核', path: '/ems/report/review', permKey: 'ems:report' }
     ]
@@ -305,7 +305,7 @@ watch(() => route.path, (path) => {
     '/ems/base/data-entry': ['ems-data-entry'],
     '/ems/quality/plan': ['ems-qcplan'],
     '/ems/dashboard': ['ems-dashboard'],
-    '/ems/base/rule-admin': ['ems-rule-admin'],
+
     '/ems/report/generate': ['ems-report-generate'],
     '/ems/report/review': ['ems-report-review'],
     '/monitor': ['monitor']

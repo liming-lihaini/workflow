@@ -1,0 +1,8 @@
+[1m[33m[plugin:vite:reporter][39m[22m [33m[plugin vite:reporter] 
+(!) D:/source_code/workflow/flow-web/src/stores/user.js is dynamically imported by D:/source_code/workflow/flow-web/src/router/index.js but also statically imported by D:/source_code/workflow/flow-web/src/composables/usePermission.js, D:/source_code/workflow/flow-web/src/layouts/BasicLayout.vue, D:/source_code/workflow/flow-web/src/views/dashboard/index.vue, D:/source_code/workflow/flow-web/src/views/data-model/index.vue, D:/source_code/workflow/flow-web/src/views/ems/base/Retain.vue, D:/source_code/workflow/flow-web/src/views/ems/base/Sample.vue, D:/source_code/workflow/flow-web/src/views/login/index.vue, D:/source_code/workflow/flow-web/src/views/task/delegation.vue, D:/source_code/workflow/flow-web/src/views/task/done.vue, D:/source_code/workflow/flow-web/src/views/task/handle.vue, D:/source_code/workflow/flow-web/src/views/task/my-request.vue, D:/source_code/workflow/flow-web/src/views/task/proxy.vue, D:/source_code/workflow/flow-web/src/views/task/start-detail.vue, D:/source_code/workflow/flow-web/src/views/task/todo.vue, dynamic import will not move module into another chunk.
+[39m
+[33m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m

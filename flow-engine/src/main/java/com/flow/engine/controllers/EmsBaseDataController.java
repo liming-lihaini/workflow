@@ -61,6 +61,20 @@ public class EmsBaseDataController {
         return Result.ok(customerService.update(id, c));
     }
 
+    /** 客户详情：基本信息 + 检测委托清单 */
+    @GetMapping("/customers/{id}/detail")
+    public Result<Map<String, Object>> getCustomerDetail(@PathVariable Long id) {
+        EmsCustomer customer = customerService.getById(id);
+        if (customer == null) {
+            return Result.fail(404, "客户不存在");
+        }
+        List<com.flow.engine.dto.EmsEntrustVO> entrusts = entrustService.listVOByCustId(id);
+        java.util.Map<String, Object> data = new java.util.LinkedHashMap<>();
+        data.put("customer", customer);
+        data.put("entrusts", entrusts);
+        return Result.ok(data);
+    }
+
     @PostMapping("/customers/batch-delete")
     public Result<Void> batchDeleteCustomers(@RequestBody List<Long> ids) {
         customerService.removeBatchByIds(ids);
@@ -257,6 +271,13 @@ public class EmsBaseDataController {
             @RequestParam(required = false) String leadName,
             @RequestParam(required = false) String status) {
         return Result.ok(samplingOrderService.listDispatchBoard(orderNo, leadName, status));
+    }
+
+    /** 删除采样订单（级联删除关联派单，ISSUE-037） */
+    @DeleteMapping("/sampling-orders/{id}")
+    public Result<Void> deleteSamplingOrder(@PathVariable Long id) {
+        samplingOrderService.deleteOrder(id);
+        return Result.ok();
     }
 
     /** 批量派单：同一组派单信息依次派发到多个订单（复用冲突/资质校验），返回成功与失败明细 */

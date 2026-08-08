@@ -67,6 +67,9 @@
             <a-button type="link" size="small" @click="openDisposeModal(record)" v-if="record.status === '留样中'">销毁申请</a-button>
             <a-button type="link" size="small" @click="onReuse(record)" v-if="record.status === '留样中'">领用复检</a-button>
             <a-button type="link" size="small" @click="onViewFlow(record)" v-if="record.status === '销毁审批中' || record.status === '已销毁'">查看流程</a-button>
+            <a-popconfirm title="确认删除该留样记录？" @confirm="handleDelete(record)">
+              <a-button type="link" size="small" danger>删除</a-button>
+            </a-popconfirm>
           </template>
         </template>
       </a-table>
@@ -113,7 +116,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { getRetains, getRetainStats, applyDispose } from '../../../api/ems'
+import { getRetains, getRetainStats, applyDispose, deleteRetain } from '../../../api/ems'
 import { useUserStore } from '../../../stores/user'
 
 const router = useRouter()
@@ -143,7 +146,7 @@ const columns = [
   { title: '留样起止', key: 'retainRange', width: 220 },
   { title: '剩余天数', key: 'remainDays', width: 100 },
   { title: '状态', key: 'status', width: 110 },
-  { title: '操作', key: 'action', width: 180, fixed: 'right' }
+  { title: '操作', key: 'action', width: 230, fixed: 'right' }
 ]
 
 async function loadData() {
@@ -248,6 +251,13 @@ function onViewFlow(record) {
   } else {
     message.info('暂无关联流程')
   }
+}
+
+function handleDelete(record) {
+  deleteRetain(record.id).then(() => {
+    message.success('留样记录已删除')
+    loadData()
+  }).catch(() => {})
 }
 
 onMounted(loadData)

@@ -304,6 +304,12 @@ public class EmsSamplingController {
         return Result.ok(samplingService.applyDispose(id, startUser, formData));
     }
 
+    @DeleteMapping("/retains/{id}")
+    public Result<Void> deleteRetain(@PathVariable Long id) {
+        retainService.removeById(id);
+        return Result.ok();
+    }
+
     @GetMapping("/retains/expiring")
     public Result<List<EmsRetain>> expiring(@RequestParam(defaultValue = "7") int thresholdDays) {
         return Result.ok(samplingService.expiringRetain(thresholdDays));

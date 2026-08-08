@@ -12,9 +12,14 @@ export function useResizableColumns(initialColumns) {
   const columns = ref(initialColumns.map(c => ({ ...c })))
 
   function handleResizeColumn(width, column) {
+    // antd-vue 官方用法：直接修改传入的列对象 width
+    if (column) {
+      column.width = width
+    }
+    // 同步更新本地 columns（保持一致，便于持久化/后续渲染）
     const key = column && (column.key || column.dataIndex)
     const target = columns.value.find(c => (c.key || c.dataIndex) === key)
-    if (target) {
+    if (target && target !== column) {
       target.width = width
     }
   }

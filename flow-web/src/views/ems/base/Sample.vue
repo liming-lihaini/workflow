@@ -108,14 +108,14 @@
         <a-form-item label="核验项">
           <a-checkbox-group v-model:value="receiveForm.checkItems" :options="receiveCheckOptions" class="sample-check-group" />
         </a-form-item>
-        <a-form-item label="是否留样" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="是否留样">
           <a-switch v-model:checked="receiveRetainChecked" checked-children="留样" un-checked-children="不留样" />
         </a-form-item>
         <template v-if="receiveRetainChecked">
-          <a-form-item label="留样保存天数" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+          <a-form-item label="留样保存天数">
             <a-input-number v-model:value="receiveForm.retainDays" :min="1" :precision="0" style="width:100%" />
           </a-form-item>
-          <a-form-item label="留样人" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+          <a-form-item label="留样人">
             <a-select
               v-model:value="receiveForm.retainBy"
               show-search
@@ -125,10 +125,10 @@
               style="width:100%"
             />
           </a-form-item>
-          <a-form-item label="留样日期" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+          <a-form-item label="留样日期">
             <a-date-picker v-model:value="receiveRetainDate" value-format="YYYY-MM-DD" style="width:100%" />
           </a-form-item>
-          <a-form-item label="存放位置" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+          <a-form-item label="存放位置">
             <a-input v-model:value="receiveForm.retainLocation" placeholder="如 留样室A区3层货架2号" style="width:100%" />
           </a-form-item>
         </template>
@@ -183,7 +183,7 @@
       width="1000"
       @close="resetCollect"
     >
-      <a-form :label-col="{ span: 8 }" :wrapper-col="{ span: 14 }">
+      <a-form :label-col="{ style: { width: '100px' } }" :wrapper-col="{ span: 14 }">
         <a-divider class="title-divider" orientation="left">基本信息</a-divider>
         <a-row :gutter="16">
           <a-col :span="12">
@@ -631,7 +631,7 @@ function statusColor(status) {
     '已收样': 'blue',
     '异常拒收': 'orange',
     '留样中': 'purple',
-    '实验室监测中': 'cyan',
+    '实验室检测中': 'cyan',
     '检测数据复核中': 'gold',
     '已完成': 'green',
     '检测异常': 'red',
@@ -939,8 +939,8 @@ async function loadCollectDicts() {
 
 async function loadCollectDispatchOptions() {
   try {
-    // 仅拉取「已派单」状态的采样订单，待派单/已完成的不在收样工作台可选
-    const res = await getCollectDispatchList({ status: '已派单' })
+    // 仅拉取「采样执行中」状态的检测派单，待派单/已完成的不在收样工作台可选
+    const res = await getCollectDispatchList({ status: '采样执行中' })
     const arr = res.data || []
     dispatchOptions.value = arr.map(d => {
       // 后端派单看板接口返回的派单号字段是 orderNo（非 dispatchNo），同时无 points/items

@@ -46,13 +46,18 @@
           @change="handleTableChange"
         >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'status'">
+          <template v-if="column.key === 'custName'">
+            <span class="action-link" @click="goDetail(record)">{{ record.custName }}</span>
+          </template>
+          <template v-else-if="column.key === 'status'">
             <a-tag :color="record.status === 1 ? 'green' : 'default'">
               {{ record.status === 1 ? '启用' : '停用' }}
             </a-tag>
           </template>
           <template v-if="column.key === 'action'">
             <span class="action-link" @click="showDrawer(record)">编辑</span>
+            <a-divider type="vertical" />
+            <span class="action-link" @click="goDetail(record)">详情</span>
             <a-divider type="vertical" />
             <a-popconfirm
               :title="record.status === 1 ? '确定停用该客户？' : '确定启用该客户？'"
@@ -131,6 +136,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { createCustomer, getCustomers, disableCustomer, updateCustomer, batchDeleteCustomers, importCustomers, getCustomerTemplate } from '../../../api/ems'
 import { downloadBlob } from '../../../api/request'
@@ -139,6 +145,11 @@ import { usePermission } from '../../../composables/usePermission'
 import { useResizableColumns } from '../../../composables/useResizableTable'
 
 const { hasPerm } = usePermission()
+const router = useRouter()
+
+function goDetail(record) {
+  router.push({ name: 'EmsCustomerDetail', params: { id: record.id } })
+}
 const loading = ref(false)
 const dataList = ref([])
 const drawerVisible = ref(false)
@@ -180,7 +191,7 @@ const pagination = reactive({
 })
 
 const { columns, handleResizeColumn } = useResizableColumns([
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
+  { title: '序号', key: 'index', width: 60, align: 'center', customRender: ({ index }) => (index ?? 0) + 1 },
   { title: '客户名称', dataIndex: 'custName', key: 'custName', sorter: true },
   { title: '信用代码', dataIndex: 'creditCode', key: 'creditCode' },
   { title: '联系人', dataIndex: 'contact', key: 'contact' },
@@ -189,7 +200,7 @@ const { columns, handleResizeColumn } = useResizableColumns([
   { title: '办公地址', dataIndex: 'address', key: 'address' },
   { title: '状态', key: 'status', dataIndex: 'status', width: 80 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 140, customRender: renderDate, sorter: true },
-  { title: '操作', key: 'action', width: 140 }
+  { title: '操作', key: 'action', width: 200 }
 ])
 
 const formState = reactive({

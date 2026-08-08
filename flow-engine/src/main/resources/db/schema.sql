@@ -458,6 +458,7 @@ CREATE TABLE IF NOT EXISTS t_entrust (
     description   TEXT,                -- 委托说明（富文本）
     sample_freq   TEXT,                -- 委托级采集频率（字典 moni_sample_freq 编码）
     sample_freq_name TEXT,             -- 采集频率名称（字典 value）
+    urgent        INTEGER DEFAULT 0,   -- 是否紧急（0-否，1-是）
     submit_by    TEXT,
     source_name  TEXT,                 -- 来源名称（字典 value）
     create_by    TEXT,                 -- 创建人-工号（username）

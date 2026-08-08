@@ -23,6 +23,7 @@ public class EmsEntrust {
     private String description;  // 委托说明（富文本）
     private String sampleFreq;    // 委托级采集频率（字典 moni_sample_freq 编码）
     private String sampleFreqName; // 采集频率名称（字典 value，与 sampleFreq 配对持久化）
+    private Integer urgent;        // 是否紧急（0-否，1-是）
     private String submitBy;
     private String sourceName;     // 来源名称（字典 value，与 source 配对持久化）
     private String createBy;       // 创建人-工号（username）

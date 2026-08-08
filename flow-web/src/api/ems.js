@@ -20,6 +20,8 @@ export const importCustomers = (file) => {
 }
 export const getCustomerTemplate = () =>
   request.get('/ems/base/customers/template', { responseType: 'blob' })
+// 客户详情：基本信息 + 检测委托清单
+export const getCustomerDetail = (id) => request.get(`/ems/base/customers/${id}/detail`)
 
 export const getEntrusts = (params) => request.get('/ems/base/entrusts', { params })
 export const getEntrust = (id) => request.get(`/ems/base/entrusts/${id}`)
@@ -55,6 +57,8 @@ export const batchDeleteSampleParamConfig = (ids) =>
 export const getSamplingOrders = (params) => request.get('/ems/base/sampling-orders', { params })
 // 采样调度看板聚合（点位名称/派单计划区间/负责人），支持按订单号/负责人/状态筛选
 export const getDispatchBoardList = (params) => request.get('/ems/base/sampling-orders/dispatch-list', { params })
+// 删除采样订单（级联删除关联派单）
+export const deleteSamplingOrder = (id) => request.delete(`/ems/base/sampling-orders/${id}`)
 // 批量派单：同一派单信息派发到多个订单（参数均为 query）
 export const batchDispatch = (params) => request.post('/ems/base/sampling-orders/batch-dispatch', null, { params })
 // 派单参数均为后端 @RequestParam（query），不含 body
@@ -154,6 +158,7 @@ export const getRetains = (params) => request.get('/ems/base/sampling/retains', 
 export const getExpiringRetains = (params) => request.get('/ems/base/sampling/retains/expiring', { params })
 export const getRetainStats = () => request.get('/ems/base/sampling/retains/stats')
 export const applyDispose = (id, startUser, formData) => request.post(`/ems/base/sampling/retains/${id}/dispose`, formData, { params: { startUser } })
+export const deleteRetain = (id) => request.delete(`/ems/base/sampling/retains/${id}`)
 
 // ===== 检测数据录入与复核（ISSUE-025，路径 /api/v1/ems/base/detection/*）=====
 // 录入工作台
@@ -228,15 +233,6 @@ export const fireState = (data) => request.post('/statemachine/fire', data)
 // 状态机：查询可用迁移
 export const getTransitions = (bizType, fromState) =>
   request.get('/statemachine/transitions', { params: { bizType, fromState } })
-// 规则：求值
-export const evalRule = (ruleKey, context) =>
-  request.post('/rule/eval', { ruleKey, context })
-// 规则：列表
-export const listRules = () => request.get('/rule')
-// 规则：保存
-export const saveRule = (data) => request.post('/rule', data)
-// 规则：删除
-export const removeRule = (id) => request.delete(`/rule/${id}`)
 // 编号：生成唯一单号
 export const nextSeq = (biz) => request.get('/seq/next', { params: { biz } })
 // 公式：计算

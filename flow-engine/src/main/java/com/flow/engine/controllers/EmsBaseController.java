@@ -2,9 +2,7 @@ package com.flow.engine.controllers;
 
 import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
-import com.flow.engine.entity.EmsRuleDef;
 import com.flow.engine.service.EmsFormulaEngineService;
-import com.flow.engine.service.EmsRuleEngineService;
 import com.flow.engine.service.EmsSeqEngineService;
 import com.flow.engine.service.EmsStateMachineService;
 import com.flow.engine.service.EmsStateMachineService.FireResult;
@@ -23,16 +21,13 @@ import java.util.Map;
 public class EmsBaseController {
 
     private final EmsStateMachineService stateMachine;
-    private final EmsRuleEngineService ruleEngine;
     private final EmsSeqEngineService seqEngine;
     private final EmsFormulaEngineService formulaEngine;
 
     public EmsBaseController(EmsStateMachineService stateMachine,
-                             EmsRuleEngineService ruleEngine,
                              EmsSeqEngineService seqEngine,
                              EmsFormulaEngineService formulaEngine) {
         this.stateMachine = stateMachine;
-        this.ruleEngine = ruleEngine;
         this.seqEngine = seqEngine;
         this.formulaEngine = formulaEngine;
     }
@@ -59,42 +54,6 @@ public class EmsBaseController {
                                              @RequestParam(required = false) String fromState) {
         List<Object> list = new java.util.ArrayList<>(stateMachine.transitionsOf(bizType, fromState));
         return Result.ok(list);
-    }
-
-    // ===== 规则引擎 =====
-    /** 规则求值：body { ruleKey, context? } */
-    @OpLog(module = "基础设施底座-规则引擎", operation = "规则求值")
-    @PostMapping("/rule/eval")
-    public Result<Map<String, Object>> evalRule(@RequestBody Map<String, Object> body) {
-        String ruleKey = (String) body.get("ruleKey");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> ctx = (Map<String, Object>) body.getOrDefault("context", java.util.Collections.emptyMap());
-        boolean r = ruleEngine.eval(ruleKey, ctx);
-        Map<String, Object> m = new java.util.LinkedHashMap<>();
-        m.put("ruleKey", ruleKey);
-        m.put("result", r);
-        return Result.ok(m);
-    }
-
-    /** 规则列表（管理员维护）。 */
-    @GetMapping("/rule")
-    public Result<List<EmsRuleDef>> listRules() {
-        return Result.ok(ruleEngine.list());
-    }
-
-    /** 保存规则（管理员）。 */
-    @OpLog(module = "基础设施底座-规则引擎", operation = "保存规则")
-    @PostMapping("/rule")
-    public Result<EmsRuleDef> saveRule(@RequestBody EmsRuleDef rule) {
-        return Result.ok(ruleEngine.save(rule));
-    }
-
-    /** 删除规则（管理员）。 */
-    @OpLog(module = "基础设施底座-规则引擎", operation = "删除规则")
-    @DeleteMapping("/rule/{id}")
-    public Result<Object> removeRule(@PathVariable Long id) {
-        ruleEngine.remove(id);
-        return Result.ok();
     }
 
     // ===== 编号引擎 =====

@@ -4,26 +4,16 @@
       <div class="page-header">
         <span class="page-title">采样调度</span>
         <a-space>
-          <a-radio-group v-model:value="mode" button-style="solid"  @change="onModeChange">
-            <a-radio-button value="board">看板模式</a-radio-button>
-            <a-radio-button value="table">表格模式</a-radio-button>
-          </a-radio-group>
           <a-select
             v-model:value="groupBy"
-            :disabled="mode === 'board'"
             placeholder="分组维度"
             style="width: 150px"
-            
             @change="onGroupChange"
           >
             <a-select-option value="none">不分组</a-select-option>
             <a-select-option value="status">按状态分组</a-select-option>
             <a-select-option value="lead">按负责人分组</a-select-option>
           </a-select>
-          <a-tooltip v-if="mode === 'board'">
-            <template #title>看板模式已固定按状态分组，切换至表格模式可选择其他分组维度</template>
-            <span class="hint">提示</span>
-          </a-tooltip>
         </a-space>
       </div>
 
@@ -58,8 +48,8 @@
         <a-button  @click="resetFilters">重置</a-button>
       </div>
 
-      <!-- 表格视图：状态统计卡片 + 逾期卡片 -->
-      <div v-show="mode === 'table'" class="stat-cards">
+      <!-- 状态统计卡片 + 逾期卡片 -->
+      <div class="stat-cards">
         <div
           v-for="s in statusStats"
           :key="s.status"
@@ -81,54 +71,8 @@
         </div>
       </div>
 
-      <!-- 看板模式：固定按状态分组 -->
-      <div v-show="mode === 'board'" class="board table-host">
-        <div v-for="col in boardColumns" :key="col.status" class="board-col">
-          <div class="board-col-title" :style="{ background: col.color }">{{ col.title }} ({{ boardGrouped[col.status]?.length || 0 }})</div>
-          <div class="board-col-body">
-            <a-card
-              v-for="order in boardGrouped[col.status] || []"
-              :key="order.id"
-              class="order-card"
-              hoverable
-              :style="{ borderLeftColor: antColorHex(col.color) }"
-              @click="openDispatch(order)"
-            >
-              <div class="oc-top">
-                <span class="oc-no link" @click.stop="openDetail(order)">{{ order.orderNo }}</span>
-                <a-tag :color="col.color" class="oc-tag">{{ col.title }}</a-tag>
-              </div>
-              <div class="oc-row">
-                <span class="oc-key">名称</span>
-                <span class="oc-val link-text" @click.stop="goEntrust(order)">{{ order.entrustName || '—' }}</span>
-              </div>
-              <div class="oc-row">
-                <span class="oc-key">编号</span>
-                <span class="oc-val link-text" @click.stop="goEntrust(order)">{{ order.entrustNo || '—' }}</span>
-              </div>
-              <div class="oc-row">
-                <span class="oc-key">计划</span>
-                <span class="oc-val">{{ order.planRange || '—' }}</span>
-              </div>
-              <div class="oc-row">
-                <span class="oc-key">负责人</span>
-                <span class="oc-val">{{ order.leadName || '—' }}</span>
-              </div>
-              <div class="oc-foot">
-                <div class="oc-point">
-                  <span class="oc-point-label">监测点位</span>
-                  <a-tag color="#1677ff" class="oc-point-tag">{{ order.pointCount ?? 0 }}</a-tag>
-                </div>
-                <span v-if="isOverdue(order)" class="oc-overdue">逾期</span>
-              </div>
-            </a-card>
-            <a-empty v-if="!(boardGrouped[col.status] || []).length" description="无" :image="simpleImage" />
-          </div>
-        </div>
-      </div>
-
       <!-- 表格模式：不分组 -->
-      <div v-show="mode === 'table' && groupBy === 'none'" class="tbl-box table-host">
+      <div v-show="groupBy === 'none'" class="tbl-box table-host">
         <a-table
           :columns="orderCols"
           :data-source="displayOrders"
@@ -154,8 +98,11 @@
             </template>
             <template v-else-if="column.key === 'op'">
               <a-space>
-                <a-button v-if="record.status === '待派单' && hasPerm('ems:dispatch')" type="link"  @click="openDispatch(record)">派单</a-button>
-                <a-button type="link"  @click="openDetail(record)">详情</a-button>
+                <span v-if="record.status === '待派单' && hasPerm('ems:dispatch')" class="action-link" @click="openDispatch(record)">派单</span>
+                <span class="action-link" @click="openDetail(record)">详情</span>
+                <a-popconfirm title="确认删除该采样订单？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
+                  <span class="action-link danger" @click.stop>删除</span>
+                </a-popconfirm>
               </a-space>
             </template>
           </template>
@@ -174,7 +121,7 @@
       </div>
 
       <!-- 表格模式：分组（组内独立分页） -->
-      <div v-show="mode === 'table' && groupBy !== 'none'" class="group-scroll table-host">
+      <div v-show="groupBy !== 'none'" class="group-scroll table-host">
         <a-card
           v-for="g in tableGroups"
           :key="g.key"
@@ -211,8 +158,11 @@
               </template>
               <template v-else-if="column.key === 'op'">
                 <a-space>
-                  <a-button v-if="record.status === '待派单' && hasPerm('ems:dispatch')" type="link"  @click="openDispatch(record)">派单</a-button>
-                  <a-button type="link"  @click="openDetail(record)">详情</a-button>
+                  <span v-if="record.status === '待派单' && hasPerm('ems:dispatch')" class="action-link" @click="openDispatch(record)">派单</span>
+                  <span class="action-link" @click="openDetail(record)">详情</span>
+                  <a-popconfirm title="确认删除该采样订单？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
+                    <span class="action-link danger" @click.stop>删除</span>
+                  </a-popconfirm>
                 </a-space>
               </template>
             </template>
@@ -255,13 +205,6 @@
         </a-space>
       </template>
     </a-drawer>
-
-    <!-- 派单详情 -->
-    <DispatchDetail
-      :open="detailVisible"
-      :order-id="detailOrderId"
-      @close="detailVisible = false"
-    />
   </div>
 </template>
 
@@ -272,9 +215,8 @@ import { Empty } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import {
-  getDispatchBoardList, createDispatch, searchUsers, listVehicles, listInstruments, getAvailableVehicles
+  getDispatchBoardList, createDispatch, searchUsers, listVehicles, listInstruments, getAvailableVehicles, deleteSamplingOrder
 } from '../../../api/ems'
-import DispatchDetail from './DispatchDetail.vue'
 import DispatchForm from './DispatchForm.vue'
 import { usePermission } from '../../../composables/usePermission'
 
@@ -289,25 +231,20 @@ function goEntrust(order) {
   }
 }
 
-const orders = ref([])
+const orders = ref([])        // 当前展示的订单（受卡片筛选影响）
+const allOrders = ref([])      // 全量订单（不受卡片筛选影响，用于卡片统计）
 const loading = ref(false)
 const dispatchVisible = ref(false)
 const dispatchLoading = ref(false)
 const dispatchBlock = ref('') // 批量派单阻断提示（订单号+原因），有值时保留表单不关闭
 const currentOrder = ref(null)
-const detailVisible = ref(false)
-const detailOrderId = ref(null)
 const employeeOptions = ref([])
 const vehicleOptions = ref([])
 const instrumentOptions = ref([])
 
-// 模式与分组维度（默认表格模式，便于分组选择）
-const mode = ref('table') // board | table
-const groupBy = ref('none') // none | status | lead
+// 分组维度（none | status | lead）
+const groupBy = ref('none')
 
-function onModeChange() {
-  nextTick(syncTableHeight)
-}
 function onGroupChange() {
   nextTick(syncTableHeight)
 }
@@ -320,14 +257,6 @@ function resetFilters() {
   filters.status = undefined
   loadOrders()
 }
-
-// 看板列（固定按状态）
-const boardColumns = [
-  { status: '待派单', title: '待派单', color: '#F59E0B' },
-  { status: '已派单', title: '已派单', color: '#2563EB' },
-  { status: '采样执行中', title: '执行中', color: '#0EA5E9' },
-  { status: '样品送检', title: '已送检', color: '#16A34A' }
-]
 
 // 状态颜色映射（用于表格 tag）
 const STATUS_COLOR = {
@@ -353,7 +282,7 @@ function antColorHex(c) {
 
 // 采样订单状态全过程（用于筛选下拉）
 const ORDER_STATUS_CHAIN = [
-  '待派单', '已派单', '采样执行中', '样品送检', '实验室检测中', '报告编制', '归档完成'
+  '待派单', '已派单'
 ]
 
 // 表格列
@@ -365,18 +294,8 @@ const orderCols = [
   { title: '计划区间', dataIndex: 'planRange', key: 'planRange', width: 200 },
   { title: '负责人', dataIndex: 'leadName', key: 'leadName', width: 80 },
   { title: '状态', key: 'status', width: 100 },
-  { title: '操作', key: 'op', width: 60, fixed: 'right' }
+  { title: '操作', key: 'op', width: 150, fixed: 'right' }
 ]
-
-// 看板分组
-const boardGrouped = computed(() => {
-  const g = {}
-  for (const col of boardColumns) g[col.status] = []
-  for (const o of displayOrders.value) {
-    if (g[o.status]) g[o.status].push(o)
-  }
-  return g
-})
 
 // 表格分组
 const tableGroups = computed(() => {
@@ -437,8 +356,8 @@ function syncTableHeight() {
 }
 let pageObserver = null
 
-// 切换模式/分组维度后重算高度，保证视图流畅稳定
-watch([mode, groupBy], () => {
+// 切换分组维度后重算高度，保证视图流畅稳定
+watch([groupBy], () => {
   nextTick(syncTableHeight)
 })
 
@@ -456,53 +375,57 @@ function isOverdue(o) {
   return o.planEnd < dayjs().format('YYYY-MM-DD')
 }
 const overdueOnly = ref(false)
-// 统计口径始终基于全量 orders；逾期筛选仅控制展示
+// 统计口径始终基于全量 allOrders；卡片筛选仅控制展示，不影响卡片数字
 const statusStats = computed(() =>
   ORDER_STATUS_CHAIN.map((s) => ({
     status: s,
     color: statusColor(s),
-    count: orders.value.filter((o) => o.status === s).length
+    count: allOrders.value.filter((o) => o.status === s).length
   }))
 )
-const overdueCount = computed(() => orders.value.filter(isOverdue).length)
-// 负责人下拉：基于当前已加载订单中实际出现的真实负责人姓名去重（排除占位符）
+const overdueCount = computed(() => allOrders.value.filter(isOverdue).length)
+// 负责人下拉：基于全量订单中实际出现的真实负责人姓名去重（排除占位符）
 const leadOptions = computed(() => {
   const set = new Set()
-  for (const o of orders.value) {
+  for (const o of allOrders.value) {
     const ln = o.leadName
     if (ln && ln !== '—') set.add(ln)
   }
   return Array.from(set).map((n) => ({ value: n, label: n }))
 })
-// 展示数据：逾期筛选时仅展示逾期订单
-const displayOrders = computed(() => (overdueOnly.value ? orders.value.filter(isOverdue) : orders.value))
+// 展示数据：卡片筛选仅从全量中过滤，不影响卡片统计
+const displayOrders = computed(() => {
+  let list = allOrders.value
+  if (overdueOnly.value) list = list.filter(isOverdue)
+  if (filters.status) list = list.filter((o) => o.status === filters.status)
+  return list
+})
 
 function applyStatusFilter(s) {
   overdueOnly.value = false
   filters.status = filters.status === s ? undefined : s
-  loadOrders()
 }
 function toggleOverdue() {
   overdueOnly.value = !overdueOnly.value
   if (overdueOnly.value) filters.status = undefined
-  loadOrders()
 }
 
 function loadOrders() {
   loading.value = true
+  // 仅按订单号 / 负责人查询后端；状态筛选由前端卡片控制，避免影响卡片统计
   const params = {}
   if (filters.orderNo && filters.orderNo.trim()) params.orderNo = filters.orderNo.trim()
   if (filters.leadName && filters.leadName.trim()) params.leadName = filters.leadName.trim()
-  if (filters.status) params.status = filters.status
   getDispatchBoardList(params).then((res) => {
     const data = res.data || res
-    orders.value = Array.isArray(data) ? data : (data.list || [])
+    const list = Array.isArray(data) ? data : (data.list || [])
+    allOrders.value = list
+    orders.value = list
   }).catch(() => {}).finally(() => { loading.value = false; nextTick(syncTableHeight) })
 }
 
 function openDetail(order) {
-  detailOrderId.value = order.id
-  detailVisible.value = true
+  router.push({ name: 'EmsDispatchDetail', params: { id: order.id } })
 }
 
 function openDispatch(order) {
@@ -522,6 +445,13 @@ function openDispatch(order) {
 function closeDispatch() {
   dispatchVisible.value = false
   currentOrder.value = null
+}
+
+function handleDeleteOrder(order) {
+  deleteSamplingOrder(order.id).then(() => {
+    message.success('采样订单已删除')
+    loadOrders()
+  }).catch(() => {})
 }
 
 async function submitDispatch() {
@@ -636,77 +566,6 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.board { display: flex; gap: 12px; overflow-x: auto; flex: 1; min-height: 0; }
-.board-col { flex: 1; min-width: 200px; background: #fafafa; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; }
-.board-col-title { color: #fff; padding: 6px 10px; border-radius: 6px; font-weight: 600; flex: 0 0 auto; }
-.board-col-body { margin-top: 8px; min-height: 120px; overflow-y: auto; flex: 1; }
-.order-card {
-  margin-bottom: 8px;
-  border-left: 4px solid #d9d9d9;
-  border-radius: 8px;
-  transition: all 0.18s ease;
-}
-.order-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
-.oc-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.oc-no {
-  font-weight: 700;
-  font-size: 14px;
-  color: #2563EB;
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.oc-no:hover { text-decoration: underline; }
-.oc-tag { margin: 0; flex: 0 0 auto; }
-.oc-row {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 12px;
-  line-height: 1.7;
-}
-.oc-key {
-  flex: 0 0 42px;
-  color: #bfbfbf;
-}
-.oc-val {
-  flex: 1;
-  color: #595959;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.oc-sub { color: #bfbfbf; }
-.oc-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px dashed #f0f0f0;
-}
-.oc-point { display: flex; align-items: center; gap: 6px; }
-.oc-point-label { color: #8c8c8c; font-size: 12px; }
-.oc-point-tag { margin: 0; border-radius: 10px; font-size: 12px; padding: 0 8px; }
-.oc-point-tag :deep(.ant-tag) { line-height: 18px; }
-.oc-overdue {
-  color: #fff;
-  background: #ff4d4f;
-  font-size: 11px;
-  padding: 1px 8px;
-  border-radius: 10px;
-  font-weight: 600;
-}
 .link-text { color: #2563EB; cursor: pointer; }
 .link-text:hover { text-decoration: underline; }
 

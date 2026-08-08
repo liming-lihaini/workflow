@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -87,6 +89,14 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         r.setResult("PASS");
         r.setReviewAt(LocalDateTime.now());
         reviewService.save(r);
+
+        // 技术确认后生成委托编号：WT + yyyyMMdd + 当日4位序号（如 WT202608080001）
+        if (!StringUtils.hasText(e.getEntrustNo())) {
+            String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+            String prefix = "WT" + date;
+            long cnt = this.count(new LambdaQueryWrapper<EmsEntrust>().likeRight(EmsEntrust::getEntrustNo, prefix));
+            e.setEntrustNo(CodeGenerator.generate("WT", (int) cnt + 1));
+        }
 
         e.setStatus("已确认");
         e.setUpdateTime(LocalDateTime.now());
@@ -160,6 +170,25 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
             }
         }
         removeByIds(ids);
+    }
+
+    /** 客户详情：该客户下的检测委托清单（关联客户名称、来源名称） */
+    public List<EmsEntrustVO> listVOByCustId(Long custId) {
+        List<EmsEntrust> list = this.list(new LambdaQueryWrapper<EmsEntrust>()
+                .eq(EmsEntrust::getCustId, custId)
+                .orderByDesc(EmsEntrust::getCreateTime));
+        Map<Long, String> custNameMap = loadCustNames(list);
+        Map<String, String> sourceNameMap = loadSourceNames();
+        Map<String, String> sampleFreqNameMap = loadSampleFreqNames();
+        List<EmsEntrustVO> vos = new ArrayList<>();
+        for (EmsEntrust e : list) {
+            EmsEntrustVO vo = EmsEntrustVO.from(e);
+            vo.setCustName(custNameMap.get(e.getCustId()));
+            vo.setSourceName(sourceNameMap.get(e.getSource()));
+            vo.setSampleFreqName(sampleFreqNameMap.get(e.getSampleFreq()));
+            vos.add(vo);
+        }
+        return vos;
     }
 
     /** 列表视图：关联客户名称、来源名称（TRD 5.1 委托列表展示），可按状态过滤 */

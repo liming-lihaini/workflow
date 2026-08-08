@@ -89,6 +89,7 @@ public class DictDataInitializer implements CommandLineRunner {
         entrustColumns.put("create_name", "TEXT");
         entrustColumns.put("update_by", "TEXT");
         entrustColumns.put("update_name", "TEXT");
+        entrustColumns.put("urgent", "INTEGER DEFAULT 0");
         for (java.util.Map.Entry<String, String> e : entrustColumns.entrySet()) {
             if (!entrustCols.contains(e.getKey())) {
                 try {
@@ -357,7 +358,7 @@ public class DictDataInitializer implements CommandLineRunner {
         // 状态机：实验室监测中（检测任务创建）→ 检测数据复核中（提交检测数据）→ 已完成（复核通过）/ 检测异常（复核不通过）
         DictType sampleStatus = getDictTypeByCode("moni_sample_status");
         if (sampleStatus != null) {
-            createOrUpdateDictItem(sampleStatus.getId(), "实验室监测中", "lab_monitoring", 1);
+            createOrUpdateDictItem(sampleStatus.getId(), "实验室检测中", "lab_monitoring", 1);
             createOrUpdateDictItem(sampleStatus.getId(), "检测数据复核中", "data_reviewing", 2);
             createOrUpdateDictItem(sampleStatus.getId(), "已完成", "completed", 3);
             createOrUpdateDictItem(sampleStatus.getId(), "检测异常", "abnormal", 4);
