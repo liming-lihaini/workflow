@@ -23,6 +23,12 @@ public class ReceiveReq {
     /** 保存条件 */
     private String preserve;
 
+    /** 收样检查单（多选，逗号分隔数据字典值），来源 sample_receive_check */
+    private String checkItems;
+
+    /** 收样动作：receive=正常收样（默认），reject=异常拒收 */
+    private String action;
+
     /** 是否留样 0否 1是 */
     private Integer retainFlag;
 

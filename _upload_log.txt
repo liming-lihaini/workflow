@@ -1,0 +1,9 @@
+ITEMS: [
+  {
+    "tag": "DIV",
+    "cls": "ant-upload-list-item ant-upload-list-item-done",
+    "hasImg": true,
+    "imgSrc": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAAQAElEQVR4AeydB2AcxbnHf7tXpTv13oub3HvvFGObTowJPYQAIQ",
+    "status": "ant-upload-list-item ant-upload-list-item-done"
+  }
+]

@@ -23,6 +23,10 @@ public class EmsEntrustVO {
     private String status;
     private String description;    // 委托说明（富文本）
     private String submitBy;
+    private String createBy;       // 创建人-工号（username）
+    private String createName;     // 创建人-姓名（realName）
+    private String updateBy;       // 更新人-工号（username）
+    private String updateName;     // 更新人-姓名（realName）
     private String createTime;
     private String updateTime;
     private List<EmsMonitorPoint> points;  // 监测点位（委托基础信息）
@@ -34,9 +38,16 @@ public class EmsEntrustVO {
         vo.setCustId(e.getCustId());
         vo.setEntrustName(e.getEntrustName());
         vo.setSource(e.getSource());
+        vo.setSourceName(e.getSourceName());
+        vo.setSampleFreq(e.getSampleFreq());
+        vo.setSampleFreqName(e.getSampleFreqName());
         vo.setStatus(e.getStatus());
         vo.setDescription(e.getDescription());
         vo.setSubmitBy(e.getSubmitBy());
+        vo.setCreateBy(e.getCreateBy());
+        vo.setCreateName(e.getCreateName());
+        vo.setUpdateBy(e.getUpdateBy());
+        vo.setUpdateName(e.getUpdateName());
         vo.setCreateTime(e.getCreateTime() == null ? null : e.getCreateTime().toString());
         vo.setUpdateTime(e.getUpdateTime() == null ? null : e.getUpdateTime().toString());
         return vo;

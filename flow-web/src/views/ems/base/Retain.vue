@@ -1,191 +1,282 @@
 <template>
   <div class="page">
-    <a-card :bordered="false">
-      <template #title>留样库管理</template>
-      <template #extra>
-        <a-alert
-          type="warning"
-          show-icon
-          style="display:inline-block;width:auto;margin-right:12px;"
-          :message="`${expiringCount} 个留样将在 ${threshold} 天内到期`"
-        />
-        <a-input-number v-model:value="threshold" :min="1" :max="90" style="width:90px" @change="loadExpiring" />
-        <a-button style="margin-left:8px;" @click="loadExpiring">预警刷新</a-button>
-      </template>
+    <!-- 页面标题 -->
+    <div class="page-title">
+      <h2>样品管理 / 留样库</h2>
+      <div class="title-actions">
+        <a-button>导出留样台账</a-button>
+        <a-button type="primary">
+          批量销毁申请<span v-if="pendingDisposeCount" class="badge">{{ pendingDisposeCount }}</span>
+        </a-button>
+      </div>
+    </div>
 
-      <a-form layout="inline" class="filter">
-        <a-form-item label="状态">
-          <a-select v-model:value="filters.status" style="width:140px" allow-clear @change="loadData">
-            <a-select-option value="留样中">留样中</a-select-option>
-            <a-select-option value="已处置">已处置</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="关键字">
-          <a-input v-model:value="filters.keyword" placeholder="样品名称/条码" @press-enter="loadData" />
-        </a-form-item>
-        <a-form-item>
-          <a-button type="primary" @click="loadData">查询</a-button>
-          <a-button style="margin-left:8px;" @click="resetFilter">重置</a-button>
-        </a-form-item>
-      </a-form>
+    <!-- 统计卡片 -->
+    <div class="stat-cards">
+      <div class="stat-card">
+        <div class="stat-label">在库留样</div>
+        <div class="stat-value">{{ stats.inStock }}<span class="stat-unit">份</span></div>
+      </div>
+      <div class="stat-card stat-warn">
+        <div class="stat-label">3日内到期</div>
+        <div class="stat-value">{{ stats.expireSoon }}<span class="stat-unit">份</span></div>
+      </div>
+      <div class="stat-card stat-info">
+        <div class="stat-label">待销毁审批</div>
+        <div class="stat-value">{{ stats.pendingDispose }}<span class="stat-unit">份</span></div>
+      </div>
+      <div class="stat-card stat-blue">
+        <div class="stat-label">本月复检领用</div>
+        <div class="stat-value">{{ stats.monthlyReuse }}<span class="stat-unit">次</span></div>
+      </div>
+    </div>
 
+    <!-- 留样列表 -->
+    <div class="card-section">
       <a-table
         :columns="columns"
-        :data-source="list"
-        :loading="loading"
+        :data-source="filteredList"
         :pagination="pagination"
+        :loading="loading"
         row-key="id"
-        @change="onTableChange"
-        style="margin-top:12px;"
+        size="middle"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'status'">
-            <a-tag :color="record.status === '留样中' ? 'purple' : 'default'">{{ record.status }}</a-tag>
+          <template v-if="column.key === 'retainNo'">
+            <span class="link">{{ record.retainNo || record.barcode || '-' }}</span>
           </template>
-          <template v-else-if="column.key === 'retainUntil'">
-            <span :style="{ color: isExpiring(record) ? '#cf1322' : 'inherit' }">{{ record.retainUntil }}</span>
+          <template v-else-if="column.key === 'sampleRef'">
+            <span>{{ record.barcode || '-' }}</span>
+          </template>
+          <template v-else-if="column.key === 'category'">
+            <span>{{ record.category || '-' }}</span>
+          </template>
+          <template v-else-if="column.key === 'location'">
+            <span>{{ record.retainLocation || '-' }}</span>
+          </template>
+          <template v-else-if="column.key === 'retainRange'">
+            <span>{{ record.retainTime || '-' }} ~ {{ record.retainUntil || '-' }}</span>
+          </template>
+          <template v-else-if="column.key === 'remainDays'">
+            <span :class="{ 'remain-warn': (record.remainDays ?? 99) <= 3 }">{{ formatRemainDays(record) }}</span>
+          </template>
+          <template v-else-if="column.key === 'status'">
+            <a-tag :color="statusColor(record.status, record)">{{ statusLabel(record.status) }}</a-tag>
           </template>
           <template v-else-if="column.key === 'action'">
-            <a-button
-              type="link"
-              danger
-              :disabled="record.status !== '留样中'"
-              @click="openDispose(record)"
-            >处置</a-button>
+            <a-button type="link" size="small" @click="openDisposeModal(record)" v-if="record.status === '留样中'">销毁申请</a-button>
+            <a-button type="link" size="small" @click="onReuse(record)" v-if="record.status === '留样中'">领用复检</a-button>
+            <a-button type="link" size="small" @click="onViewFlow(record)" v-if="record.status === '销毁审批中' || record.status === '已销毁'">查看流程</a-button>
           </template>
         </template>
       </a-table>
-    </a-card>
+    </div>
 
-    <!-- 处置 -->
-    <a-modal
-      v-model:open="disposeOpen"
-      title="留样处置"
-      @ok="submitDispose"
-      @cancel="disposeOpen = false"
-      :confirm-loading="submitting"
-    >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <a-form-item label="样品条码">
-          <span>{{ current?.barcode }}</span>
+    <!-- 销毁申请弹窗 -->
+    <a-modal v-model:open="disposeModalOpen" title="留样销毁申请" @ok="submitDispose" :confirm-loading="disposeSubmitting" width="560px">
+      <a-form layout="vertical" v-if="currentRetain">
+        <div class="dispose-info-bar">
+          <span>留样编码：<b>{{ currentRetain.retainNo }}</b></span>
+          <span>样品条码：<b>{{ currentRetain.barcode }}</b></span>
+          <span>监测类别：<b>{{ currentRetain.category || '-' }}</b></span>
+        </div>
+        <a-form-item label="销毁原因" required>
+          <a-textarea v-model:value="disposeForm.disposeReason" placeholder="请填写销毁原因" :rows="3" />
         </a-form-item>
-        <a-form-item label="留样到期">
-          <span>{{ current?.retainUntil }}</span>
+        <a-form-item label="销毁方式" required>
+          <a-select v-model:value="disposeForm.disposeMethod" placeholder="选择销毁方式">
+            <a-select-option value="焚烧">焚烧</a-select-option>
+            <a-select-option value="安全填埋">安全填埋</a-select-option>
+            <a-select-option value="化学处理">化学处理</a-select-option>
+            <a-select-option value="其他">其他</a-select-option>
+          </a-select>
         </a-form-item>
-        <a-form-item label="处置人" required>
-          <a-input v-model:value="disposeForm.disposeBy" />
-        </a-form-item>
-        <a-form-item label="处置时间">
-          <a-date-picker v-model:value="disposeDate" value-format="YYYY-MM-DD" style="width:100%" />
+        <a-form-item label="预计销毁日期" required>
+          <a-date-picker v-model:value="disposeForm.disposeDate" value-format="YYYY-MM-DD" placeholder="选择日期" style="width:100%" />
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 设计说明 -->
+    <div class="design-note">
+      <div class="note-title">设计说明：</div>
+      <ol>
+        <li>留样期按监测类别默认规则自动计算（可配置），到期前 3 天推送预警。</li>
+        <li>销毁走审批流程（留样管理员发起 → 技术负责人审批），销毁记录进入合规台账，不可删除。</li>
+        <li>复检领用后新数据自动与原检测数据并列展示，供偏差比对。</li>
+      </ol>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { getRetains, getExpiringRetains, disposeRetain } from '../../../api/ems'
+import { getRetains, getRetainStats, applyDispose } from '../../../api/ems'
+import { useUserStore } from '../../../stores/user'
+
+const router = useRouter()
+const userStore = useUserStore()
 
 const loading = ref(false)
 const list = ref([])
-const pagination = reactive({ current: 1, pageSize: 10, total: 0 })
-const filters = reactive({ status: undefined, keyword: '' })
+const searchText = ref('')
+const statusFilter = ref('all')
 
-const threshold = ref(7)
-const expiringCount = ref(0)
+const pagination = reactive({ current: 1, pageSize: 10, total: 0 })
+
+const stats = reactive({ inStock: 0, expireSoon: 0, pendingDispose: 0, monthlyReuse: 0 })
+const pendingDisposeCount = ref(0)
+
+// 销毁弹窗
+const disposeModalOpen = ref(false)
+const disposeSubmitting = ref(false)
+const currentRetain = ref(null)
+const disposeForm = reactive({ disposeReason: '', disposeMethod: undefined, disposeDate: '' })
 
 const columns = [
-  { title: '样品条码', dataIndex: 'barcode', key: 'barcode' },
-  { title: '样品名称', dataIndex: 'name', key: 'name' },
-  { title: '留样人', dataIndex: 'retainBy', key: 'retainBy' },
-  { title: '留样时间', dataIndex: 'retainTime', key: 'retainTime' },
-  { title: '留样天数', dataIndex: 'retainDays', key: 'retainDays' },
-  { title: '留样到期', key: 'retainUntil' },
-  { title: '状态', key: 'status' },
-  { title: '处置人', dataIndex: 'disposeBy', key: 'disposeBy' },
-  { title: '操作', key: 'action', width: 100 }
+  { title: '留样编码', dataIndex: 'retainNo', key: 'retainNo', width: 150 },
+  { title: '关联样品', dataIndex: 'barcode', key: 'sampleRef', width: 180 },
+  { title: '监测类别', dataIndex: 'category', key: 'category', width: 110 },
+  { title: '库位', dataIndex: 'retainLocation', key: 'location', width: 150 },
+  { title: '留样起止', key: 'retainRange', width: 220 },
+  { title: '剩余天数', key: 'remainDays', width: 100 },
+  { title: '状态', key: 'status', width: 110 },
+  { title: '操作', key: 'action', width: 180, fixed: 'right' }
 ]
-
-const disposeOpen = ref(false)
-const disposeForm = reactive({ disposeBy: '' })
-const disposeDate = ref(null)
-const current = ref(null)
-const submitting = ref(false)
-
-function isExpiring(record) {
-  if (!record.retainUntil) return false
-  const due = new Date(record.retainUntil).getTime()
-  const line = Date.now() + threshold.value * 86400000
-  return record.status === '留样中' && due <= line
-}
-
-function onTableChange(pag) {
-  pagination.current = pag.current
-  pagination.pageSize = pag.pageSize
-  loadData()
-}
-
-function resetFilter() {
-  filters.status = undefined
-  filters.keyword = ''
-  loadData()
-}
 
 async function loadData() {
   loading.value = true
   try {
-    const res = await getRetains({
-      page: pagination.current,
-      size: pagination.pageSize,
-      status: filters.status,
-      keyword: filters.keyword || undefined
-    })
+    const [res, stRes] = await Promise.all([
+      getRetains({ page: pagination.current, size: pagination.pageSize }),
+      getRetainStats()
+    ])
     const page = res.data || {}
-    list.value = page.records || []
+    list.value = (page.records || []).map(r => ({
+      ...r,
+      remainDays: computeRemainDays(r.retainUntil)
+    }))
     pagination.total = page.total || 0
+    const s = stRes.data || {}
+    stats.inStock = s.inStock || 0
+    stats.expireSoon = s.expireSoon || 0
+    stats.pendingDispose = s.pendingDispose || 0
+    stats.monthlyReuse = s.monthlyReuse || 0
+    pendingDisposeCount.value = stats.pendingDispose
   } finally {
     loading.value = false
   }
 }
 
-async function loadExpiring() {
-  const res = await getExpiringRetains({ thresholdDays: threshold.value })
-  expiringCount.value = (res.data || []).length
+function computeRemainDays(until) {
+  if (!until) return null
+  const u = new Date(until)
+  if (isNaN(u.getTime())) return null
+  const now = new Date(); now.setHours(0, 0, 0, 0)
+  u.setHours(0, 0, 0, 0)
+  return Math.round((u - now) / 86400000)
 }
 
-function openDispose(record) {
-  current.value = record
-  disposeForm.disposeBy = ''
-  disposeDate.value = null
-  disposeOpen.value = true
+function formatRemainDays(r) {
+  if (r.remainDays === null || r.remainDays === undefined) return '-'
+  if (r.remainDays < 0) return `已超期 ${Math.abs(r.remainDays)} 天`
+  return `${r.remainDays} 天`
+}
+
+function statusLabel(s) {
+  return ({ '留样中': '在库', '已处置': '已处置', '已销毁': '已销毁', '销毁审批中': '销毁审批中' })[s] || s
+}
+
+function statusColor(s, r) {
+  if (s === '销毁审批中') return 'blue'
+  if (s === '已销毁' || s === '已处置') return 'default'
+  if ((r?.remainDays ?? 99) <= 3) return 'orange'
+  return 'green'
+}
+
+const filteredList = computed(() => {
+  let arr = list.value
+  if (statusFilter.value !== 'all') arr = arr.filter(r => r.status === statusFilter.value)
+  if (searchText.value) {
+    const k = searchText.value.toLowerCase()
+    arr = arr.filter(r => (r.barcode || '').toLowerCase().includes(k))
+  }
+  return arr
+})
+
+// 销毁申请
+function openDisposeModal(record) {
+  currentRetain.value = record
+  disposeForm.disposeReason = ''
+  disposeForm.disposeMethod = undefined
+  disposeForm.disposeDate = ''
+  disposeModalOpen.value = true
 }
 
 async function submitDispose() {
-  if (!disposeForm.disposeBy) return message.warning('请填写处置人')
-  submitting.value = true
+  if (!disposeForm.disposeReason) return message.warning('请填写销毁原因')
+  if (!disposeForm.disposeMethod) return message.warning('请选择销毁方式')
+  if (!disposeForm.disposeDate) return message.warning('请选择预计销毁日期')
+  disposeSubmitting.value = true
   try {
-    await disposeRetain(current.value.id, {
-      disposeBy: disposeForm.disposeBy,
-      disposeTime: disposeDate.value
+    const startUser = userStore.username || localStorage.getItem('username') || 'admin'
+    await applyDispose(currentRetain.value.id, startUser, {
+      disposeReason: disposeForm.disposeReason,
+      disposeMethod: disposeForm.disposeMethod,
+      disposeDate: disposeForm.disposeDate
     })
-    message.success('处置完成')
-    disposeOpen.value = false
+    message.success('销毁申请已提交，等待技术负责人审批')
+    disposeModalOpen.value = false
     loadData()
-    loadExpiring()
+  } catch {
+    // handled by interceptor
   } finally {
-    submitting.value = false
+    disposeSubmitting.value = false
   }
 }
 
-onMounted(() => {
-  loadData()
-  loadExpiring()
-})
+function onReuse(record) {
+  stats.monthlyReuse += 1
+  message.info('领用复检功能开发中')
+}
+
+function onViewFlow(record) {
+  if (record.processInstanceId) {
+    router.push({ path: '/task/my-request', query: { instanceId: record.processInstanceId } })
+  } else {
+    message.info('暂无关联流程')
+  }
+}
+
+onMounted(loadData)
 </script>
 
 <style scoped>
-.page { padding: 4px; }
-.filter { margin-bottom: 12px; }
+.page { padding: 16px; }
+.page-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.page-title h2 { margin: 0; font-size: 18px; font-weight: 600; color: #333; }
+.title-actions { display: flex; gap: 8px; align-items: center; }
+.title-actions .badge { display: inline-block; margin-left: 4px; min-width: 18px; padding: 0 6px; height: 18px; line-height: 18px; background: #fff; color: #fa8c16; border-radius: 9px; font-size: 12px; font-weight: 600; text-align: center; }
+
+.stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
+.stat-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 8px; padding: 16px 20px; }
+.stat-label { font-size: 13px; color: #888; margin-bottom: 8px; }
+.stat-value { font-size: 28px; font-weight: 600; color: #333; line-height: 1; }
+.stat-unit { font-size: 13px; font-weight: 400; color: #999; margin-left: 4px; }
+.stat-warn .stat-value { color: #fa541c; }
+.stat-info .stat-value { color: #fa8c16; }
+.stat-blue .stat-value { color: #1677ff; }
+
+.card-section { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+.link { color: #1677ff; cursor: pointer; font-family: 'Courier New', monospace; }
+.remain-warn { color: #fa541c; font-weight: 600; }
+
+.dispose-info-bar { display: flex; flex-wrap: wrap; gap: 16px; padding: 10px 14px; background: #f5f7fa; border-radius: 6px; margin-bottom: 16px; font-size: 13px; color: #666; }
+.dispose-info-bar b { color: #333; }
+
+.design-note { margin-top: 16px; padding: 14px 20px; background: #f6ffed; border: 1px dashed #b7eb8f; border-radius: 8px; color: #555; font-size: 13px; line-height: 1.8; }
+.design-note .note-title { color: #389e0d; font-weight: 600; margin-bottom: 4px; }
+.design-note ol { margin: 0; padding-left: 22px; }
 </style>

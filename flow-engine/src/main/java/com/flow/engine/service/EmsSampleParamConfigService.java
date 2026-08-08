@@ -128,6 +128,8 @@ public class EmsSampleParamConfigService extends ServiceImpl<EmsSampleParamConfi
         vo.put("item", c.getItem());
         vo.put("standard", c.getStandard());
         vo.put("limit", c.getLimitValue());
+        vo.put("unit", c.getUnit());
+        vo.put("innerLimit", c.getInnerLimit());
         vo.put("remark", c.getRemark());
         vo.put("createTime", c.getCreateTime());
         vo.put("updateTime", c.getUpdateTime());

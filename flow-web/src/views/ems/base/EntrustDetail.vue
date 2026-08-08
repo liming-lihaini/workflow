@@ -14,7 +14,10 @@
         <a-descriptions-item label="客户">{{ vo.custName || '-' }}</a-descriptions-item>
         <a-descriptions-item label="来源">{{ vo.sourceName || vo.source || '-' }}</a-descriptions-item>
         <a-descriptions-item label="状态">{{ vo.status || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="创建人">{{ (vo.createName || vo.createBy) ? (vo.createName || '') + (vo.createBy ? '(' + vo.createBy + ')' : '') : '-' }}</a-descriptions-item>
         <a-descriptions-item label="创建时间">{{ renderDate(vo.createTime) }}</a-descriptions-item>
+        <a-descriptions-item label="更新人">{{ (vo.updateName || vo.updateBy) ? (vo.updateName || '') + (vo.updateBy ? '(' + vo.updateBy + ')' : '') : '-' }}</a-descriptions-item>
+        <a-descriptions-item label="更新时间">{{ renderDate(vo.updateTime) }}</a-descriptions-item>
       </a-descriptions>
 
       <a-divider class="title-divider" orientation="left">委托说明</a-divider>

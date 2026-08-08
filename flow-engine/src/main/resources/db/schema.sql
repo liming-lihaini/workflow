@@ -384,6 +384,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_api_token_value ON sys_api_token(token_val
 -- =====================================================================
 ALTER TABLE wf_task ADD COLUMN reason TEXT;
 ALTER TABLE wf_task ADD COLUMN actual_operator_id TEXT;
+ALTER TABLE t_sample ADD COLUMN sampler TEXT;
+ALTER TABLE t_sample ADD COLUMN sample_time TEXT;
+ALTER TABLE t_retain ADD COLUMN retain_no TEXT;
+ALTER TABLE t_retain ADD COLUMN category TEXT;
+ALTER TABLE t_retain ADD COLUMN retain_location TEXT;
+ALTER TABLE t_retain ADD COLUMN dispose_reason TEXT;
+ALTER TABLE t_retain ADD COLUMN dispose_method TEXT;
+ALTER TABLE t_retain ADD COLUMN dispose_date TEXT;
+ALTER TABLE t_retain ADD COLUMN dispose_time TEXT;
+ALTER TABLE t_retain ADD COLUMN process_instance_id INTEGER;
 
 -- =====================================================================
 -- 环境监测 LIMS 基础数据（ISSUE-022）—— 独立业务域，表前缀 t_
@@ -419,11 +429,23 @@ CREATE TABLE IF NOT EXISTS t_monitor_point (
     lng              REAL,
     lat              REAL,
     point_type       TEXT,
+    point_type_name  TEXT,           -- 点位类型名称（字典 value）
     condition        TEXT,
+    factors          TEXT,           -- 监测因子（检测项目，多个用逗号分隔）
+    standard_code    TEXT,           -- 执行标准编号（多个用逗号分隔）
+    standard_name    TEXT,           -- 执行标准全称（多个用逗号分隔）
+    freq             TEXT,           -- 监测频次
     history_over_flag INTEGER DEFAULT 0,
     create_time      TEXT,
     update_time      TEXT
 );
+
+-- 兼容旧库：若 t_monitor_point 已存在但缺少新增列，则自动补列（SQLite 不支持 IF NOT EXISTS 的 ALTER，用异常忽略方式）
+ALTER TABLE t_monitor_point ADD COLUMN factors TEXT;
+ALTER TABLE t_monitor_point ADD COLUMN standard_code TEXT;
+ALTER TABLE t_monitor_point ADD COLUMN standard_name TEXT;
+ALTER TABLE t_monitor_point ADD COLUMN freq TEXT;
+ALTER TABLE t_monitor_point ADD COLUMN point_type_name TEXT;
 
 -- 委托单主数据框架（TRD 5.1，完整状态机见 ISSUE-023）
 CREATE TABLE IF NOT EXISTS t_entrust (
@@ -435,7 +457,13 @@ CREATE TABLE IF NOT EXISTS t_entrust (
     status       TEXT DEFAULT '草稿',  -- 草稿/待技术确认/已确认/已退回
     description   TEXT,                -- 委托说明（富文本）
     sample_freq   TEXT,                -- 委托级采集频率（字典 moni_sample_freq 编码）
+    sample_freq_name TEXT,             -- 采集频率名称（字典 value）
     submit_by    TEXT,
+    source_name  TEXT,                 -- 来源名称（字典 value）
+    create_by    TEXT,                 -- 创建人-工号（username）
+    create_name  TEXT,                 -- 创建人-姓名（realName）
+    update_by    TEXT,                 -- 更新人-工号（username）
+    update_name  TEXT,                 -- 更新人-姓名（realName）
     create_time  TEXT,
     update_time  TEXT
 );
@@ -654,13 +682,21 @@ CREATE TABLE IF NOT EXISTS t_sample (
     amount        TEXT,         -- 数量/规格
     container     TEXT,         -- 容器
     preserve      TEXT,         -- 保存条件/固定剂
-    status        TEXT,         -- 待收样/已收样/留样中/已处置
+    check_items   TEXT,         -- 收样检查单（多选，逗号分隔数据字典值），来源 sample_receive_check
+    status        TEXT,         -- 待收样/已收样/异常拒收/留样中/实验室监测中/检测数据复核中/已完成/检测异常/已处置
+    disposal_type    TEXT,       -- 异常处置类型（数据字典 moni_disposal_type）
+    disposal_method  TEXT,       -- 异常处置方式（数据字典 moni_disposal_method）
+    disposal_desc    TEXT,       -- 异常处置说明（富文本 HTML）
+    disposal_by      TEXT,       -- 异常处置人
+    disposal_time    TEXT,       -- 异常处置时间
     receive_time  TEXT,         -- 收样时间
     receive_by    TEXT,         -- 收样人
     retain_flag   INTEGER,      -- 是否留样（0/1）
     retain_days   INTEGER,      -- 留样天数
     retain_until  TEXT,         -- 留样到期日
     dispatch_time TEXT,         -- 送检/检测下发时间
+    sampler       TEXT,         -- 采样人（手动收集场景冗余存储）
+    sample_time   TEXT,         -- 采样时间（手动收集场景冗余存储）
     remark        TEXT,
     create_time   TEXT,
     update_time   TEXT
@@ -685,8 +721,17 @@ CREATE TABLE IF NOT EXISTS t_sample_log (
 
 CREATE TABLE IF NOT EXISTS t_retain (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    retain_no     TEXT,         -- 留样编号（LY + yyyyMMdd + 三位序号）
     sample_id     INTEGER,      -- 样品ID
     barcode       TEXT,         -- 样品条码
+    name          TEXT,         -- 样品名称
+    category      TEXT,         -- 监测类别（冗余自 t_sample.category）
+    retain_location TEXT,       -- 库位（留样存放位置）
+    dispose_reason   TEXT,      -- 销毁原因
+    dispose_method   TEXT,      -- 销毁方式
+    dispose_date     TEXT,      -- 预计销毁日期
+    dispose_time     TEXT,      -- 实际销毁时间
+    process_instance_id INTEGER, -- 关联流程实例ID
     name          TEXT,         -- 样品名称
     point_id      INTEGER,      -- 点位ID
     retain_by     TEXT,         -- 留样人
@@ -718,10 +763,22 @@ CREATE TABLE IF NOT EXISTS t_detection_task (
     review_by     TEXT,         -- 复核人
     review_time   TEXT,         -- 复核时间
     review_opinion TEXT,        -- 复核意见
+    env_temp      TEXT,         -- 检测环境温度
+    env_humidity  TEXT,         -- 检测环境湿度
+    conclusion    TEXT,         -- 综合检验结论：pending/ok/ng/abnormal
     remark        TEXT,
+    attachments   TEXT,          -- 检测录入附件（JSON 数组：[{name,path}]）
     create_time   TEXT,
     update_time   TEXT
 );
+
+-- 兼容已存在库：补充新增列
+ALTER TABLE t_detection_task ADD COLUMN env_temp TEXT;
+ALTER TABLE t_detection_task ADD COLUMN env_humidity TEXT;
+ALTER TABLE t_detection_task ADD COLUMN conclusion TEXT;
+ALTER TABLE t_detection_task ADD COLUMN attachments TEXT;
+ALTER TABLE t_sample_param_config ADD COLUMN unit TEXT;
+ALTER TABLE t_sample_param_config ADD COLUMN inner_limit TEXT;
 
 -- 检测结果明细（每个监测项目一条记录）
 CREATE TABLE IF NOT EXISTS t_detection_result (
@@ -953,6 +1010,8 @@ CREATE TABLE IF NOT EXISTS t_sample_param_config (
     item          TEXT,         -- 检测项目（颗粒物/CODcr...）
     standard      TEXT,         -- 执行标准编号
     limit_value   TEXT,         -- 标准限值 / 管控要求
+    unit          TEXT,         -- 检测结果单位（mg/L、mg/m³ 等）
+    inner_limit   TEXT,         -- 企业内控限制（严于国标的企业内部管控要求）
     remark        TEXT,         -- 采样备注说明
     create_time   TEXT,
     update_time   TEXT
@@ -971,4 +1030,7 @@ CREATE TABLE IF NOT EXISTS t_sample_param_item (
     tip           TEXT,         -- 提示备注
     sort_no       INTEGER       -- 排序
 );
+
+-- 兼容旧库：为 t_sample 补收样检查单列（SQLite 不支持 IF NOT EXISTS 的 ALTER，异常忽略即可）
+ALTER TABLE t_sample ADD COLUMN check_items TEXT;
 

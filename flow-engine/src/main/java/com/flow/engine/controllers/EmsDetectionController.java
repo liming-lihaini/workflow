@@ -39,7 +39,8 @@ public class EmsDetectionController {
         Long sampleId = Long.valueOf(String.valueOf(body.get("sampleId")));
         String monitorItems = body.get("monitorItems") == null ? null : String.valueOf(body.get("monitorItems"));
         String entryBy = body.get("entryBy") == null ? "录入员" : String.valueOf(body.get("entryBy"));
-        return Result.ok(detectionService.createTask(sampleId, monitorItems, entryBy));
+        String reviewBy = body.get("reviewBy") == null ? null : String.valueOf(body.get("reviewBy"));
+        return Result.ok(detectionService.createTask(sampleId, monitorItems, entryBy, reviewBy));
     }
 
     /** 检测任务分页（可按状态/关键字筛选） */
@@ -58,12 +59,23 @@ public class EmsDetectionController {
         return Result.ok(detectionService.taskDetail(id));
     }
 
+    /** 任务状态统计（用于状态卡片） */
+    @GetMapping("/task-stat")
+    public Result<?> taskStat() {
+        return Result.ok(detectionService.taskStat());
+    }
+
     /** 保存检测结果 */
     @PostMapping("/task/{id}/results")
     public Result<?> saveResults(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         List<EmsDetectionResult> results = parseResults(body.get("results"));
         String entryBy = body.get("entryBy") == null ? "录入员" : String.valueOf(body.get("entryBy"));
-        return Result.ok(detectionService.saveResults(id, results, entryBy));
+        String envTemp = body.get("envTemp") == null ? null : String.valueOf(body.get("envTemp"));
+        String envHumidity = body.get("envHumidity") == null ? null : String.valueOf(body.get("envHumidity"));
+        String conclusion = body.get("conclusion") == null ? null : String.valueOf(body.get("conclusion"));
+        String remark = body.get("remark") == null ? null : String.valueOf(body.get("remark"));
+        String attachments = body.get("attachments") == null ? null : String.valueOf(body.get("attachments"));
+        return Result.ok(detectionService.saveResults(id, results, entryBy, envTemp, envHumidity, conclusion, remark, attachments));
     }
 
     /** 提交复核 */

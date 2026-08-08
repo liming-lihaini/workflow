@@ -33,6 +33,7 @@ public class EmsBaseDataController {
     private final EmsVehicleService vehicleService;
     private final EmsSamplingOrderService samplingOrderService;
     private final EmsSamplingService samplingService;
+    private final UserService userService;
     private final EmsDispatchService dispatchService;
     private final EmsEmployeeService employeeService;
     private final EmsInstrumentService instrumentService;
@@ -89,7 +90,9 @@ public class EmsBaseDataController {
     /** 创建/更新委托（含监测点位） */
     @PostMapping("/entrusts")
     public Result<com.flow.engine.dto.EmsEntrustVO> createEntrust(@RequestBody com.flow.engine.dto.EntrustSaveReq req) {
-        return Result.ok(entrustService.saveWithPoints(req.getEntrust(), req.getPoints()));
+        // 当前用户由统一认证过滤器(AuthContextFilter)解析后写入 RequestContext
+        User operator = currentUser();
+        return Result.ok(entrustService.saveWithPoints(req.getEntrust(), req.getPoints(), operator));
     }
 
     @GetMapping("/entrusts")
@@ -511,5 +514,22 @@ public class EmsBaseDataController {
     public Result<Void> batchDeleteSampleParamConfig(@RequestBody List<Long> ids) {
         sampleParamConfigService.removeBatch(ids);
         return Result.ok();
+    }
+
+    /**
+     * 从统一认证上下文(RequestContext)获取当前用户。
+     * 用户身份由 {@link com.flow.engine.common.AuthContextFilter} 在请求早期解析并写入，
+     * 业务层无需感知具体认证方式（会话 Token / API Token）。
+     */
+    private User currentUser() {
+        String userId = com.flow.engine.common.RequestContext.current().getUserId();
+        if (userId == null) {
+            return null;
+        }
+        try {
+            return userService.getUser(Long.valueOf(userId));
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

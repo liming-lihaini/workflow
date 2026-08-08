@@ -3,7 +3,9 @@ package com.flow.engine.config;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.flow.engine.entity.EmsSampleParamConfig;
 import com.flow.engine.entity.EmsSampleParamItem;
+import com.flow.engine.mapper.EmsSampleParamConfigMapper;
 import com.flow.engine.service.EmsSampleParamConfigService;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -26,12 +28,33 @@ import java.util.List;
 public class SampleParamConfigInitializer implements CommandLineRunner {
 
     private final EmsSampleParamConfigService configService;
+    private final EmsSampleParamConfigMapper configMapper;
 
     @Override
     public void run(String... args) {
         long cnt = configService.count();
         if (cnt > 0) {
-            log.info("[采样参数配置] 已存在 {} 条数据，跳过初始化", cnt);
+            // 已存在配置：回填可能缺失的单位、内控限制字段（幂等，不重复插入配置）
+            int patched = 0;
+            for (var e : unitMap().entrySet()) {
+                String[] kv = e.getKey().split("\\|", 2);
+                LambdaUpdateWrapper<EmsSampleParamConfig> uw = new LambdaUpdateWrapper<>();
+                uw.eq(EmsSampleParamConfig::getType, kv[0])
+                  .eq(EmsSampleParamConfig::getItem, kv[1])
+                  .and(w -> w.isNull(EmsSampleParamConfig::getUnit).or().eq(EmsSampleParamConfig::getUnit, ""))
+                  .set(EmsSampleParamConfig::getUnit, e.getValue());
+                patched += configMapper.update(null, uw);
+            }
+            for (var e : innerLimitMap().entrySet()) {
+                String[] kv = e.getKey().split("\\|", 2);
+                LambdaUpdateWrapper<EmsSampleParamConfig> uw = new LambdaUpdateWrapper<>();
+                uw.eq(EmsSampleParamConfig::getType, kv[0])
+                  .eq(EmsSampleParamConfig::getItem, kv[1])
+                  .and(w -> w.isNull(EmsSampleParamConfig::getInnerLimit).or().eq(EmsSampleParamConfig::getInnerLimit, ""))
+                  .set(EmsSampleParamConfig::getInnerLimit, e.getValue());
+                patched += configMapper.update(null, uw);
+            }
+            log.info("[采样参数配置] 已存在 {} 条数据，回填单位/内控限制 {} 条", cnt, patched);
             return;
         }
 
@@ -221,10 +244,68 @@ public class SampleParamConfigInitializer implements CommandLineRunner {
         // 批量写入（每个配置级联写入明细）
         int n = 0;
         for (EmsSampleParamConfig c : all) {
+            if (c.getUnit() == null || c.getUnit().isEmpty()) {
+                c.setUnit(unitMap().getOrDefault(c.getType() + "|" + c.getItem(), ""));
+            }
+            if (c.getInnerLimit() == null || c.getInnerLimit().isEmpty()) {
+                c.setInnerLimit(innerLimitMap().getOrDefault(c.getType() + "|" + c.getItem(), ""));
+            }
             configService.saveConfig(c, c.getItems());
             n++;
         }
         log.info("[采样参数配置] 初始化完成，共写入 {} 条配置", n);
+    }
+
+    /** 企业内控限制映射（key = 检测类别|检测项目），通常严于国标限值 */
+    private java.util.Map<String, String> innerLimitMap() {
+        java.util.Map<String, String> m = new java.util.LinkedHashMap<>();
+        m.put("有组织废气|颗粒物", "≤ 15 mg/m³（严于国标 20）");
+        m.put("有组织废气|二氧化硫(SO2)", "≤ 40 mg/m³（严于国标 50）");
+        m.put("有组织废气|氮氧化物(NOx)", "≤ 120 mg/m³（严于国标 150）");
+        m.put("有组织废气|油烟", "≤ 1.5 mg/m³（严于国标 2.0）");
+        m.put("无组织废气|总悬浮颗粒物(TSP)", "≤ 0.8 mg/m³（严于国标 1.0）");
+        m.put("无组织废气|苯系物", "按内控标准从严执行");
+        m.put("废水/地表水|化学需氧量(COD)", "≤ 50 mg/L（严于国标 60）");
+        m.put("废水/地表水|氨氮", "≤ 5 mg/L（严于国标 8）");
+        m.put("废水/地表水|总磷", "≤ 0.5 mg/L");
+        m.put("废水/地表水|总氮", "≤ 15 mg/L");
+        m.put("废水/地表水|石油类", "≤ 3 mg/L（严于国标 5）");
+        m.put("废水/地表水|挥发酚", "≤ 0.3 mg/L");
+        m.put("地下水|pH", "6.5 ~ 8.5（内控）");
+        m.put("地下水|总铅", "≤ 0.05 mg/L（严于国标 0.1）");
+        m.put("土壤|重金属", "按内控筛选值从严");
+        m.put("土壤|挥发性有机物(VOCs)", "按内控筛选值从严");
+        m.put("厂界噪声|等效A声级", "昼间 ≤ 55 dB(A)（内控）");
+        m.put("室内空气|甲醛", "≤ 0.08 mg/m³（严于国标 0.10）");
+        m.put("室内空气|苯、甲苯、二甲苯", "≤ 0.06 mg/m³（内控）");
+        m.put("固体废物|浸出液重金属", "按内控鉴别值从严");
+        return m;
+    }
+
+    /** 检测项目单位映射（key = 检测类别|检测项目），用于初始化与回填单位 */
+    private java.util.Map<String, String> unitMap() {
+        java.util.Map<String, String> m = new java.util.LinkedHashMap<>();
+        m.put("有组织废气|颗粒物", "mg/m³");
+        m.put("有组织废气|二氧化硫(SO2)", "mg/m³");
+        m.put("有组织废气|氮氧化物(NOx)", "mg/m³");
+        m.put("有组织废气|油烟", "mg/m³");
+        m.put("无组织废气|总悬浮颗粒物(TSP)", "mg/m³");
+        m.put("无组织废气|苯系物", "mg/m³");
+        m.put("废水/地表水|化学需氧量(COD)", "mg/L");
+        m.put("废水/地表水|氨氮", "mg/L");
+        m.put("废水/地表水|总磷", "mg/L");
+        m.put("废水/地表水|总氮", "mg/L");
+        m.put("废水/地表水|石油类", "mg/L");
+        m.put("废水/地表水|挥发酚", "mg/L");
+        m.put("地下水|pH", "无量纲");
+        m.put("地下水|总铅", "mg/L");
+        m.put("土壤|重金属", "mg/kg");
+        m.put("土壤|挥发性有机物(VOCs)", "mg/kg");
+        m.put("厂界噪声|等效A声级", "dB(A)");
+        m.put("室内空气|甲醛", "mg/m³");
+        m.put("室内空气|苯、甲苯、二甲苯", "mg/m³");
+        m.put("固体废物|浸出液重金属", "mg/L");
+        return m;
     }
 
     /** 构造主表 + 暂存明细（明细在 saveConfig 内回填 configId） */

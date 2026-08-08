@@ -122,6 +122,17 @@ const activeTab = ref('basic')
 const processKey = computed(() => route.query.processKey)
 const definitionId = computed(() => route.query.id || processDef.value?.id || '')
 
+// 监听 flow-designer iframe 的 token 请求，返回当前应用的 token
+// （两个应用不同端口，localStorage 不共享）
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'FLOW_DESIGNER_TOKEN_REQUEST') {
+    const token = localStorage.getItem('token')
+    if (token) {
+      event.source.postMessage({ type: 'FLOW_DESIGNER_TOKEN_RESPONSE', token }, '*')
+    }
+  }
+})
+
 // 内嵌 React 设计器地址（与生产/开发环境一致）
 const designerUrl = computed(() => {
   const params = new URLSearchParams()

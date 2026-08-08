@@ -37,6 +37,8 @@
         :pagination="pagination"
         :scroll="{ x: 1100, y: scrollY }"
         :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
+        :resize-column="true"
+        @resizeColumn="handleResizeColumn"
         row-key="id"
         @change="handleTableChange"
       >
@@ -80,6 +82,14 @@
             >
               <span class="action-link">再次派单</span>
             </a-popconfirm>
+            <a-divider type="vertical" />
+            <a-popconfirm
+              v-if="record.status === '草稿' || record.status === '已退回'"
+              title="确认删除该委托？关联监测点位将一并清除。"
+              @confirm="handleDeleteOne(record)"
+            >
+              <span class="action-link danger">删除</span>
+            </a-popconfirm>
           </template>
         </template>
       </a-table>
@@ -99,20 +109,20 @@
       :confirm-loading="submitLoading"
       @close="drawerVisible = false"
     >
-      <a-form :model="formState" layout="vertical">
-        <a-row :gutter="16">
+      <a-form :model="formState" layout="inline" class="entrust-inline-form">
+        <a-row :gutter="[16, 8]" style="width: 100%">
           <a-col :span="12">
             <a-form-item label="委托名称" required>
               <a-input v-model:value="formState.entrustName" placeholder="请输入委托名称" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item label="客户">
+            <a-form-item label="客户" required>
               <a-select v-model:value="formState.custId" show-search placeholder="选择客户" :options="customerOptions" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item label="来源">
+            <a-form-item label="来源" required>
               <a-select v-model:value="formState.source" placeholder="选择来源" :options="sourceOptions" />
             </a-form-item>
           </a-col>
@@ -121,25 +131,26 @@
               <a-select v-model:value="formState.sampleFreq" placeholder="选择采集频率" :options="sampleFreqOptions" />
             </a-form-item>
           </a-col>
+          <a-col :span="24">
+            <a-form-item label="委托说明" style="width: 100%">
+              <div class="editor-toolbar">
+                <a-space size="small">
+                  <a-button size="small" @click="execCmd('bold')"><b>B</b></a-button>
+                  <a-button size="small" @click="execCmd('italic')"><i>I</i></a-button>
+                  <a-button size="small" @click="execCmd('underline')"><u>U</u></a-button>
+                  <a-button size="small" @click="execCmd('insertUnorderedList')">• 列表</a-button>
+                </a-space>
+              </div>
+              <div
+                ref="editorRef"
+                class="rich-editor"
+                contenteditable="true"
+                placeholder="请输入委托说明（支持富文本）"
+                @input="onEditorInput"
+              ></div>
+            </a-form-item>
+          </a-col>
         </a-row>
-
-        <a-form-item label="委托说明">
-          <div class="editor-toolbar">
-            <a-space size="small">
-              <a-button size="small" @click="execCmd('bold')"><b>B</b></a-button>
-              <a-button size="small" @click="execCmd('italic')"><i>I</i></a-button>
-              <a-button size="small" @click="execCmd('underline')"><u>U</u></a-button>
-              <a-button size="small" @click="execCmd('insertUnorderedList')">• 列表</a-button>
-            </a-space>
-          </div>
-          <div
-            ref="editorRef"
-            class="rich-editor"
-            contenteditable="true"
-            placeholder="请输入委托说明（支持富文本）"
-            @input="onEditorInput"
-          ></div>
-        </a-form-item>
 
         <a-divider class="title-divider" orientation="left">监测点位（委托基础信息）</a-divider>
         <div class="point-toolbar">
@@ -168,17 +179,28 @@
                 placeholder="监测类别"
                 :options="configTypeOptions"
                 style="width: 130px"
-                @change="() => { record.factors = undefined; record.standardCode = ''; record.standardName = '' }"
+                @change="() => { record.factors = []; record.standardCode = ''; record.standardName = '' }"
               />
             </template>
             <template v-else-if="column.key === 'factors'">
               <a-select
                 v-model:value="record.factors"
-                placeholder="检测项目"
+                mode="multiple"
+                placeholder="检测项目（可多选）"
                 :options="configItemOptions(record.pointType)"
-                style="width: 190px"
+                style="min-width: 190px; max-width: 280px"
                 :disabled="!record.pointType"
-                @change="(val) => { const o = configItemOptions(record.pointType).find(s => s.value === val); record.standardCode = o ? o.standard : ''; record.standardName = o ? o.standard : '' }"
+                :max-tag-count="2"
+                @change="(vals) => {
+                  const opts = configItemOptions(record.pointType)
+                  const stds = []
+                  ;(vals || []).forEach(v => {
+                    const o = opts.find(s => s.value === v)
+                    if (o && o.standard && !stds.includes(o.standard)) stds.push(o.standard)
+                  })
+                  record.standardCode = stds.join(',')
+                  record.standardName = stds.join(',')
+                }"
               />
             </template>
             <template v-else-if="column.key === 'standard'">
@@ -211,7 +233,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick, h } from 'vue'
 import { useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import {
@@ -294,6 +316,15 @@ function handleBatchDelete() {
   })
 }
 
+function handleDeleteOne(record) {
+  return batchDeleteEntrusts([record.id])
+    .then(() => {
+      message.success(`已删除委托「${record.entrustName}」`)
+      loadData()
+    })
+    .catch(() => {})
+}
+
 const editorRef = ref(null)
 const points = ref([])
 const detailId = ref(null)  // 非空时主页展示详情界面
@@ -301,14 +332,15 @@ const detailId = ref(null)  // 非空时主页展示详情界面
 const pagination = reactive({ current: 1, pageSize: 10, total: 0, showSizeChanger: true, showTotal: (t) => `共 ${t} 条` })
 
 const { columns } = useResizableColumns([
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 60, sorter: true },
-  { title: '委托名称', dataIndex: 'entrustName', key: 'entrustName', sorter: true },
-  { title: '客户', dataIndex: 'custName', key: 'custName', width: 240 },
-  { title: '来源', dataIndex: 'sourceName', key: 'sourceName', width: 110 },
-  { title: '采集频率', dataIndex: 'sampleFreqName', key: 'sampleFreqName', width: 110, customRender: ({ text }) => text || '—' },
-  { title: '状态', key: 'status', dataIndex: 'status', width: 100 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, customRender: ({ text }) => renderDate(text) },
-  { title: '操作', key: 'action', width: 220 }
+  { title: '序号', dataIndex: 'id', key: 'index', width: 60,customRender: (opts) => (opts?.index ?? 0) + 1 },
+  { title: '委托单号', dataIndex: 'entrustNo', key: 'entrustNo', width: 140, customRender: ({ text, record }) => h('a', { href: 'javascript:void(0)', onClick: (e) => { e.preventDefault(); openDetail(record.id); } }, text || '-') },
+  { title: '委托名称', dataIndex: 'entrustName', key: 'entrustName', sorter: true, width: 200, resizable: true },
+  { title: '客户', dataIndex: 'custName', key: 'custName', width: 240, resizable: true },
+  { title: '来源', dataIndex: 'sourceName', key: 'sourceName', width: 110, resizable: true },
+  { title: '状态', key: 'status', dataIndex: 'status', width: 100, resizable: true },
+  { title: '创建人', dataIndex: 'createName', key: 'createName', width: 110, resizable: true },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 120, resizable: true, customRender: ({ text }) => renderDate(text) },
+  { title: '操作', key: 'action', width: 220, fixed: 'right' }
 ])
 
 const pointColumns = [
@@ -316,8 +348,8 @@ const pointColumns = [
   { title: '经度', key: 'longitude', width: 100 },
   { title: '纬度', key: 'latitude', width: 100 },
   { title: '监测类别', key: 'pointType', width: 140 },
-  { title: '检测项目', key: 'factors', width: 200 },
-  { title: '执行标准', key: 'standard', width: 220 },
+  { title: '检测项目', key: 'factors', width: 280, required: true },
+  { title: '执行标准', key: 'standard', width: 260 },
   { title: '备注(工况要求)', key: 'envCondition', width: 160 },
   { title: '操作', key: 'op', width: 70 }
 ]
@@ -338,9 +370,13 @@ function statusColor(s) {
   return { '草稿': 'default', '待技术确认': 'orange', '已确认': 'green', '已退回': 'red' }[s] || 'default'
 }
 
-function loadCustomers() {
+function loadCustomers(onlyEnabled = false) {
   getCustomers({}).then((res) => {
-    const list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+    let list = Array.isArray(res.data) ? res.data : (res.data?.list || [])
+    // 新建时过滤掉已停用客户（status=0），编辑时保留全部以便回显原客户
+    if (onlyEnabled) {
+      list = list.filter((c) => c.status == null || c.status === 1)
+    }
     customerOptions.value = list.map((c) => ({ label: c.custName, value: c.id }))
   }).catch(() => {})
 }
@@ -427,7 +463,7 @@ function addPoint() {
   points.value.push({
     rowKey: `rp_${Date.now()}_${points.value.length}`,
     pointNo: '', pointName: '', lng: '', lat: '', pointType: undefined,
-    factors: undefined, standardCode: '', standardName: '', freq: undefined, condition: ''
+    factors: [], standardCode: '', standardName: '', freq: undefined, condition: ''
   })
 }
 
@@ -461,9 +497,11 @@ function closeDetail() {
 function showDrawer(record) {
   if (record) {
     editingRecord.value = record
+    loadCustomers(false)  // 编辑时保留全部客户以便回显
     loadEntrustDetail(record.id)
   } else {
     editingRecord.value = null
+    loadCustomers(true)   // 新建时过滤已停用客户
     Object.assign(formState, { id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, description: '' })
     setEditorHtml('')
     points.value = []
@@ -491,7 +529,7 @@ function loadEntrustDetail(id) {
       lng: p.lng ?? '',
       lat: p.lat ?? '',
       pointType: p.pointType || undefined,
-      factors: p.factors ? String(p.factors).split(',')[0] : undefined,
+      factors: p.factors ? String(p.factors).split(',') : [],
       standardCode: p.standardCode || '',
       standardName: p.standardName || '',
       freq: p.freq || undefined,
@@ -505,6 +543,14 @@ function handleSave() {
   if (!formState.entrustName) {
     message.warning('请填写委托名称')
     return
+  }
+  for (let i = 0; i < points.value.length; i++) {
+    const p = points.value[i]
+    const factors = Array.isArray(p.factors) ? p.factors : (p.factors ? String(p.factors).split(',') : [])
+    if (!factors.length) {
+      message.warning(`监测点位第 ${i + 1} 行的检测项目为必填项`)
+      return
+    }
   }
   submitLoading.value = true
   const entrust = {
@@ -616,6 +662,26 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.entrust-inline-form :deep(.ant-form-item-label) {
+  width: 100px;
+  flex: 0 0 100px;
+  text-align: right;
+}
+.entrust-inline-form :deep(.ant-form-item-label > label) {
+  display: inline-block;
+  width: 100%;
+}
+.entrust-inline-form :deep(.ant-form-item) {
+  width: 100%;
+  margin-bottom: 8px;
+}
+.entrust-inline-form :deep(.ant-form-item-control) {
+  flex: 1;
+}
+.entrust-inline-form :deep(.ant-select),
+.entrust-inline-form :deep(.ant-input) {
+  width: 100%;
+}
 .page-wrap {
   height: 100%;
   display: flex;

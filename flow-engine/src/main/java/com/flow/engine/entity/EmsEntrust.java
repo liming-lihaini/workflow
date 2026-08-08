@@ -22,7 +22,13 @@ public class EmsEntrust {
     private String status;
     private String description;  // 委托说明（富文本）
     private String sampleFreq;    // 委托级采集频率（字典 moni_sample_freq 编码）
+    private String sampleFreqName; // 采集频率名称（字典 value，与 sampleFreq 配对持久化）
     private String submitBy;
+    private String sourceName;     // 来源名称（字典 value，与 source 配对持久化）
+    private String createBy;       // 创建人-工号（username）
+    private String createName;     // 创建人-姓名（realName）
+    private String updateBy;       // 更新人-工号（username）
+    private String updateName;     // 更新人-姓名（realName）
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

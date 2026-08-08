@@ -6,6 +6,7 @@ import com.flow.engine.dto.EmsEntrustVO;
 import com.flow.engine.entity.DictItem;
 import com.flow.engine.entity.EmsCustomer;
 import com.flow.engine.entity.EmsEntrust;
+import com.flow.engine.entity.User;
 import com.flow.engine.entity.EmsEntrustReview;
 import com.flow.engine.entity.EmsMonitorPoint;
 import com.flow.engine.entity.EmsSamplingOrder;
@@ -50,7 +51,7 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
 
     public EmsEntrust createDraft(EmsEntrust e) {
         if (!StringUtils.hasText(e.getEntrustName())) {
-            throw new IllegalArgumentException("委托名称不能为空(BR-022-05)");
+            throw new IllegalArgumentException("委托名称不能为空");
         }
         e.setStatus(e.getStatus() == null ? "草稿" : e.getStatus());
         e.setCreateTime(LocalDateTime.now());
@@ -189,6 +190,7 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
             vo.setCustName(c == null ? null : c.getCustName());
         }
         vo.setSourceName(loadSourceNames().get(e.getSource()));
+        vo.setSampleFreq(e.getSampleFreq());
         vo.setSampleFreqName(loadSampleFreqNames().get(e.getSampleFreq()));
         vo.setPoints(monitorPointService.listByEntrust(id));
         return vo;
@@ -199,14 +201,33 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
      * 点位作为委托基础信息一并提交（ISSUE-023 改造）
      */
     @Transactional
-    public EmsEntrustVO saveWithPoints(EmsEntrust e, List<EmsMonitorPoint> points) {
+    public EmsEntrustVO saveWithPoints(EmsEntrust e, List<EmsMonitorPoint> points, User operator) {
         boolean isNew = e.getId() == null;
         if (!StringUtils.hasText(e.getEntrustName())) {
             throw new IllegalArgumentException("委托名称不能为空(BR-022-05)");
         }
+        Map<String, String> sourceNameMap = loadSourceNames();
+        Map<String, String> sampleFreqNameMap = loadSampleFreqNames();
+        Map<String, String> pointTypeNameMap = loadPointTypeNames();
+
+        // 持久化字典 value（与 key 配对），便于列表/详情直接展示
+        // 兜底：若提交值本身即显示文本（历史数据/非编码），则用原值作为名称
+        String srcName = sourceNameMap.get(e.getSource());
+        e.setSourceName(srcName != null ? srcName : e.getSource());
+        String freqName = sampleFreqNameMap.get(e.getSampleFreq());
+        e.setSampleFreqName(freqName != null ? freqName : e.getSampleFreq());
+
         if (isNew) {
             e.setStatus(e.getStatus() == null ? "草稿" : e.getStatus());
             e.setCreateTime(LocalDateTime.now());
+            if (operator != null) {
+                e.setCreateBy(operator.getUsername());
+                e.setCreateName(operator.getRealName());
+            }
+        }
+        if (operator != null) {
+            e.setUpdateBy(operator.getUsername());
+            e.setUpdateName(operator.getRealName());
         }
         e.setUpdateTime(LocalDateTime.now());
         this.saveOrUpdate(e);
@@ -223,6 +244,8 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
                 if (!StringUtils.hasText(p.getPointNo())) {
                     p.setPointNo(String.format("P%03d", seq));
                 }
+                String ptName = pointTypeNameMap.get(p.getPointType());
+                p.setPointTypeName(ptName != null ? ptName : p.getPointType());
                 p.setHistoryOverFlag(p.getHistoryOverFlag() == null ? 0 : p.getHistoryOverFlag());
                 p.setCreateTime(now);
                 p.setUpdateTime(now);
@@ -261,6 +284,19 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         Map<String, String> map = new HashMap<>();
         try {
             List<DictItem> items = dictService.getDictItemsByCode("moni_sample_freq");
+            for (DictItem it : items) {
+                map.put(it.getItemValue(), it.getItemText());
+            }
+        } catch (Exception ignored) {
+            // 字典未初始化时忽略，展示原始编码
+        }
+        return map;
+    }
+
+    private Map<String, String> loadPointTypeNames() {
+        Map<String, String> map = new HashMap<>();
+        try {
+            List<DictItem> items = dictService.getDictItemsByCode("moni_point_type");
             for (DictItem it : items) {
                 map.put(it.getItemValue(), it.getItemText());
             }

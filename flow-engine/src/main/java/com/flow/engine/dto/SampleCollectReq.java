@@ -42,6 +42,10 @@ public class SampleCollectReq {
     private String preserve;
     /** 采样天气状况 */
     private String weather;
+    /** 采样人 */
+    private String sampler;
+    /** 采样时间（YYYY-MM-DD 或 YYYY-MM-DD HH:mm） */
+    private String sampleTime;
 
     /**
      * 采样参数值列表：每个元素含 code/name/value/unit。
@@ -74,6 +78,8 @@ public class SampleCollectReq {
     /** 采样参数值项 */
     @Data
     public static class SampleParamValue {
+        /** 所属监测项目（多检测项目分组时标识归属，可选） */
+        private String item;
         private String code;
         private String name;
         private String value;

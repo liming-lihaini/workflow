@@ -1,12 +1,14 @@
 package com.flow.engine.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.flow.engine.common.BusinessException;
 import com.flow.engine.common.utils.JsonUtils;
 import com.flow.engine.dto.ReceiveReq;
 import com.flow.engine.dto.SampleCollectReq;
+import com.flow.engine.dto.SampleDisposeReq;
 import com.flow.engine.entity.EmsPhoto;
 import com.flow.engine.entity.EmsSample;
 import com.flow.engine.entity.EmsSampleLog;
@@ -52,6 +54,8 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
     private EmsEntrustService entrustService;
     @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    @Autowired
+    private com.flow.engine.engine.FlowEngine flowEngine;
 
     // ===================== 采样记录 =====================
 
@@ -187,6 +191,8 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         sample.setContainer(req.getContainer());
         sample.setPreserve(req.getPreserve());
         sample.setWeather(req.getWeather());
+        sample.setSampler(req.getSampler());
+        sample.setSampleTime(req.getSampleTime());
         sample.setRemark(req.getRemark());
         sample.setSampleNo(req.getSampleNo());
         sample.setCategory(req.getCategory());
@@ -206,14 +212,14 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         sample.setSamplePhoto(req.getPhotos() == null ? null : String.join(",", req.getPhotos()));
 
         sample.setSource("手动收集");
+        // 收集保存后默认进入「待收样」状态，待收样阶段暂无收样人/收样时间，由收样环节填写
+        sample.setStatus("待收样");
         int seq = (int) (sampleMapper.selectCount(new LambdaQueryWrapper<>()) + 1);
         sample.setBarcode(CodeGenerator.generate("YP", seq));
-        sample.setReceiveBy(StringUtils.hasText(req.getReceiveBy()) ? req.getReceiveBy() : "收样员");
-        sample.setReceiveTime(LocalDate.now().toString());
         sample.setCreateTime(LocalDateTime.now());
         sample.setUpdateTime(LocalDateTime.now());
         sampleMapper.insert(sample);
-        // 留样信息：写入留样字段并登记留样库
+        // 留样信息：记录留样字段并登记留样库
         if (retainSample == 1) {
             Integer retainDays = req.getRetainDays() == null ? 0 : req.getRetainDays();
             String retainBy = StringUtils.hasText(req.getRetainBy()) ? req.getRetainBy() : sample.getReceiveBy();
@@ -227,12 +233,11 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
             sample.setRetainUntil(until.toString());
             sample.setStatus("留样中");
             sampleMapper.updateById(sample);
-            retain(sample.getId(), retainDays, retainBy, retainDate, "手动收集留样");
+            retain(sample.getId(), retainDays, retainBy, retainDate, req.getRetainLocation(), "手动收集留样");
             writeLog(sample.getId(), "留样", retainBy, "手动收集留样至 " + until + "（" + retainDays + "天）");
-        } else {
-            sample.setStatus("已收样");
-            sampleMapper.updateById(sample);
         }
+        // 普通登记（不留样）保持上方设置的「待收样」状态；留样登记由上方更新为「留样中」
+        // 注意：不再在此覆盖为「已收样」，收样由独立收样接口完成
         writeLog(sample.getId(), "手动收样", sample.getReceiveBy(),
                 "手动收集样品: " + sample.getName() + "（条码 " + sample.getBarcode() + "，派单 "
                         + req.getDispatchNo() + "，检测项目 " + req.getItem() + "）");
@@ -249,19 +254,61 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         return sample;
     }
 
-    /** 收样：样品 待收样 → 已收样，记录收样人与收样时间 */
+    /**
+     * 异常处置：仅更新异常处置相关字段（处置类型、处置方式、处置说明、处置人、处置时间）。
+     * 只针对状态为「异常拒收」或「检测异常」的样品。
+     */
+    public EmsSample dispose(Long id, SampleDisposeReq req, String operator) {
+        EmsSample exist = sampleMapper.selectById(id);
+        if (exist == null) throw new BusinessException("样品不存在: " + id);
+        if (!"异常拒收".equals(exist.getStatus()) && !"检测异常".equals(exist.getStatus())) {
+            throw new BusinessException("仅「异常拒收」或「检测异常」的样品可提交异常处置");
+        }
+        LambdaUpdateWrapper<EmsSample> uw = new LambdaUpdateWrapper<>();
+        uw.eq(EmsSample::getId, id)
+                .set(EmsSample::getStatus, "已处置")
+                .set(EmsSample::getDisposalType, req.getDisposalType())
+                .set(EmsSample::getDisposalMethod, req.getDisposalMethod())
+                .set(EmsSample::getDisposalDesc, req.getDisposalDesc())
+                .set(EmsSample::getDisposalBy, operator)
+                .set(EmsSample::getDisposalTime, LocalDateTime.now())
+                .set(EmsSample::getUpdateTime, LocalDateTime.now());
+        sampleMapper.update(null, uw);
+        writeLog(id, "异常处置", operator,
+                "处置类型: " + req.getDisposalType() + "，处置方式: " + req.getDisposalMethod());
+        return sampleMapper.selectById(id);
+    }
+
+    /** 收样：样品 待收样 → 已收样（正常）或 异常拒收。
+     *  req.action = "reject" 时为异常拒收：状态置「异常拒收」，记录异常拒收日志，不办理留样。 */
     @Transactional(rollbackFor = Exception.class)
     public EmsSample receive(Long id, ReceiveReq req) {
         EmsSample exist = sampleMapper.selectById(id);
         if (exist == null) throw new BusinessException("样品不存在: " + id);
-        if (!"待收样".equals(exist.getStatus())) throw new BusinessException("仅待收样状态可登记收样");
-        exist.setStatus("已收样");
+        // 允许对任意状态样品登记收样（列表展示全部，已收样/留样中可重新登记覆盖）
         exist.setReceiveBy(req.getReceiveBy());
         exist.setReceiveTime(req.getReceiveTime() == null ? LocalDate.now().toString() : req.getReceiveTime());
         if (StringUtils.hasText(req.getRemark())) exist.setRemark(req.getRemark());
         if (StringUtils.hasText(req.getAmount())) exist.setAmount(req.getAmount());
         if (StringUtils.hasText(req.getContainer())) exist.setContainer(req.getContainer());
         if (StringUtils.hasText(req.getPreserve())) exist.setPreserve(req.getPreserve());
+        if (StringUtils.hasText(req.getCheckItems())) exist.setCheckItems(req.getCheckItems());
+
+        boolean reject = "reject".equals(req.getAction());
+        if (reject) {
+            // 异常拒收：记录异常拒收日志，状态置「异常拒收」，不办理留样、不推进委托单
+            exist.setStatus("异常拒收");
+            exist.setUpdateTime(LocalDateTime.now());
+            sampleMapper.updateById(exist);
+            writeLog(id, "异常拒收", req.getReceiveBy(),
+                    "收样异常拒收（收样人 " + req.getReceiveBy() + "，收样时间 "
+                            + exist.getReceiveTime() + "）" + (StringUtils.hasText(req.getRemark())
+                            ? "，原因：" + req.getRemark() : ""));
+            return exist;
+        }
+
+        // 正常收样
+        exist.setStatus("已收样");
         // 留样信息
         Integer retainFlag = req.getRetainFlag() == null ? 0 : req.getRetainFlag();
         exist.setRetainFlag(retainFlag);
@@ -279,7 +326,7 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
             exist.setUpdateTime(LocalDateTime.now());
             sampleMapper.updateById(exist);
             // 写入留样库
-            retain(id, retainDays, retainBy, retainDate, "收样登记留样");
+            retain(id, retainDays, retainBy, retainDate, req.getRetainLocation(), "收样登记留样");
             writeLog(id, "收样", req.getReceiveBy(), "收样时间: " + exist.getReceiveTime() + "，已登记留样");
         } else {
             exist.setUpdateTime(LocalDateTime.now());
@@ -394,7 +441,7 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
 
     /** 登记留样：样品 → 已收样/留样中，写入留样库 */
     @Transactional(rollbackFor = Exception.class)
-    public EmsRetain retain(Long sampleId, Integer retainDays, String retainBy, String retainTime, String remark) {
+    public EmsRetain retain(Long sampleId, Integer retainDays, String retainBy, String retainTime, String retainLocation, String remark) {
         EmsSample sample = sampleMapper.selectById(sampleId);
         if (sample == null) throw new BusinessException("样品不存在: " + sampleId);
         if (retainDays == null || retainDays <= 0) throw new BusinessException("留样天数必须大于0");
@@ -404,6 +451,8 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         retain.setSampleId(sampleId);
         retain.setBarcode(sample.getBarcode());
         retain.setName(sample.getName());
+        retain.setCategory(sample.getCategory());
+        retain.setRetainLocation(retainLocation);
         retain.setPointId(sample.getPointId());
         retain.setRetainBy(retainBy);
         retain.setRetainTime(start.toString());
@@ -411,6 +460,11 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         retain.setRetainUntil(until.toString());
         retain.setStatus("留样中");
         retain.setRemark(remark);
+        // 生成留样编号：LY + yyyyMMdd + 三位序号（当日已有留样数 + 1）
+        String dateStr = start.toString().replace("-", "");
+        long todayCount = retainService.count(new LambdaQueryWrapper<EmsRetain>()
+                .likeRight(EmsRetain::getRetainNo, "LY" + dateStr));
+        retain.setRetainNo(String.format("LY%s%03d", dateStr, todayCount + 1));
         retain.setCreateTime(LocalDateTime.now());
         retain.setUpdateTime(LocalDateTime.now());
         retainService.save(retain);
@@ -456,16 +510,84 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
                 .le(EmsRetain::getRetainUntil, line));
     }
 
+    /** 留样库统计：在库留样数 / 3日内到期数 / 待销毁审批数 / 本月复检领用数 */
+    public Map<String, Object> retainStats() {
+        Map<String, Object> m = new HashMap<>();
+        // 在库留样（status=留样中）
+        long inStock = retainService.count(new LambdaQueryWrapper<EmsRetain>()
+                .eq(EmsRetain::getStatus, "留样中"));
+        // 3日内到期（status=留样中 且 retain_until <= now+3）
+        LocalDate line3 = LocalDate.now().plusDays(3);
+        long expireSoon = retainService.count(new LambdaQueryWrapper<EmsRetain>()
+                .eq(EmsRetain::getStatus, "留样中")
+                .le(EmsRetain::getRetainUntil, line3));
+        // 待销毁审批（status=销毁审批中）
+        long pendingDispose = retainService.count(new LambdaQueryWrapper<EmsRetain>()
+                .eq(EmsRetain::getStatus, "销毁审批中"));
+        // 本月复检领用（暂无领用记录表，返回0，后续扩展）
+        long monthlyReuse = 0;
+        m.put("inStock", inStock);
+        m.put("expireSoon", expireSoon);
+        m.put("pendingDispose", pendingDispose);
+        m.put("monthlyReuse", monthlyReuse);
+        return m;
+    }
+
+    /** 留样销毁申请：更新留样状态 + 发起审批流程 */
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> applyDispose(Long retainId, String startUser, Map<String, Object> formData) {
+        EmsRetain retain = retainService.getById(retainId);
+        if (retain == null) throw new BusinessException("留样记录不存在: " + retainId);
+        if (!"留样中".equals(retain.getStatus())) throw new BusinessException("仅留样中的样品可申请销毁");
+
+        // 收集表单数据
+        String disposeReason = formData != null ? (String) formData.get("disposeReason") : null;
+        String disposeMethod = formData != null ? (String) formData.get("disposeMethod") : null;
+        String disposeDate = formData != null ? (String) formData.get("disposeDate") : null;
+
+        // 更新留样记录
+        retain.setStatus("销毁审批中");
+        retain.setDisposeReason(disposeReason);
+        retain.setDisposeMethod(disposeMethod);
+        retain.setDisposeDate(disposeDate);
+        retain.setUpdateTime(LocalDateTime.now());
+        retainService.updateById(retain);
+
+        // 发起流程，留样信息 + 销毁信息作为流程变量传入（表单回填用）
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("retainId", retainId);
+        variables.put("retainNo", retain.getRetainNo());
+        variables.put("barcode", retain.getBarcode());
+        variables.put("category", retain.getCategory());
+        variables.put("disposeReason", disposeReason);
+        variables.put("disposeMethod", disposeMethod);
+        variables.put("disposeDate", disposeDate);
+
+        com.flow.engine.entity.ProcessInstance inst = flowEngine.startProcess(
+                "LYXHSQ", String.valueOf(retainId), startUser, variables);
+
+        // 关联流程实例ID
+        retain.setProcessInstanceId(inst.getId());
+        retainService.updateById(retain);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("retainId", retainId);
+        result.put("processInstanceId", inst.getId());
+        result.put("retainNo", retain.getRetainNo());
+        return result;
+    }
+
     // ===================== 聚合 =====================
 
     /** 收样工作台：返回待收样样品 + 已完成采样记录，便于一键收样 */
     public Map<String, Object> receiveWorkbench(int page, int size) {
         Map<String, Object> result = new HashMap<>();
+        // 展示全部样品，不进行状态过滤
         Page<EmsSample> pending = sampleMapper.selectPage(new Page<>(page, size),
-                new LambdaQueryWrapper<EmsSample>().eq(EmsSample::getStatus, "待收样").orderByDesc(EmsSample::getCreateTime));
+                new LambdaQueryWrapper<EmsSample>().orderByDesc(EmsSample::getCreateTime));
         result.put("pendingSamples", pending.getRecords());
         result.put("pendingTotal", pending.getTotal());
-        result.put("pendingStatusCount", sampleMapper.selectCount(new LambdaQueryWrapper<EmsSample>().eq(EmsSample::getStatus, "待收样")));
+        result.put("pendingStatusCount", sampleMapper.selectCount(new LambdaQueryWrapper<>()));
         return result;
     }
 
@@ -487,6 +609,15 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         if (sample == null) throw new BusinessException("样品不存在: " + sampleId);
         Map<String, Object> map = new HashMap<>();
         map.put("sample", sample);
+        // 采样点位名：手动收集场景无采样记录，通过 pointId 查 t_monitor_point 补充
+        if (sample.getPointId() != null) {
+            try {
+                String pointName = jdbcTemplate.queryForObject(
+                        "SELECT point_name FROM t_monitor_point WHERE id = ?",
+                        String.class, sample.getPointId());
+                map.put("pointName", pointName);
+            } catch (Exception e) { /* ignore */ }
+        }
         if (sample.getSamplingId() != null) {
             map.put("record", getById(sample.getSamplingId()));
         }

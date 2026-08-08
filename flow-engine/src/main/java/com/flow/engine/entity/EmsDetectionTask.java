@@ -29,7 +29,11 @@ public class EmsDetectionTask {
     private String reviewBy;     // 复核人
     private String reviewTime;   // 复核时间
     private String reviewOpinion;// 复核意见
+    private String envTemp;      // 检测环境温度
+    private String envHumidity;  // 检测环境湿度
+    private String conclusion;   // 综合检验结论：pending/ok/ng/abnormal
     private String remark;
+    private String attachments;   // 检测录入附件（JSON 数组：[{name,path}]）
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 /**
  * 环境监测 - 样品（TRD 5.3 样品全生命周期）
- * 状态机：待收样 → 已收样 → 留样中 → 已处置
+ * 状态机：待收样 → 已收样 → 留样中 → 实验室监测中 → 检测数据复核中 → 已完成 / 检测异常
  */
 @Data
 @TableName("t_sample")
@@ -27,7 +27,12 @@ public class EmsSample {
     private String container;    // 容器
     private String preserve;     // 保存条件/固定剂
     private String weather;      // 采样天气状况
-    private String status;       // 待收样/已收样/留样中/已处置
+    private String status;       // 待收样/已收样/异常拒收/留样中/实验室监测中/检测数据复核中/已完成/检测异常/已处置
+    private String disposalType;   // 异常处置类型（数据字典 moni_disposal_type）
+    private String disposalMethod; // 异常处置方式（数据字典 moni_disposal_method）
+    private String disposalDesc;   // 异常处置说明（富文本 HTML）
+    private String disposalBy;     // 异常处置人
+    private java.time.LocalDateTime disposalTime; // 异常处置时间
     private String receiveTime;  // 收样时间
     private String receiveBy;    // 收样人
     private Integer retainFlag;  // 是否留样（0/1）
@@ -37,6 +42,10 @@ public class EmsSample {
     private String retainDate;   // 留样日期
     private String retainLocation; // 存放位置
     private String dispatchTime; // 送检/检测下发时间
+    /** 采样人（手动收集场景冗余存储，便于详情展示） */
+    private String sampler;
+    /** 采样时间（手动收集场景冗余存储） */
+    private String sampleTime;
     private String remark;
 
     /** 采样派单ID（关联 t_sampling_order.id） */
@@ -55,6 +64,8 @@ public class EmsSample {
     private String preservatives;
     /** 现场质控方式（多选，逗号分隔数据字典值），来源 moni_qc_type */
     private String qcTypes;
+    /** 收样检查单（多选，逗号分隔数据字典值），来源 sample_receive_check */
+    private String checkItems;
     /** 是否留样 0否 1是 */
     private Integer retainSample;
     /** 现场照片（逗号分隔的相对路径/URL） */

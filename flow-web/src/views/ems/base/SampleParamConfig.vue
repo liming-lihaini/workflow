@@ -101,34 +101,32 @@
         <div class="param-list">
           <div v-for="(p, idx) in form.sampleParams" :key="idx" class="param-item">
             <a-row :gutter="8" align="bottom">
-              <a-col :span="5">
+              <a-col :span="4">
                 <label class="mini-label">参数编码</label>
                 <a-input v-model:value="p.code" placeholder="如 flue_area" />
               </a-col>
-              <a-col :span="5">
+              <a-col :span="4">
                 <label class="mini-label">参数名称</label>
                 <a-input v-model:value="p.name" placeholder="如 烟道截面积" />
               </a-col>
-              <a-col :span="5">
+              <a-col :span="3">
                 <label class="mini-label">参数类型</label>
                 <a-select v-model:value="p.type" :options="paramTypeOptions" />
               </a-col>
-              <a-col :span="4">
+              <a-col :span="3">
                 <label class="mini-label">单位</label>
                 <a-input v-model:value="p.unit" placeholder="如 m²" />
               </a-col>
-              <a-col :span="4">
+              <a-col :span="3">
                 <label class="mini-label">是否必填</label>
                 <a-select v-model:value="p.required" :options="requiredOptions" />
               </a-col>
-              <a-col :span="1">
-                <a-button danger size="small" @click="removeParam(idx)"><delete-outlined /></a-button>
-              </a-col>
-            </a-row>
-            <a-row :gutter="8" style="margin-top: 6px">
-              <a-col :span="24">
+              <a-col :span="6">
                 <label class="mini-label">提示备注</label>
                 <a-input v-model:value="p.tip" placeholder="采集要求说明" />
+              </a-col>
+              <a-col :span="1">
+                <a-button danger size="small" @click="removeParam(idx)"><delete-outlined /></a-button>
               </a-col>
             </a-row>
           </div>
@@ -146,6 +144,11 @@
           <a-col :span="12">
             <a-form-item label="标准限值 / 管控要求">
               <a-input v-model:value="form.limit" placeholder="如 根据排气筒高度执行对应排放限值" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="内控限制">
+              <a-input v-model:value="form.innerLimit" placeholder="严于国标的企业内控限制，如 昼间 ≤ 55 dB(A)（内控）" />
             </a-form-item>
           </a-col>
           <a-col :span="24">
@@ -212,6 +215,7 @@ const columns = [
   { title: '结构化采样必填参数清单', key: 'sampleParams', width: 360 },
   { title: '执行标准编号', dataIndex: 'standard', key: 'standard', width: 140 },
   { title: '标准限值/管控要求', dataIndex: 'limit', key: 'limit', width: 200, ellipsis: true },
+  { title: '内控限制', dataIndex: 'innerLimit', key: 'innerLimit', width: 200, ellipsis: true },
   { title: '采样备注', dataIndex: 'remark', key: 'remark', width: 200, ellipsis: true },
   { title: '操作', key: 'op', width: 110, fixed: 'right' }
 ]
@@ -252,6 +256,7 @@ const form = reactive({
   sampleParams: [],
   standard: '',
   limit: '',
+  innerLimit: '',
   remark: ''
 })
 
@@ -265,6 +270,7 @@ function resetForm() {
   form.sampleParams = [emptyParam()]
   form.standard = ''
   form.limit = ''
+  form.innerLimit = ''
   form.remark = ''
   editingId.value = null
 }
@@ -300,6 +306,7 @@ function openEdit(record) {
   if (!form.sampleParams.length) form.sampleParams = [emptyParam()]
   form.standard = record.standard
   form.limit = record.limit
+  form.innerLimit = record.innerLimit || ''
   form.remark = record.remark
   modalVisible.value = true
 }
@@ -327,6 +334,7 @@ function handleSubmit() {
     })),
     standard: form.standard,
     limit: form.limit,
+    innerLimit: form.innerLimit,
     remark: form.remark
   }
   saveSampleParamConfig(payload)
@@ -382,5 +390,6 @@ onMounted(() => {
 .muted { color: #bbb; }
 .danger-link { color: #ff4d4f; }
 .mini-label { display: block; font-size: 12px; color: #888; margin-bottom: 2px; }
-.param-item { border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; background: #fff; }
+.param-item { border: 1px solid #dee2e6; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; background: #fff; }
+.param-item .ant-input, .param-item .ant-select { min-height: 32px; }
 </style>

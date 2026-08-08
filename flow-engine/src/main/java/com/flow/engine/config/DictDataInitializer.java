@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -26,15 +27,91 @@ public class DictDataInitializer implements CommandLineRunner {
 
     private final DictTypeMapper dictTypeMapper;
     private final DictItemMapper dictItemMapper;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
         log.info("[DictDataInitializer] 开始初始化系统内置字典数据...");
-        
+
+        // 表结构增量迁移：补齐 t_sample 异常处置字段（兼容已存在的旧库）
+        migrateSampleColumns();
+
+        // 表结构增量迁移：t_entrust 字典 value 字段 + 创建人/更新人字段；t_monitor_point 点位类型名称
+        migrateEntrustColumns();
+
         initDictTypes();
         initDictItems();
-        
+
         log.info("[DictDataInitializer] 系统内置字典数据初始化完成");
+    }
+
+    /**
+     * 增量迁移 t_sample 表，补充异常处置相关字段。
+     * SQLite 不支持 ADD COLUMN IF NOT EXISTS，故先通过 PRAGMA 检查再 ALTER。
+     */
+    private void migrateSampleColumns() {
+        java.util.Set<String> exists = new java.util.HashSet<>();
+        for (java.util.Map<String, Object> row : jdbcTemplate.queryForList("PRAGMA table_info(t_sample)")) {
+            exists.add(String.valueOf(row.get("name")));
+        }
+        java.util.Map<String, String> columns = new java.util.LinkedHashMap<>();
+        columns.put("disposal_type", "TEXT");
+        columns.put("disposal_method", "TEXT");
+        columns.put("disposal_desc", "TEXT");
+        columns.put("disposal_by", "TEXT");
+        columns.put("disposal_time", "TEXT");
+        for (java.util.Map.Entry<String, String> e : columns.entrySet()) {
+            if (!exists.contains(e.getKey())) {
+                try {
+                    jdbcTemplate.execute("ALTER TABLE t_sample ADD COLUMN " + e.getKey() + " " + e.getValue());
+                    log.info("[DictDataInitializer] 迁移 t_sample 新增字段: {}", e.getKey());
+                } catch (Exception ex) {
+                    log.warn("[DictDataInitializer] 迁移 t_sample 字段失败(可忽略已存在): {} -> {}", e.getKey(), ex.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * 增量迁移 t_entrust 表：补充字典 value（source_name/sample_freq_name）与
+     * 创建人/更新人字段；迁移 t_monitor_point 表补充点位类型名称（point_type_name）。
+     * 兼容已存在的旧库（SQLite 不支持 ADD COLUMN IF NOT EXISTS）。
+     */
+    private void migrateEntrustColumns() {
+        java.util.Set<String> entrustCols = new java.util.HashSet<>();
+        for (java.util.Map<String, Object> row : jdbcTemplate.queryForList("PRAGMA table_info(t_entrust)")) {
+            entrustCols.add(String.valueOf(row.get("name")));
+        }
+        java.util.Map<String, String> entrustColumns = new java.util.LinkedHashMap<>();
+        entrustColumns.put("source_name", "TEXT");
+        entrustColumns.put("sample_freq_name", "TEXT");
+        entrustColumns.put("create_by", "TEXT");
+        entrustColumns.put("create_name", "TEXT");
+        entrustColumns.put("update_by", "TEXT");
+        entrustColumns.put("update_name", "TEXT");
+        for (java.util.Map.Entry<String, String> e : entrustColumns.entrySet()) {
+            if (!entrustCols.contains(e.getKey())) {
+                try {
+                    jdbcTemplate.execute("ALTER TABLE t_entrust ADD COLUMN " + e.getKey() + " " + e.getValue());
+                    log.info("[DictDataInitializer] 迁移 t_entrust 新增字段: {}", e.getKey());
+                } catch (Exception ex) {
+                    log.warn("[DictDataInitializer] 迁移 t_entrust 字段失败(可忽略已存在): {} -> {}", e.getKey(), ex.getMessage());
+                }
+            }
+        }
+
+        java.util.Set<String> pointCols = new java.util.HashSet<>();
+        for (java.util.Map<String, Object> row : jdbcTemplate.queryForList("PRAGMA table_info(t_monitor_point)")) {
+            pointCols.add(String.valueOf(row.get("name")));
+        }
+        if (!pointCols.contains("point_type_name")) {
+            try {
+                jdbcTemplate.execute("ALTER TABLE t_monitor_point ADD COLUMN point_type_name TEXT");
+                log.info("[DictDataInitializer] 迁移 t_monitor_point 新增字段: point_type_name");
+            } catch (Exception ex) {
+                log.warn("[DictDataInitializer] 迁移 t_monitor_point 字段失败(可忽略已存在): point_type_name -> {}", ex.getMessage());
+            }
+        }
     }
 
     private void initDictTypes() {
@@ -107,6 +184,12 @@ public class DictDataInitializer implements CommandLineRunner {
         createDictTypeIfNotExists("危化品类别", "moni_hazardous_category", 2, "危化品台账类别枚举：易燃/腐蚀/有毒/易爆");
         // 28. 采集频率（委托级，TRD 5.1 t_entrust.sample_freq，依据频率重复派单）
         createDictTypeIfNotExists("采集频率", "moni_sample_freq", 2, "委托单采集频率枚举（按频率重复派单）：每日/每周/每月/每季度/每半年/每年");
+        // 29. 收样检查单（收样环节勾选项：包装/完整性/标识等维度）
+        createDictTypeIfNotExists("收样检查单", "sample_receive_check", 2, "收样登记时收样人勾选的样品检查项：包装/漏液/标识/温度等");
+        // 30. 异常处置方式（样品异常处置弹窗下拉）
+        createDictTypeIfNotExists("异常处置方式", "moni_disposal_method", 2, "样品异常处置方式枚举：重采/留样复测/报废/退样等");
+        // 31. 异常处置类型（样品异常处置弹窗下拉）
+        createDictTypeIfNotExists("异常处置类型", "moni_disposal_type", 2, "样品异常处置类型枚举：数据异常/样品异常/仪器异常等");
     }
 
     private void initDictItems() {
@@ -271,13 +354,33 @@ public class DictDataInitializer implements CommandLineRunner {
         }
 
         // 样品状态（TRD 5.4 t_sample.status）
+        // 状态机：实验室监测中（检测任务创建）→ 检测数据复核中（提交检测数据）→ 已完成（复核通过）/ 检测异常（复核不通过）
         DictType sampleStatus = getDictTypeByCode("moni_sample_status");
         if (sampleStatus != null) {
-            createDictItemIfNotExists(sampleStatus.getId(), "待检", "pending", 1);
-            createDictItemIfNotExists(sampleStatus.getId(), "检测中", "testing", 2);
-            createDictItemIfNotExists(sampleStatus.getId(), "待复测", "retest", 3);
-            createDictItemIfNotExists(sampleStatus.getId(), "已完成", "completed", 4);
-            createDictItemIfNotExists(sampleStatus.getId(), "过期作废", "expired", 5);
+            createOrUpdateDictItem(sampleStatus.getId(), "实验室监测中", "lab_monitoring", 1);
+            createOrUpdateDictItem(sampleStatus.getId(), "检测数据复核中", "data_reviewing", 2);
+            createOrUpdateDictItem(sampleStatus.getId(), "已完成", "completed", 3);
+            createOrUpdateDictItem(sampleStatus.getId(), "检测异常", "abnormal", 4);
+            createOrUpdateDictItem(sampleStatus.getId(), "异常拒收", "rejected", 5);
+        }
+
+        // 异常处置方式（样品异常处置弹窗下拉一）
+        DictType disposalMethod = getDictTypeByCode("moni_disposal_method");
+        if (disposalMethod != null) {
+            createOrUpdateDictItem(disposalMethod.getId(), "重采", "resample", 1);
+            createOrUpdateDictItem(disposalMethod.getId(), "留样复测", "retain_retest", 2);
+            createOrUpdateDictItem(disposalMethod.getId(), "退样", "return_sample", 3);
+            createOrUpdateDictItem(disposalMethod.getId(), "报废", "scrap", 4);
+            createOrUpdateDictItem(disposalMethod.getId(), "其他", "other", 5);
+        }
+
+        // 异常处置类型（样品异常处置弹窗下拉二）
+        DictType disposalType = getDictTypeByCode("moni_disposal_type");
+        if (disposalType != null) {
+            createOrUpdateDictItem(disposalType.getId(), "样品异常", "sample_abnormal", 1);
+            createOrUpdateDictItem(disposalType.getId(), "数据异常", "data_abnormal", 2);
+            createOrUpdateDictItem(disposalType.getId(), "仪器异常", "instrument_abnormal", 3);
+            createOrUpdateDictItem(disposalType.getId(), "运输异常", "transport_abnormal", 4);
         }
 
         // 质控类型（TRD 5.3 现场空白/平行/运输空白；5.6 实验室质控）
@@ -423,6 +526,21 @@ public class DictDataInitializer implements CommandLineRunner {
             createDictItemIfNotExists(sampleFreq.getId(), "每半年", "halfyear", 5);
             createDictItemIfNotExists(sampleFreq.getId(), "每年", "yearly", 6);
         }
+
+        // 收样检查单（收样登记时收样人勾选的样品检查项）
+        DictType receiveCheck = getDictTypeByCode("sample_receive_check");
+        if (receiveCheck != null) {
+            createDictItemIfNotExists(receiveCheck.getId(), "包装无破损", "pack_intact", 1);
+            createDictItemIfNotExists(receiveCheck.getId(), "无漏液", "no_leak", 2);
+            createDictItemIfNotExists(receiveCheck.getId(), "无污染", "no_contamination", 3);
+            createDictItemIfNotExists(receiveCheck.getId(), "标识清晰完整", "label_clear", 4);
+            createDictItemIfNotExists(receiveCheck.getId(), "容器完好", "container_ok", 5);
+            createDictItemIfNotExists(receiveCheck.getId(), "样品量满足要求", "volume_ok", 6);
+            createDictItemIfNotExists(receiveCheck.getId(), "温度符合要求", "temp_ok", 7);
+            createDictItemIfNotExists(receiveCheck.getId(), "冷藏/保温状态正常", "cold_chain_ok", 8);
+            createDictItemIfNotExists(receiveCheck.getId(), "固定剂添加正确", "preservative_ok", 9);
+            createDictItemIfNotExists(receiveCheck.getId(), "封口/密封完好", "seal_ok", 10);
+        }
     }
 
     private void createDictTypeIfNotExists(String dictName, String dictCode, int dictType, String description) {
@@ -443,8 +561,32 @@ public class DictDataInitializer implements CommandLineRunner {
         }
     }
 
-    private void createDictItemIfNotExists(Long dictTypeId, String itemText, String itemValue, int sortOrder) {
+    private void createOrUpdateDictItem(Long dictTypeId, String itemText, String itemValue, int sortOrder) {
         DictItem existing = dictItemMapper.selectOne(
+                new LambdaQueryWrapper<DictItem>()
+                        .eq(DictItem::getDictTypeId, dictTypeId)
+                        .eq(DictItem::getItemValue, itemValue)
+        );
+        if (existing == null) {
+            DictItem dictItem = new DictItem();
+            dictItem.setDictTypeId(dictTypeId);
+            dictItem.setItemText(itemText);
+            dictItem.setItemValue(itemValue);
+            dictItem.setSortOrder(sortOrder);
+            dictItem.setStatus(1);
+            dictItem.setCreateTime(LocalDateTime.now());
+            dictItem.setUpdateTime(LocalDateTime.now());
+            dictItemMapper.insert(dictItem);
+            log.debug("[DictDataInitializer] 创建字典项: text={}, value={}", itemText, itemValue);
+        } else if (!itemText.equals(existing.getItemText())) {
+            existing.setItemText(itemText);
+            existing.setUpdateTime(LocalDateTime.now());
+            dictItemMapper.updateById(existing);
+            log.debug("[DictDataInitializer] 更新字典项文本: value={}, text={}", itemValue, itemText);
+        }
+    }
+
+    private void createDictItemIfNotExists(Long dictTypeId, String itemText, String itemValue, int sortOrder) {        DictItem existing = dictItemMapper.selectOne(
                 new LambdaQueryWrapper<DictItem>()
                         .eq(DictItem::getDictTypeId, dictTypeId)
                         .eq(DictItem::getItemValue, itemValue)

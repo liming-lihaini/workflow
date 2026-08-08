@@ -25,6 +25,10 @@ public class EmsSampleParamConfig {
     private String standard;
     /** 标准限值 / 管控要求 */
     private String limitValue;
+    /** 检测结果单位（如 mg/L、μg/m³） */
+    private String unit;
+    /** 企业内控限制（严于国标的企业内部管控要求） */
+    private String innerLimit;
     /** 采样备注说明（容器材质、固定剂、保存条件等） */
     private String remark;
     private LocalDateTime createTime;

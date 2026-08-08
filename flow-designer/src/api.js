@@ -5,9 +5,37 @@ const request = axios.create({
   timeout: 15000
 })
 
+// 当 flow-designer 被内嵌在 flow-web 的 iframe 中时，
+// localStorage 不跨域共享，通过 postMessage 向父窗口请求 token
+let parentToken = null
+let tokenRequested = false
+
+function requestParentToken() {
+  if (tokenRequested) return
+  tokenRequested = true
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'FLOW_DESIGNER_TOKEN_REQUEST' }, '*')
+  }
+}
+
+// 监听父窗口返回的 token
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'FLOW_DESIGNER_TOKEN_RESPONSE' && event.data.token) {
+    parentToken = event.data.token
+    localStorage.setItem('token', event.data.token) // 缓存到本地
+  }
+})
+
 // 请求拦截器
 request.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
+  // 优先用本地缓存，没有时触发父窗口请求
+  let token = localStorage.getItem('token')
+  if (!token && window.parent && window.parent !== window) {
+    requestParentToken()
+    token = parentToken
+  } else if (parentToken) {
+    token = parentToken
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -27,6 +55,10 @@ request.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
+      parentToken = null
+      // 重新请求父窗口 token
+      tokenRequested = false
+      requestParentToken()
     }
     return Promise.reject(error)
   }

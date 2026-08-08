@@ -114,7 +114,8 @@ import {
   DownOutlined,
   EditOutlined,
   KeyOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  ToolOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -182,19 +183,13 @@ const menuConfig = [
     children: [
       { key: 'ems-customer', title: '客户管理', path: '/ems/base/customer', permKey: 'ems:customer' },
       { key: 'ems-entrust', title: '委托管理', path: '/ems/base/entrust', permKey: 'ems:entrust' },
-      { key: 'ems-vehicle', title: '车辆台账', path: '/ems/base/vehicle', permKey: 'ems:vehicle' },
-      { key: 'ems-instrument', title: '物资管理', path: '/ems/base/asset-manage', permKey: 'ems:instrument' },
-      { key: 'ems-dispatch', title: '采样调度', path: '/ems/base/dispatch', permKey: 'ems:dispatch' },
-      { key: 'ems-receive', title: '收样工作台', path: '/ems/base/receive', permKey: 'ems:sample' },
+      { key: 'ems-dispatch', title: '采样订单', path: '/ems/base/dispatch', permKey: 'ems:dispatch' },
       { key: 'ems-sample', title: '样品管理', path: '/ems/base/sample', permKey: 'ems:sample' },
       { key: 'ems-retain', title: '留样库管理', path: '/ems/base/retain', permKey: 'ems:sample' },
-      { key: 'ems-data-entry', title: '检测数据录入', path: '/ems/base/data-entry', permKey: 'ems:detection' },
-      { key: 'ems-review', title: '检测复核', path: '/ems/base/review', permKey: 'ems:detection' },
+      { key: 'ems-data-entry', title: '检测管理', path: '/ems/base/data-entry', permKey: 'ems:detection' },
       { key: 'ems-qcplan', title: '质控计划', path: '/ems/quality/plan', permKey: 'ems:quality' },
-      { key: 'ems-proficiency', title: '能力验证与比对', path: '/ems/quality/proficiency', permKey: 'ems:quality' },
       { key: 'ems-dashboard', title: '监测驾驶舱', path: '/ems/dashboard', permKey: 'ems:dashboard' },
       { key: 'ems-rule-admin', title: '规则引擎配置', path: '/ems/base/rule-admin', permKey: 'ems:base' },
-      { key: 'ems-sample-param-config', title: '采样参数配置', path: '/ems/base/sample-param-config', permKey: 'ems:base' },
       { key: 'ems-report-generate', title: '报告生成', path: '/ems/report/generate', permKey: 'ems:report' },
       { key: 'ems-report-review', title: '报告审核', path: '/ems/report/review', permKey: 'ems:report' }
     ]
@@ -205,6 +200,17 @@ const menuConfig = [
     path: '/monitor',
     permKey: 'monitor',
     icon: markRaw(MonitorOutlined)
+  },
+  {
+    key: 'ems-resource',
+    title: '资源管理',
+    permKey: 'ems:base',
+    icon: markRaw(ToolOutlined),
+    children: [
+      { key: 'ems-vehicle', title: '车辆台账', path: '/ems/base/vehicle', permKey: 'ems:vehicle' },
+      { key: 'ems-instrument', title: '物资管理', path: '/ems/base/asset-manage', permKey: 'ems:instrument' },
+      { key: 'ems-sample-param-config', title: '采样参数配置', path: '/ems/base/sample-param-config', permKey: 'ems:base' }
+    ]
   }
 ]
 
@@ -297,9 +303,7 @@ watch(() => route.path, (path) => {
     '/ems/base/sample': ['ems-sample'],
     '/ems/base/retain': ['ems-retain'],
     '/ems/base/data-entry': ['ems-data-entry'],
-    '/ems/base/review': ['ems-review'],
     '/ems/quality/plan': ['ems-qcplan'],
-    '/ems/quality/proficiency': ['ems-proficiency'],
     '/ems/dashboard': ['ems-dashboard'],
     '/ems/base/rule-admin': ['ems-rule-admin'],
     '/ems/report/generate': ['ems-report-generate'],

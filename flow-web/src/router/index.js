@@ -183,6 +183,18 @@ const routes = [
         meta: { title: '委托管理', permKey: 'ems:entrust' }
       },
       {
+        path: 'ems/base/vehicle',
+        name: 'EmsVehicle',
+        component: () => import('../views/ems/base/Vehicle.vue'),
+        meta: { title: '车辆台账', permKey: 'ems:vehicle' }
+      },
+      {
+        path: 'ems/base/asset-manage',
+        name: 'EmsAssetManage',
+        component: () => import('../views/ems/base/AssetManage.vue'),
+        meta: { title: '物资管理', permKey: 'ems:instrument' }
+      },
+      {
         path: 'ems/base/sample-param-config',
         name: 'EmsSampleParamConfig',
         component: () => import('../views/ems/base/SampleParamConfig.vue'),
@@ -195,12 +207,6 @@ const routes = [
         meta: { title: '采样调度', permKey: 'ems:dispatch' }
       },
       // ===== 采样与样品管理（ISSUE-024）=====
-      {
-        path: 'ems/base/receive',
-        name: 'EmsReceive',
-        component: () => import('../views/ems/base/ReceiveWorkbench.vue'),
-        meta: { title: '收样工作台', permKey: 'ems:sample' }
-      },
       {
         path: 'ems/base/sample',
         name: 'EmsSample',
@@ -218,13 +224,19 @@ const routes = [
         path: 'ems/base/data-entry',
         name: 'EmsDataEntry',
         component: () => import('../views/ems/base/DataEntry.vue'),
-        meta: { title: '检测数据录入', permKey: 'ems:detection' }
+        meta: { title: '检测管理', permKey: 'ems:detection' }
       },
       {
-        path: 'ems/base/review',
-        name: 'EmsReview',
-        component: () => import('../views/ems/base/Review.vue'),
-        meta: { title: '检测复核', permKey: 'ems:detection' }
+        path: 'ems/base/detection/entry/:taskId',
+        name: 'EmsDetectionEntry',
+        component: () => import('../views/ems/base/DataEntryEntry.vue'),
+        meta: { title: '检测结果录入', permKey: 'ems:detection' }
+      },
+      {
+        path: 'ems/base/detection/detail/:taskId',
+        name: 'EmsDetectionDetail',
+        component: () => import('../views/ems/base/DataEntryDetail.vue'),
+        meta: { title: '检测任务详情', permKey: 'ems:detection' }
       },
       // ===== 质量控制（ISSUE-026）=====
       {
@@ -238,24 +250,6 @@ const routes = [
         name: 'EmsQcPlan',
         component: () => import('../views/ems/quality/QcPlan.vue'),
         meta: { title: '质控计划', permKey: 'ems:quality' }
-      },
-      {
-        path: 'ems/quality/proficiency',
-        name: 'EmsProficiency',
-        component: () => import('../views/ems/quality/Proficiency.vue'),
-        meta: { title: '能力验证与比对', permKey: 'ems:quality' }
-      },
-      {
-        path: 'ems/base/vehicle',
-        name: 'EmsVehicle',
-        component: () => import('../views/ems/base/Vehicle.vue'),
-        meta: { title: '车辆台账', permKey: 'ems:vehicle' }
-      },
-      {
-        path: 'ems/base/asset-manage',
-        name: 'EmsAssetManage',
-        component: () => import('../views/ems/base/AssetManage.vue'),
-        meta: { title: '物资管理', permKey: 'ems:instrument' }
       },
       // ===== 监测数据驾驶舱与统计（ISSUE-028）=====
       {

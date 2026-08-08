@@ -5,14 +5,18 @@ import com.flow.engine.common.ErrorCode;
 import com.flow.engine.common.Result;
 import com.flow.engine.dto.ReceiveReq;
 import com.flow.engine.dto.SampleCollectReq;
+import com.flow.engine.dto.SampleDisposeReq;
 import com.flow.engine.entity.EmsPhoto;
 import com.flow.engine.entity.EmsRetain;
 import com.flow.engine.entity.EmsSample;
 import com.flow.engine.entity.EmsSampleLog;
 import com.flow.engine.entity.EmsSampleQcBinding;
 import com.flow.engine.entity.EmsSamplingRecord;
+import com.flow.engine.entity.User;
+import com.flow.engine.service.AuthService;
 import com.flow.engine.service.EmsRetainService;
 import com.flow.engine.service.EmsSamplingService;
+import com.flow.engine.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +47,8 @@ public class EmsSamplingController {
     private EmsSamplingService samplingService;
     @Autowired
     private EmsRetainService retainService;
+    @Autowired
+    private UserService userService;
 
     // ===================== 采样记录 =====================
 
@@ -87,6 +93,35 @@ public class EmsSamplingController {
     @PutMapping("/samples/{id}")
     public Result<EmsSample> updateSample(@PathVariable Long id, @RequestBody EmsSample sample) {
         return Result.ok(samplingService.updateSample(id, sample));
+    }
+
+    /** 异常处置：仅「异常拒收」或「检测异常」样品可提交，补充处置方式/类型/说明 */
+    @PostMapping("/samples/{id}/dispose")
+    public Result<EmsSample> disposeSample(@PathVariable Long id,
+                                           @RequestBody SampleDisposeReq req) {
+        // 当前用户由统一认证过滤器(AuthContextFilter)解析后写入 RequestContext
+        User operatorUser = currentUser();
+        if (operatorUser == null) {
+            return Result.error(ErrorCode.TOKEN_INVALID, "未获取到当前登录用户，请确认已登录");
+        }
+        String operator = operatorUser.getRealName();
+        return Result.ok(samplingService.dispose(id, req, operator));
+    }
+
+    /**
+     * 从统一认证上下文(RequestContext)获取当前用户。
+     * 用户身份由 AuthContextFilter 在请求早期解析并写入，业务层无需感知具体认证方式。
+     */
+    private User currentUser() {
+        String userId = com.flow.engine.common.RequestContext.current().getUserId();
+        if (userId == null) {
+            return null;
+        }
+        try {
+            return userService.getUser(Long.valueOf(userId));
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
@@ -243,15 +278,9 @@ public class EmsSamplingController {
                                     @RequestParam Integer retainDays,
                                     @RequestParam(required = false) String retainBy,
                                     @RequestParam(required = false) String retainTime,
+                                    @RequestParam(required = false) String retainLocation,
                                     @RequestParam(required = false) String remark) {
-        return Result.ok(samplingService.retain(id, retainDays, retainBy, retainTime, remark));
-    }
-
-    @PostMapping("/retains/{id}/dispose")
-    public Result<EmsRetain> dispose(@PathVariable Long id,
-                                     @RequestParam(required = false) String disposeBy,
-                                     @RequestParam(required = false) String disposeTime) {
-        return Result.ok(samplingService.dispose(id, disposeBy, disposeTime));
+        return Result.ok(samplingService.retain(id, retainDays, retainBy, retainTime, retainLocation, remark));
     }
 
     @GetMapping("/retains")
@@ -261,6 +290,18 @@ public class EmsSamplingController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         return Result.ok(retainService.pageRetain(keyword, status, page, size));
+    }
+
+    @GetMapping("/retains/stats")
+    public Result<java.util.Map<String, Object>> retainStats() {
+        return Result.ok(samplingService.retainStats());
+    }
+
+    @PostMapping("/retains/{id}/dispose")
+    public Result<Map<String, Object>> applyDispose(@PathVariable Long id,
+                                                     @RequestParam String startUser,
+                                                     @RequestBody(required = false) Map<String, Object> formData) {
+        return Result.ok(samplingService.applyDispose(id, startUser, formData));
     }
 
     @GetMapping("/retains/expiring")

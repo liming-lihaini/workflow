@@ -137,6 +137,7 @@ export const receiveSample = (id, data) => request.post(`/ems/base/sampling/samp
 export const dispatchSample = (id, params) => request.post(`/ems/base/sampling/samples/${id}/dispatch`, null, { params })
 export const getSamples = (params) => request.get('/ems/base/sampling/samples', { params })
 export const getSampleDetail = (id) => request.get(`/ems/base/sampling/samples/${id}/detail`)
+export const disposeSample = (id, data) => request.post(`/ems/base/sampling/samples/${id}/dispose`, data)
 export const deleteSample = (id) => request.delete(`/ems/base/sampling/samples/${id}`)
 
 // 质控样 / 照片 / 日志
@@ -146,20 +147,20 @@ export const addSamplePhoto = (data) => request.post('/ems/base/sampling/photos'
 export const getPhotos = (params) => request.get('/ems/base/sampling/photos', { params })
 export const getSampleLogs = (id) => request.get(`/ems/base/sampling/samples/${id}/logs`)
 
-// 收样工作台
-export const getReceiveWorkbench = (params) => request.get('/ems/base/sampling/workbench', { params })
-
 // 留样库
 export const retainSample = (id, params) => request.post(`/ems/base/sampling/samples/${id}/retain`, null, { params })
 export const disposeRetain = (id, params) => request.post(`/ems/base/sampling/retains/${id}/dispose`, null, { params })
 export const getRetains = (params) => request.get('/ems/base/sampling/retains', { params })
 export const getExpiringRetains = (params) => request.get('/ems/base/sampling/retains/expiring', { params })
+export const getRetainStats = () => request.get('/ems/base/sampling/retains/stats')
+export const applyDispose = (id, startUser, formData) => request.post(`/ems/base/sampling/retains/${id}/dispose`, formData, { params: { startUser } })
 
 // ===== 检测数据录入与复核（ISSUE-025，路径 /api/v1/ems/base/detection/*）=====
 // 录入工作台
 export const getPendingSamples = (params) => request.get('/ems/base/detection/pending-samples', { params })
 export const createDetectionTask = (data) => request.post('/ems/base/detection/task', data)
 export const getDetectionTasks = (params) => request.get('/ems/base/detection/tasks', { params })
+export const getDetectionTaskStat = () => request.get('/ems/base/detection/task-stat')
 export const getDetectionTaskDetail = (id) => request.get(`/ems/base/detection/task/${id}`)
 export const saveDetectionResults = (id, data) => request.post(`/ems/base/detection/task/${id}/results`, data)
 export const submitDetection = (id) => request.post(`/ems/base/detection/task/${id}/submit`)
@@ -191,15 +192,6 @@ export const completeQcPlan = (id) => request.post(`/ems/quality/plans/${id}/com
 // 监控活动
 export const saveQcActivity = (data) => request.post('/ems/quality/activities', data)
 export const getQcActivities = (params) => request.get('/ems/quality/activities', { params })
-// 能力验证
-export const saveProficiency = (data) => request.post('/ems/quality/proficiency', data)
-export const getProficiency = (params) => request.get('/ems/quality/proficiency', { params })
-// 实验室间比对
-export const saveInterlab = (data) => request.post('/ems/quality/interlab', data)
-export const getInterlab = (params) => request.get('/ems/quality/interlab', { params })
-// 重复性试验
-export const saveRepeat = (data) => request.post('/ems/quality/repeat', data)
-export const getRepeat = (params) => request.get('/ems/quality/repeat', { params })
 // 闸门校验
 export const checkMaterialGate = () => request.get('/ems/quality/gate/material')
 export const checkInstrumentGate = () => request.get('/ems/quality/gate/instrument')

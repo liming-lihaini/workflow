@@ -11,8 +11,12 @@ import { ref } from 'vue'
 export function useResizableColumns(initialColumns) {
   const columns = ref(initialColumns.map(c => ({ ...c })))
 
-  function handleResizeColumn(width, column, index) {
-    columns.value[index].width = width
+  function handleResizeColumn(width, column) {
+    const key = column && (column.key || column.dataIndex)
+    const target = columns.value.find(c => (c.key || c.dataIndex) === key)
+    if (target) {
+      target.width = width
+    }
   }
 
   return { columns, handleResizeColumn }
