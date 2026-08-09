@@ -1,6 +1,7 @@
 package com.flow.engine.node;
 
 import com.flow.engine.common.utils.ExpressionUtils;
+import com.flow.engine.model.NodeModel;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -24,6 +25,9 @@ public class ExecutionContext implements Serializable {
     private String processDefinitionId;
     private String currentNodeId;
     private String operator;
+
+    /** 当前节点模型（NodeExecutor 进入节点时注入，供 handler 读取 properties/events） */
+    private NodeModel currentNode;
 
     /** 全局流程变量 */
     private final Map<String, Object> variables = new HashMap<>();
@@ -99,5 +103,13 @@ public class ExecutionContext implements Serializable {
 
     public boolean evalBoolean(String expression) {
         return ExpressionUtils.evalBoolean(expression, getAllVariables());
+    }
+
+    /**
+     * 模板求值：将文本中的 {@code ${var}} 占位替换为当前上下文变量值（表单值）。
+     * 用于服务任务 HTTP 参数从流程表单取值，如 {@code ${retainNo}}。
+     */
+    public String resolveTemplate(String template) {
+        return ExpressionUtils.evalTemplate(template, getAllVariables());
     }
 }

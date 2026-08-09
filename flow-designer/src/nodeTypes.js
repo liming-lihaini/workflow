@@ -42,9 +42,12 @@ export const NODE_TYPES_CONFIG = {
     schema: [
       { key: 'name', label: '节点名称', type: 'input', required: true },
       { key: 'serviceType', label: '服务类型', type: 'select', options: ['http', 'java', 'script', 'webhook'], default: 'http' },
-      { key: 'serviceUrl', label: '服务地址', type: 'input', placeholder: 'HTTP URL 或 Java 类名' },
-      { key: 'inputParams', label: '输入参数', type: 'textarea', placeholder: 'JSON 格式' },
-      { key: 'outputParams', label: '输出参数', type: 'textarea', placeholder: 'JSON 格式' },
+      { key: 'url', label: 'HTTP地址', type: 'input', placeholder: '支持 ${表单变量}，如 http://host/api/${retainNo}' },
+      { key: 'method', label: 'HTTP方法', type: 'select', options: ['GET', 'POST', 'PUT', 'DELETE'], default: 'POST' },
+      { key: 'body', label: '请求体模板', type: 'textarea', placeholder: '支持 ${表单变量}，如 {"retainNo":"${retainNo}"}' },
+      { key: 'payloadTemplate', label: 'Payload模板', type: 'textarea', placeholder: '结构化JSON模板，如 {"retainNo":"${formData.retainNo}","status":"销毁审批中"}，渲染后写入流程变量' },
+      { key: 'payloadVariable', label: 'Payload变量名', type: 'input', placeholder: '解析结果写入的流程变量名（默认 _payload）' },
+      { key: 'resultVariable', label: '结果变量名', type: 'input', placeholder: 'HTTP 响应体写入的变量名' },
       { key: 'description', label: '描述', type: 'textarea' }
     ]
   },

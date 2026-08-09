@@ -3,6 +3,7 @@ package com.flow.engine.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.flow.engine.common.SqliteRetry;
 import com.flow.engine.entity.EmsRetain;
 import com.flow.engine.mapper.EmsRetainMapper;
 import org.springframework.stereotype.Service;
@@ -31,10 +32,10 @@ public class EmsRetainService extends ServiceImpl<EmsRetainMapper, EmsRetain> {
         if (!StringUtils.hasText(retainNo) || !StringUtils.hasText(status)) {
             return 0;
         }
-        return this.lambdaUpdate()
+        return SqliteRetry.execute(() -> this.lambdaUpdate()
                 .eq(EmsRetain::getRetainNo, retainNo)
                 .set(EmsRetain::getStatus, status)
                 .set(EmsRetain::getUpdateTime, LocalDateTime.now())
-                .update() ? 1 : 0;
+                .update() ? 1 : 0);
     }
 }

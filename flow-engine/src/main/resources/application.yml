@@ -7,18 +7,17 @@ spring:
   application:
     name: flow-engine
   datasource:
-    driver-class-name: org.sqlite.JDBC
-    # busy_timeout: 写锁等待，避免 webhook 异步回调与主流程事务并发写入时出现 SQLITE_BUSY
-    # journal_mode=WAL: 读写可并发，减少写写冲突
-    url: jdbc:sqlite:flow_engine.db?busy_timeout=10000&journal_mode=WAL&synchronous=NORMAL
-    username:
-    password:
-  # 启动时自动执行建表脚本（TRD §2.1，19 张表）
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # MySQL 8.0 数据源（替代 SQLite）
+    url: jdbc:mysql://127.0.0.1:3306/flow_engine?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: 123456
+  # 启动时自动执行建表脚本（MySQL 8.0 语法）
   sql:
     init:
       mode: always
       encoding: UTF-8
-      schema-locations: classpath:db/schema.sql
+      schema-locations: classpath:db/schema_mysql.sql
       continue-on-error: true
   # 未匹配到 Handler 时抛出异常，交由全局异常处理器返回统一 404
   mvc:

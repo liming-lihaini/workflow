@@ -26,6 +26,8 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -321,6 +323,8 @@ public class FlowEngine {
         context.setOperator(instance.getStartUser());
         if (variables != null) {
             variables.forEach(context::setVariable);
+            // 暴露 formData 命名空间，使 payloadTemplate 支持 ${formData.xxx} 写法
+            context.setVariable("formData", Collections.unmodifiableMap(new LinkedHashMap<>(variables)));
         }
         return context;
     }

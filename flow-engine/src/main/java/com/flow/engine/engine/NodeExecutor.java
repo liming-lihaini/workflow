@@ -56,6 +56,9 @@ public class NodeExecutor {
         String nodeType = node.getType();
         log.info("[NodeExecutor] 执行节点: id={}, type={}, name={}", node.getId(), nodeType, node.getName());
 
+        // 注入当前节点模型，供 handler 读取 properties（服务任务 HTTP 配置等）
+        context.setCurrentNode(node);
+
         // === 触发 beforeEnter 事件脚本 ===
         nodeEventService.fireEvent("beforeEnter", node, context);
 

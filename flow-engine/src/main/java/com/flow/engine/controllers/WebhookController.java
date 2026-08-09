@@ -43,10 +43,10 @@ public class WebhookController {
      * 流程节点完成时，引擎回调此接口并携带流程变量 formData.retainNo，
      * 由 webhook 配置的 payloadTemplate 拼装为 { retainNo, status }。
      */
-    @PostMapping("/retain-status/{status}")
-    public Result<Map<String, Object>> updateRetainStatus(@PathVariable("status") String status,
-                                                           @RequestBody Map<String, Object> body) {
+    @PostMapping("/retain-status")
+    public Result<Map<String, Object>> updateRetainStatus(@RequestBody Map<String, Object> body) {
         String retainNo = body == null ? null : (String) body.get("retainNo");
+        String status = body == null ? null : (String) body.get("status");
         if (!StringUtils.hasText(retainNo) || !StringUtils.hasText(status)) {
             return Result.fail(400, "retainNo 与 status 均为必填");
         }

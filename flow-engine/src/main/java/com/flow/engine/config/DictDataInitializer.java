@@ -47,13 +47,9 @@ public class DictDataInitializer implements CommandLineRunner {
 
     /**
      * 增量迁移 t_sample 表，补充异常处置相关字段。
-     * SQLite 不支持 ADD COLUMN IF NOT EXISTS，故先通过 PRAGMA 检查再 ALTER。
+     * 采用数据库无关的幂等写法：直接尝试 ALTER，列已存在时捕获异常忽略。
      */
     private void migrateSampleColumns() {
-        java.util.Set<String> exists = new java.util.HashSet<>();
-        for (java.util.Map<String, Object> row : jdbcTemplate.queryForList("PRAGMA table_info(t_sample)")) {
-            exists.add(String.valueOf(row.get("name")));
-        }
         java.util.Map<String, String> columns = new java.util.LinkedHashMap<>();
         columns.put("disposal_type", "TEXT");
         columns.put("disposal_method", "TEXT");
@@ -61,13 +57,11 @@ public class DictDataInitializer implements CommandLineRunner {
         columns.put("disposal_by", "TEXT");
         columns.put("disposal_time", "TEXT");
         for (java.util.Map.Entry<String, String> e : columns.entrySet()) {
-            if (!exists.contains(e.getKey())) {
-                try {
-                    jdbcTemplate.execute("ALTER TABLE t_sample ADD COLUMN " + e.getKey() + " " + e.getValue());
-                    log.info("[DictDataInitializer] 迁移 t_sample 新增字段: {}", e.getKey());
-                } catch (Exception ex) {
-                    log.warn("[DictDataInitializer] 迁移 t_sample 字段失败(可忽略已存在): {} -> {}", e.getKey(), ex.getMessage());
-                }
+            try {
+                jdbcTemplate.execute("ALTER TABLE t_sample ADD COLUMN " + e.getKey() + " " + e.getValue());
+                log.info("[DictDataInitializer] 迁移 t_sample 新增字段: {}", e.getKey());
+            } catch (Exception ex) {
+                log.warn("[DictDataInitializer] 迁移 t_sample 字段失败(可忽略已存在): {} -> {}", e.getKey(), ex.getMessage());
             }
         }
     }
@@ -75,13 +69,9 @@ public class DictDataInitializer implements CommandLineRunner {
     /**
      * 增量迁移 t_entrust 表：补充字典 value（source_name/sample_freq_name）与
      * 创建人/更新人字段；迁移 t_monitor_point 表补充点位类型名称（point_type_name）。
-     * 兼容已存在的旧库（SQLite 不支持 ADD COLUMN IF NOT EXISTS）。
+     * 采用数据库无关的幂等写法：直接尝试 ALTER，列已存在时捕获异常忽略。
      */
     private void migrateEntrustColumns() {
-        java.util.Set<String> entrustCols = new java.util.HashSet<>();
-        for (java.util.Map<String, Object> row : jdbcTemplate.queryForList("PRAGMA table_info(t_entrust)")) {
-            entrustCols.add(String.valueOf(row.get("name")));
-        }
         java.util.Map<String, String> entrustColumns = new java.util.LinkedHashMap<>();
         entrustColumns.put("source_name", "TEXT");
         entrustColumns.put("sample_freq_name", "TEXT");
@@ -91,27 +81,19 @@ public class DictDataInitializer implements CommandLineRunner {
         entrustColumns.put("update_name", "TEXT");
         entrustColumns.put("urgent", "INTEGER DEFAULT 0");
         for (java.util.Map.Entry<String, String> e : entrustColumns.entrySet()) {
-            if (!entrustCols.contains(e.getKey())) {
-                try {
-                    jdbcTemplate.execute("ALTER TABLE t_entrust ADD COLUMN " + e.getKey() + " " + e.getValue());
-                    log.info("[DictDataInitializer] 迁移 t_entrust 新增字段: {}", e.getKey());
-                } catch (Exception ex) {
-                    log.warn("[DictDataInitializer] 迁移 t_entrust 字段失败(可忽略已存在): {} -> {}", e.getKey(), ex.getMessage());
-                }
+            try {
+                jdbcTemplate.execute("ALTER TABLE t_entrust ADD COLUMN " + e.getKey() + " " + e.getValue());
+                log.info("[DictDataInitializer] 迁移 t_entrust 新增字段: {}", e.getKey());
+            } catch (Exception ex) {
+                log.warn("[DictDataInitializer] 迁移 t_entrust 字段失败(可忽略已存在): {} -> {}", e.getKey(), ex.getMessage());
             }
         }
 
-        java.util.Set<String> pointCols = new java.util.HashSet<>();
-        for (java.util.Map<String, Object> row : jdbcTemplate.queryForList("PRAGMA table_info(t_monitor_point)")) {
-            pointCols.add(String.valueOf(row.get("name")));
-        }
-        if (!pointCols.contains("point_type_name")) {
-            try {
-                jdbcTemplate.execute("ALTER TABLE t_monitor_point ADD COLUMN point_type_name TEXT");
-                log.info("[DictDataInitializer] 迁移 t_monitor_point 新增字段: point_type_name");
-            } catch (Exception ex) {
-                log.warn("[DictDataInitializer] 迁移 t_monitor_point 字段失败(可忽略已存在): point_type_name -> {}", ex.getMessage());
-            }
+        try {
+            jdbcTemplate.execute("ALTER TABLE t_monitor_point ADD COLUMN point_type_name TEXT");
+            log.info("[DictDataInitializer] 迁移 t_monitor_point 新增字段: point_type_name");
+        } catch (Exception ex) {
+            log.warn("[DictDataInitializer] 迁移 t_monitor_point 字段失败(可忽略已存在): point_type_name -> {}", ex.getMessage());
         }
     }
 

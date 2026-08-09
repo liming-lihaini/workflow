@@ -49,111 +49,111 @@ public class DatabaseMigration implements CommandLineRunner {
 
         // 设备校准历史记录表（TRD 5.5.5）
         createTableIfAbsent("t_instrument_calib",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, instrument_id INTEGER, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, instrument_id INTEGER, " +
                 "calib_date TEXT, calib_due TEXT, cert_no TEXT, create_time TEXT");
 
         // ===== ISSUE-024 采样与样品管理 =====
         createTableIfAbsent("t_sampling_record",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, dispatch_id INTEGER, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, order_id INTEGER, dispatch_id INTEGER, " +
                 "point_id INTEGER, sampler TEXT, sample_time TEXT, weather TEXT, " +
                 "status TEXT, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_photo",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_type TEXT, biz_id INTEGER, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, biz_type TEXT, biz_id INTEGER, " +
                 "url TEXT, create_time TEXT");
         createTableIfAbsent("t_sample",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, barcode TEXT, sampling_id INTEGER, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, barcode TEXT, sampling_id INTEGER, " +
                 "order_id INTEGER, point_id INTEGER, name TEXT, type TEXT, source TEXT, " +
                 "amount TEXT, container TEXT, preserve TEXT, status TEXT, receive_time TEXT, " +
                 "receive_by TEXT, retain_flag INTEGER, retain_days INTEGER, retain_until TEXT, " +
                 "dispatch_time TEXT, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_sample_qc_binding",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, sample_id INTEGER, sample_no TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, sample_id INTEGER, sample_no TEXT, " +
                 "qc_type TEXT, remark TEXT");
         createTableIfAbsent("t_sample_log",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, sample_id INTEGER, action TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, sample_id INTEGER, action TEXT, " +
                 "operator TEXT, detail TEXT, create_time TEXT");
         createTableIfAbsent("t_retain",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, sample_id INTEGER, barcode TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, sample_id INTEGER, barcode TEXT, " +
                 "name TEXT, point_id INTEGER, retain_by TEXT, retain_time TEXT, " +
                 "retain_days INTEGER, retain_until TEXT, dispose_time TEXT, dispose_by TEXT, " +
                 "status TEXT, remark TEXT, create_time TEXT, update_time TEXT");
 
         // ===== ISSUE-025 检测数据录入与复核 =====
         createTableIfAbsent("t_detection_task",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, task_no TEXT, sample_id INTEGER, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, task_no TEXT, sample_id INTEGER, " +
                 "barcode TEXT, sample_name TEXT, point_id INTEGER, monitor_items TEXT, " +
                 "entry_by TEXT, entry_time TEXT, status TEXT, review_by TEXT, review_time TEXT, " +
                 "review_opinion TEXT, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_detection_result",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER, sample_id INTEGER, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, task_id INTEGER, sample_id INTEGER, " +
                 "monitor_item TEXT, value TEXT, unit TEXT, method TEXT, limit_value TEXT, " +
                 "conclusion TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_detection_review",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER, sample_id INTEGER, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, task_id INTEGER, sample_id INTEGER, " +
                 "barcode TEXT, reviewer TEXT, decision TEXT, opinion TEXT, create_time TEXT");
 
         // ===== ISSUE-026 质量控制（物资 + 质控计划 + 能力验证） =====
         createTableIfAbsent("t_standard_material",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, lot_no TEXT, spec TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, name TEXT, lot_no TEXT, spec TEXT, " +
                 "expire_date TEXT, stock INTEGER, status TEXT, cert_no TEXT, remark TEXT, " +
                 "create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_consumable",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, spec TEXT, qty INTEGER, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, name TEXT, spec TEXT, qty INTEGER, " +
                 "expire_date TEXT, status TEXT, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_hazardous_ledger",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, cas_no TEXT, category TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, name TEXT, cas_no TEXT, category TEXT, " +
                 "qty TEXT, unit TEXT, status TEXT, apply_by TEXT, approve_by TEXT, " +
                 "apply_reason TEXT, approve_opinion TEXT, apply_time TEXT, approve_time TEXT, " +
                 "remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_qc_plan",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, plan_no TEXT, title TEXT, year INTEGER, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, plan_no TEXT, title TEXT, year INTEGER, " +
                 "quarter TEXT, type TEXT, responsible_id TEXT, status TEXT, approved_by TEXT, " +
                 "approved_at TEXT, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_qc_activity",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, qc_type TEXT, item TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, plan_id INTEGER, qc_type TEXT, item TEXT, " +
                 "standard_id INTEGER, batch_id INTEGER, result TEXT, pass_flag TEXT, " +
                 "operator_id TEXT, act_date TEXT, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_proficiency_test",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, org TEXT, item TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, plan_id INTEGER, org TEXT, item TEXT, " +
                 "standard_id INTEGER, result TEXT, conclusion TEXT, cert_file TEXT, " +
                 "employee_ids TEXT, test_date TEXT, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_interlab_compare",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, partner_lab TEXT, item TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, plan_id INTEGER, partner_lab TEXT, item TEXT, " +
                 "standard_id INTEGER, our_value TEXT, ref_value TEXT, deviation TEXT, " +
                 "conclusion TEXT, compare_date TEXT, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_repeat_test",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, plan_id INTEGER, item TEXT, standard_id INTEGER, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, plan_id INTEGER, item TEXT, standard_id INTEGER, " +
                 "first_value TEXT, repeat_value TEXT, deviation TEXT, conclusion TEXT, " +
                 "operator_id TEXT, test_date TEXT, remark TEXT, create_time TEXT, update_time TEXT");
 
         // ----- ISSUE-027 报告生成与审核 -----
         createTableIfAbsent("t_report_template",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, tpl_no TEXT, name TEXT, type TEXT, content TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, tpl_no TEXT, name TEXT, type TEXT, content TEXT, " +
                 "enabled TEXT, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_report",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, report_no TEXT, title TEXT, tpl_id INTEGER, tpl_type TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, report_no TEXT, title TEXT, tpl_id INTEGER, tpl_type TEXT, " +
                 "client TEXT, period TEXT, task_ids TEXT, item_count INTEGER, exceed_count INTEGER, status TEXT, " +
                 "anti_fake_code TEXT, generator TEXT, publish_time TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_report_item",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, report_id INTEGER, task_id INTEGER, item TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, report_id INTEGER, task_id INTEGER, item TEXT, " +
                 "sample_code TEXT, result TEXT, unit TEXT, standard_limit TEXT, conclusion TEXT, create_time TEXT");
         createTableIfAbsent("t_report_audit",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, report_id INTEGER, auditor TEXT, decision TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, report_id INTEGER, auditor TEXT, decision TEXT, " +
                 "opinion TEXT, create_time TEXT");
 
         // ----- ISSUE-029 状态机与规则引擎基础底座 -----
         createTableIfAbsent("t_state_def",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_type TEXT, state_key TEXT, state_name TEXT, sort INTEGER");
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, biz_type TEXT, state_key TEXT, state_name TEXT, sort INTEGER");
         createTableIfAbsent("t_transition_def",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_type TEXT, from_state TEXT, event TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, biz_type TEXT, from_state TEXT, event TEXT, " +
                 "to_state TEXT, guard_expr TEXT, guard_fail_msg TEXT");
         createTableIfAbsent("t_seq_def",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_key TEXT, prefix TEXT, seq_date TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, biz_key TEXT, prefix TEXT, seq_date TEXT, " +
                 "current_val INTEGER DEFAULT 0, step INTEGER DEFAULT 1");
 
         // ----- 危化品流程管理流转日志（流程管理数据模型 - 流转记录层）-----
         createTableIfAbsent("t_hazardous_flow_log",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, biz_type TEXT, biz_id INTEGER, event TEXT, " +
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, biz_type TEXT, biz_id INTEGER, event TEXT, " +
                 "event_name TEXT, from_state TEXT, to_state TEXT, operator TEXT, opinion TEXT, create_time TEXT");
 
         // 初始化内置状态机/编号（幂等）
@@ -169,10 +169,10 @@ public class DatabaseMigration implements CommandLineRunner {
 
         // ===== 采样参数配置管理（TRD 5.1） =====
         createTableIfAbsent("t_sample_param_config",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, item TEXT, standard TEXT, "
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, type TEXT, item TEXT, standard TEXT, "
                 + "limit_value TEXT, remark TEXT, create_time TEXT, update_time TEXT");
         createTableIfAbsent("t_sample_param_item",
-                "id INTEGER PRIMARY KEY AUTOINCREMENT, config_id INTEGER, code TEXT, name TEXT, "
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, config_id INTEGER, code TEXT, name TEXT, "
                 + "param_type TEXT, unit TEXT, required INTEGER DEFAULT 1, enum_text TEXT, "
                 + "tip TEXT, sort_no INTEGER");
         // 基于危险品数据模型生成「危险品入库申请」表单定义（绑定 hazardous 模型）
@@ -346,9 +346,9 @@ public class DatabaseMigration implements CommandLineRunner {
     private void initRetainDisposeWebhook() {
         String webhookKey = "retain_dispose_status";
         String name = "留样销毁-修改留样状态";
-        String url = "http://localhost:8080/api/v1/webhooks/retain-status/销毁审批中";
+        String url = "http://localhost:8080/api/v1/webhooks/retain-status";
         String method = "POST";
-        String payloadTemplate = "{\"retainNo\":\"${formData.retainNo}\"}";
+        String payloadTemplate = "{\"retainNo\":\"${formData.retainNo}\",\"status\":\"销毁审批中\"}";
         String triggerEvents = "[\"NODE_COMPLETED\"]";
         String processKey = "LYXHSQ";
 

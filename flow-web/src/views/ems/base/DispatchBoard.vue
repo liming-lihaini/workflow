@@ -262,11 +262,6 @@ function resetFilters() {
 const STATUS_COLOR = {
   '待派单': 'orange',
   '已派单': 'blue',
-  '采样执行中': 'cyan',
-  '样品送检': 'green',
-  '实验室检测中': 'purple',
-  '报告编制': 'geekblue',
-  '归档完成': 'default'
 }
 function statusColor(s) {
   return STATUS_COLOR[s] || 'default'

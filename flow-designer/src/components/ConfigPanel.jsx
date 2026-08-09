@@ -13,7 +13,7 @@ function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, o
   const [webhookList, setWebhookList] = useState([])
   const [webhookLoading, setWebhookLoading] = useState(false)
   const [webhookFormVisible, setWebhookFormVisible] = useState(false)
-  const [webhookForm, setWebhookForm] = useState({ webhookKey: '', name: '', url: '', method: 'POST', triggerEvents: [], timeout: 5000, retryCount: 3, processKey: '', nodeId: '' })
+  const [webhookForm, setWebhookForm] = useState({ webhookKey: '', name: '', url: '', method: 'POST', triggerEvents: [], timeout: 5000, retryCount: 3, processKey: '', nodeId: '', payloadTemplate: '' })
   const [testResult, setTestResult] = useState(null)
   const searchTimer = useRef(null)
 
@@ -56,7 +56,7 @@ function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, o
     setWebhookForm({
       webhookKey: '', name: '', url: '', method: 'POST',
       triggerEvents: ['NODE_COMPLETED'], timeout: 5000, retryCount: 3,
-      processKey: processKey || '', nodeId: currentNodeId || ''
+      processKey: processKey || '', nodeId: currentNodeId || '', payloadTemplate: ''
     })
     setWebhookFormVisible(true)
   }
@@ -73,7 +73,8 @@ function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, o
       timeout: w.timeout != null ? w.timeout : 5000,
       retryCount: w.retryCount != null ? w.retryCount : 3,
       processKey: w.processKey || processKey || '',
-      nodeId: w.nodeId || currentNodeId || ''
+      nodeId: w.nodeId || currentNodeId || '',
+      payloadTemplate: w.payloadTemplate || ''
     })
     setWebhookFormVisible(true)
   }
@@ -436,7 +437,7 @@ function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, o
                           onNodeConfigChange(selectedNode.id, 'candidateUsers', e.target.value)
                         }} />
                       <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
-                        从表单变量中提取处理人，如 ${formData.approver}
+                        从表单变量中提取处理人，如 {"${formData.approver}"}
                       </div>
                     </div>
                   )}
@@ -699,6 +700,15 @@ function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, o
                     </select>
                   </div>
                   <div className="config-form-item">
+                    <label className="config-label">Payload 模板</label>
+                    <textarea className="config-textarea" rows={4} value={webhookForm.payloadTemplate || ''}
+                      onChange={(e) => setWebhookForm({ ...webhookForm, payloadTemplate: e.target.value })}
+                      placeholder={'如：{\n  "retainNo": "${formData.retainNo}",\n  "status": "销毁审批中"\n}'} />
+                    <div style={{ fontSize: 11, color: '#999', marginTop: 4, lineHeight: 1.5 }}>
+                      支持变量占位符，例如 {"${formData.retainNo}"}。留空则发送引擎默认事件体。
+                    </div>
+                  </div>
+                  <div className="config-form-item">
                     <label className="config-label">触发事件</label>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {ALL_WEBHOOK_EVENTS.map(ev => (
@@ -741,6 +751,11 @@ function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, o
                           </span>
                         </div>
                         <div style={{ fontSize: 11, color: '#666', wordBreak: 'break-all', marginTop: 2 }}>{w.url}</div>
+                        {w.payloadTemplate && (
+                          <div style={{ fontSize: 11, color: '#888', marginTop: 2, fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                            Payload：{w.payloadTemplate}
+                          </div>
+                        )}
                         <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
                           事件：{(Array.isArray(w.triggerEvents) ? w.triggerEvents : (w.triggerEvents ? JSON.parse(w.triggerEvents) : [])).map(ev => WEBHOOK_EVENT_LABELS[ev] || ev).join('、') || '-'}
                         </div>

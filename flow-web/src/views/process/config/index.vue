@@ -14,7 +14,6 @@
         </a-space>
         <a-space>
           <a-button type="primary" @click="handleSaveConfig" :loading="saveLoading">保存配置</a-button>
-          <a-button @click="activeTab = 'design'">设计流程图</a-button>
         </a-space>
       </div>
 
@@ -242,10 +241,12 @@ async function handleSaveConfig() {
   try {
     // 将表单绑定信息写入 processJson（流程图未设计时初始化空结构，保证表单关联可持久化）
     let processJson = processDef.value.processJson
+    console.log('processJson', processJson)
     let json
     if (processJson) {
       try { json = JSON.parse(processJson) } catch { json = null }
     }
+    console.log('json', json)
     if (!json) json = { nodes: [], edges: [] }
     if (selectedFormKey.value) {
       json.formKey = selectedFormKey.value
@@ -253,7 +254,7 @@ async function handleSaveConfig() {
       delete json.formKey
     }
     processJson = JSON.stringify(json)
-
+    console.log('processJson', processJson)
     await updateProcessDefinition(processDef.value.id, {
       processName: processDef.value.processName,
       processType: processDef.value.processType,
