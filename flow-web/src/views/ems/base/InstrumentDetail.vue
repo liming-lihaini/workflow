@@ -1,7 +1,7 @@
 <template>
   <a-drawer
     :open="open"
-    :title="'设备详情 - ' + (detail.code || '')"
+    :title="'申请详情 - ' + (detail.code || '')"
     width="1000"
     @close="$emit('close')"
   >
@@ -36,6 +36,26 @@
       />
       <a-empty v-else description="暂无校准记录" :image="simpleImage" />
 
+      <a-divider class="title-divider" orientation="left">关联流程</a-divider>
+      <a-table
+        v-if="detail.relatedProcesses && detail.relatedProcesses.length"
+        :dataSource="detail.relatedProcesses"
+        :columns="processColumns"
+        rowKey="processInstanceId"
+        size="small"
+        :pagination="false"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'statusText'">
+            <a-tag :color="processStatusColor(record.statusText)">{{ record.statusText }}</a-tag>
+          </template>
+          <template v-if="column.key === 'startTime'">
+            {{ formatTime(record.startTime) }}
+          </template>
+        </template>
+      </a-table>
+      <a-empty v-else description="暂无关联流程" :image="simpleImage" />
+
       <a-divider class="title-divider" orientation="left">关联采样任务</a-divider>
       <a-table
         v-if="detail.samplingTasks && detail.samplingTasks.length"
@@ -54,6 +74,7 @@
 import { ref, watch } from 'vue'
 import { Empty } from 'ant-design-vue'
 import { getInstrumentDetail } from '../../../api/ems'
+import dayjs from 'dayjs'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -77,9 +98,26 @@ const taskColumns = [
   { title: '计划开始', dataIndex: 'planStart', key: 'planStart' },
   { title: '计划结束', dataIndex: 'planEnd', key: 'planEnd' }
 ]
+const processColumns = [
+  { title: '流程编号', dataIndex: 'instanceNo', key: 'instanceNo' },
+  { title: '流程名称', dataIndex: 'processName', key: 'processName' },
+  { title: '状态', dataIndex: 'statusText', key: 'statusText', width: 90 },
+  { title: '发起人', dataIndex: 'startUser', key: 'startUser', width: 110 },
+  { title: '发起时间', dataIndex: 'startTime', key: 'startTime', width: 160 }
+]
 
 function instStatusColor(s) {
   return { '在用': 'green', '临期': 'orange', '停用': 'red', '维修': 'blue', '报废': 'default' }[s] || 'default'
+}
+
+function processStatusColor(s) {
+  return { '运行中': 'blue', '已完成': 'green', '已暂停': 'orange', '已终止': 'default' }[s] || 'default'
+}
+
+function formatTime(v) {
+  if (!v) return '—'
+  const d = dayjs(String(v).replace(' ', 'T'))
+  return d.isValid() ? d.format('YYYY-MM-DD HH:mm') : v
 }
 
 watch(() => [props.open, props.instrumentId], ([o, id]) => {

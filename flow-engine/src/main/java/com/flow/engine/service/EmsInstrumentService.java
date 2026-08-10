@@ -9,7 +9,11 @@ import com.flow.engine.entity.EmsDispatchDevice;
 import com.flow.engine.entity.EmsInstrument;
 import com.flow.engine.entity.EmsInstrumentCalib;
 import com.flow.engine.entity.EmsSamplingOrder;
+import com.flow.engine.entity.ProcessInstance;
+import com.flow.engine.entity.Variable;
 import com.flow.engine.mapper.EmsInstrumentMapper;
+import com.flow.engine.mapper.ProcessInstanceMapper;
+import com.flow.engine.mapper.VariableMapper;
 import com.flow.engine.service.EmsDispatchService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +47,13 @@ public class EmsInstrumentService extends ServiceImpl<EmsInstrumentMapper, EmsIn
     private EmsDispatchService dispatchService;
     @Autowired
     private EmsSamplingOrderService samplingOrderService;
+    @Autowired
+    private ProcessInstanceMapper processInstanceMapper;
+    @Autowired
+    private VariableMapper variableMapper;
+
+    /** 设备入库相关流程（单台/批量） */
+    private static final List<String> INBOUND_PROCESS_KEYS = List.of("SBTKRKSQ", "SBTKRKSQ_PL");
 
     /**
      * 根据校准到期日重算状态（不覆盖手动置的维修/报废）：
@@ -141,7 +152,66 @@ public class EmsInstrumentService extends ServiceImpl<EmsInstrumentMapper, EmsIn
             taskMap.put(order.getId(), t);
         }
         vo.setSamplingTasks(new ArrayList<>(taskMap.values()));
+
+        // 关联流程：入库申请（单台/批量）流程中携带本设备编号的实例
+        vo.setRelatedProcesses(listRelatedProcesses(exist.getCode()));
         return vo;
+    }
+
+    /**
+     * 查询与本设备相关的入库申请流程实例。
+     * 单台入库：表单变量 code = 仪器编号；批量入库：devices 子表 JSON 中包含该编号。
+     */
+    private List<EmsInstrumentDetailVO.RelatedProcess> listRelatedProcesses(String code) {
+        if (!StringUtils.hasText(code)) {
+            return new ArrayList<>();
+        }
+        List<ProcessInstance> instances = processInstanceMapper.selectList(
+                new LambdaQueryWrapper<ProcessInstance>()
+                        .in(ProcessInstance::getProcessKey, INBOUND_PROCESS_KEYS)
+                        .orderByDesc(ProcessInstance::getStartTime));
+        if (instances.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<Long> instanceIds = instances.stream().map(ProcessInstance::getId).toList();
+        String codeJsonPart = "\"code\":\"" + code + "\"";
+        List<Variable> matched = variableMapper.selectList(
+                new LambdaQueryWrapper<Variable>()
+                        .in(Variable::getProcessInstanceId, instanceIds)
+                        .isNull(Variable::getTaskId)
+                        .and(w -> w
+                                .nested(n -> n.eq(Variable::getVariableKey, "code").eq(Variable::getVariableValue, code))
+                                .or(n -> n.eq(Variable::getVariableKey, "devices").like(Variable::getVariableValue, codeJsonPart))));
+        java.util.Set<Long> matchedIds = new java.util.HashSet<>();
+        for (Variable v : matched) {
+            matchedIds.add(v.getProcessInstanceId());
+        }
+        List<EmsInstrumentDetailVO.RelatedProcess> result = new ArrayList<>();
+        for (ProcessInstance inst : instances) {
+            if (!matchedIds.contains(inst.getId())) continue;
+            EmsInstrumentDetailVO.RelatedProcess rp = new EmsInstrumentDetailVO.RelatedProcess();
+            rp.setProcessInstanceId(inst.getId());
+            rp.setInstanceNo(inst.getInstanceNo());
+            rp.setProcessKey(inst.getProcessKey());
+            rp.setProcessName(inst.getProcessName());
+            rp.setStatusText(processStatusText(inst.getStatus()));
+            rp.setStartUser(inst.getStartUser());
+            rp.setStartTime(inst.getStartTime() == null ? null : inst.getStartTime().toString());
+            result.add(rp);
+        }
+        return result;
+    }
+
+    /** 流程实例状态码 → 文案 */
+    private String processStatusText(Integer status) {
+        if (status == null) return "未知";
+        return switch (status) {
+            case 0 -> "运行中";
+            case 1 -> "已完成";
+            case 2 -> "已暂停";
+            case 3 -> "已终止";
+            default -> "未知";
+        };
     }
 
     /** 分页检索（关键字=编号/名称/型号） */

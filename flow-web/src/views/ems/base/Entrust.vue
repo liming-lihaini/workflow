@@ -110,6 +110,7 @@
       @close="drawerVisible = false"
     >
       <a-form :model="formState" layout="inline" class="entrust-inline-form">
+        <a-divider class="title-divider" orientation="left">基本信息</a-divider>
         <a-row :gutter="[16, 8]" style="width: 100%">
           <a-col :span="12">
             <a-form-item label="委托名称" required>
@@ -122,18 +123,28 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item label="客户" required>
+            <a-form-item label="客户信息" required>
               <a-select v-model:value="formState.custId" show-search placeholder="选择客户" :options="customerOptions" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item label="来源" required>
+            <a-form-item label="信息来源" required>
               <a-select v-model:value="formState.source" placeholder="选择来源" :options="sourceOptions" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item label="采集频率">
               <a-select v-model:value="formState.sampleFreq" placeholder="选择采集频率" :options="sampleFreqOptions" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="开始日期">
+              <a-date-picker
+                v-model:value="formState.startDate"
+                placeholder="请选择开始日期"
+                style="width: 100%"
+                value-format="YYYY-MM-DD"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="24">
@@ -157,7 +168,7 @@
           </a-col>
         </a-row>
 
-        <a-divider class="title-divider" orientation="left">监测点位（委托基础信息）</a-divider>
+        <a-divider class="title-divider" orientation="left">监测点位</a-divider>
         <div class="point-toolbar">
           <a-button size="small" type="dashed" @click="addPoint">+ 添加点位</a-button>
         </div>
@@ -364,7 +375,7 @@ const pointColumns = [
   { title: '操作', key: 'op', width: 110 }
 ]
 
-const formState = reactive({ id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, urgent: 0, status: undefined })
+const formState = reactive({ id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, urgent: 0, startDate: null, status: undefined })
 const statusOptions = ref([])
 
 function renderDate(v) {
@@ -522,7 +533,7 @@ function showDrawer(record) {
   } else {
     editingRecord.value = null
     loadCustomers(true)   // 新建时过滤已停用客户
-    Object.assign(formState, { id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, urgent: 0, description: '' })
+    Object.assign(formState, { id: undefined, entrustName: '', custId: undefined, source: undefined, sampleFreq: undefined, urgent: 0, startDate: null, description: '' })
     setEditorHtml('')
     points.value = []
     attachments.value = []
@@ -541,6 +552,7 @@ function loadEntrustDetail(id) {
       source: vo.source,
       sampleFreq: vo.sampleFreq,
       urgent: vo.urgent ? 1 : 0,
+      startDate: vo.startDate || null,
       description: vo.description || ''
     })
     setEditorHtml(vo.description || '')
@@ -594,6 +606,7 @@ function handleSave() {
     source: formState.source,
     sampleFreq: formState.sampleFreq,
     urgent: formState.urgent ? 1 : 0,
+    startDate: formState.startDate || null,
     description: getEditorHtml(),
     status: '草稿'
   }

@@ -151,6 +151,9 @@ CREATE TABLE IF NOT EXISTS `sys_user` (
     `post_id` BIGINT,
     `security_level` BIGINT,
     `status` BIGINT,
+    `gender` VARCHAR(16),
+    `birth_date` VARCHAR(32),
+    `avatar` VARCHAR(512),
     `create_time` DATETIME(6),
     `update_time` DATETIME(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='sys_user';
@@ -168,6 +171,18 @@ CREATE TABLE IF NOT EXISTS `sys_user_role` (
     `user_id` BIGINT,
     `role_id` BIGINT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='sys_user_role';
+
+CREATE TABLE IF NOT EXISTS `sys_user_qualification` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `user_id` BIGINT,
+    `qual_name` VARCHAR(512),
+    `cert_no` VARCHAR(512),
+    `issuer` VARCHAR(512),
+    `expire_date` VARCHAR(512),
+    `remark` LONGTEXT,
+    `create_time` DATETIME(6),
+    `update_time` DATETIME(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='sys_user_qualification';
 
 CREATE TABLE IF NOT EXISTS `t_alert` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -335,7 +350,8 @@ CREATE TABLE IF NOT EXISTS `t_entrust` (
     `create_name` VARCHAR(512),
     `update_by` VARCHAR(512),
     `update_name` VARCHAR(512),
-    `urgent` BIGINT DEFAULT 0
+    `urgent` BIGINT DEFAULT 0,
+    `start_date` VARCHAR(32)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='t_entrust';
 
 CREATE TABLE IF NOT EXISTS `t_entrust_detail` (
@@ -416,7 +432,8 @@ CREATE TABLE IF NOT EXISTS `t_instrument` (
     `purchase_date` DATETIME(6),
     `last_calib_date` DATETIME(6),
     `cert_no` VARCHAR(512),
-    `remark` LONGTEXT
+    `remark` LONGTEXT,
+    `create_by` VARCHAR(512)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='t_instrument';
 
 CREATE TABLE IF NOT EXISTS `t_instrument_calib` (

@@ -3,17 +3,14 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-07-30T00:08:26Z"
+exported_at: "2026-08-10T01:06:42Z"
 modules:
     "":
-        dir_name: 自定义流程引擎项目（Flow Engine）
-        title: 自定义流程引擎项目（Flow Engine）
+        dir_name: 环境监测流程引擎与LIMS管理系统
+        title: 环境监测流程引擎与LIMS管理系统
         scope: []
         source_files: []
-        children:
-            - flow_designer
-            - flow_engine
-            - flow_web
+        children: []
         depends_on: []
         related_to: []
     flow_designer:

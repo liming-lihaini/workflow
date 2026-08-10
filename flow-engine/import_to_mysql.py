@@ -6,8 +6,8 @@ import sqlite3
 
 import pymysql
 
-SQLITE_DB = r"D:\source_code\workflow\flow-engine\flow_engine.db"
-SCHEMA_SQL = r"D:\source_code\workflow\flow-engine\schema_mysql.sql"
+SQLITE_DB = r"D:\git_hub\workflow\flow-engine\flow_engine.db"
+SCHEMA_SQL = r"D:\git_hub\workflow\flow-engine\schema_mysql.sql"
 
 MYSQL_HOST = "127.0.0.1"
 MYSQL_PORT = 3306

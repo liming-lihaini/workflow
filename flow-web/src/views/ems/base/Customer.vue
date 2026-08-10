@@ -192,14 +192,13 @@ const pagination = reactive({
 
 const { columns, handleResizeColumn } = useResizableColumns([
   { title: '序号', key: 'index', width: 60, align: 'center', customRender: ({ index }) => (index ?? 0) + 1 },
-  { title: '客户名称', dataIndex: 'custName', key: 'custName', sorter: true },
-  { title: '信用代码', dataIndex: 'creditCode', key: 'creditCode' },
-  { title: '联系人', dataIndex: 'contact', key: 'contact' },
-  { title: '电话', dataIndex: 'tel', key: 'tel' },
-  { title: '所在城市', dataIndex: 'city', key: 'city' },
-  { title: '办公地址', dataIndex: 'address', key: 'address' },
+  { title: '客户名称', dataIndex: 'custName', key: 'custName' },
+  { title: '信用代码', dataIndex: 'creditCode', key: 'creditCode' , width: 200},
+  { title: '联系人', dataIndex: 'contact', key: 'contact', width: 100 },
+  { title: '电话', dataIndex: 'tel', key: 'tel', width: 140 },
+  { title: '所在城市', dataIndex: 'city', key: 'city' , width: 120},
   { title: '状态', key: 'status', dataIndex: 'status', width: 80 },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 140, customRender: renderDate, sorter: true },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 140, customRender: renderDate},
   { title: '操作', key: 'action', width: 200 }
 ])
 

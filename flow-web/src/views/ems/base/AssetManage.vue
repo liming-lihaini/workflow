@@ -13,7 +13,11 @@
               </a-radio-group>
               <a-input-search v-if="instViewMode === 'list'" v-model:value="kw" placeholder="搜索编号/名称/型号" style="width: 220px" allow-clear @search="loadInstruments" />
               <a-select v-if="instViewMode === 'list'" v-model:value="statusFilter" placeholder="状态" allow-clear style="width: 120px" :options="statusOptions" @change="loadInstruments" />
-              <a-button v-if="instViewMode === 'list'" type="primary" @click="showInstDrawer()">新增设备</a-button>
+              <template v-if="instViewMode === 'list'">
+                <a-button type="primary" @click="startInboundProcess('SBTKRKSQ')">单品入库申请</a-button>
+                <a-button type="primary" @click="startInboundProcess('SBTKRKSQ_PL')">批量入库申请</a-button>
+                <a-button type="primary" @click="showInstDrawer()">新增设备</a-button>
+              </template>
             </a-space>
           </div>
 
@@ -91,7 +95,7 @@
                 <div class="cal-track">
                   <div v-for="d in instDays" :key="d.key" class="cal-cell cal-cell-head">
                     <div class="cal-dow">{{ d.dow }}</div>
-                    <div class="cal-date">{{ d.date }}</div>
+                    <div v-if="instCalUnit === 'week'" class="cal-date">{{ d.date }}</div>
                   </div>
                 </div>
               </div>
@@ -369,6 +373,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, watch, nextTick, h } from 'vue'
 import { message } from 'ant-design-vue'
+import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import minMax from 'dayjs/plugin/minMax'
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'
@@ -384,6 +389,7 @@ import {
 } from '../../../api/ems'
 import InstrumentDetail from './InstrumentDetail.vue'
 
+const router = useRouter()
 const tab = ref('instrument')
 
 /* ============ 表格铺满页面高度（精确测量 tbl-box，避免撑出主页滚动条） ============ */
@@ -430,13 +436,13 @@ const instStatusFallback = [
 const instPagination = reactive({ current: 1, pageSize: 10, total: 0 })
 
 const instColumns = [
-  { title: '编号', dataIndex: 'code', key: 'code', width: 100 },
+  { title: '编号', dataIndex: 'code', key: 'code', width: 160 },
   { title: '名称', dataIndex: 'name', key: 'name', sorter: true },
-  { title: '型号', dataIndex: 'model', key: 'model' },
-  { title: '厂商', dataIndex: 'manufacturer', key: 'manufacturer' },
+  { title: '型号', dataIndex: 'model', key: 'model', width: 120 },
+  { title: '厂商', dataIndex: 'manufacturer', key: 'manufacturer', width: 200 },
   { title: '状态', key: 'status', dataIndex: 'status', width: 90 },
   { title: '校准到期', key: 'calibDue', dataIndex: 'calibDue', width: 120 },
-  { title: '证书号', dataIndex: 'certNo', key: 'certNo' },
+  { title: '证书号', dataIndex: 'certNo', key: 'certNo', width: 160 },
   { title: '操作', key: 'action', width: 240, fixed: 'right' }
 ]
 
@@ -534,6 +540,11 @@ function handleInstTableChange(pag) {
   instPagination.current = pag.current
   instPagination.pageSize = pag.pageSize
   loadInstruments()
+}
+
+// 发起入库流程：跳转到流程发起详情页（单品 SBTKRKSQ / 批量 SBTKRKSQ_PL）
+function startInboundProcess(processKey) {
+  router.push({ path: '/task/start-detail', query: { processKey } })
 }
 
 /* ============ 设备使用日历（参考车辆使用日历：行×日网格，占用区间取采样订单派单 planStart~planEnd） ============ */

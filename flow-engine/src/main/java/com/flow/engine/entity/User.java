@@ -42,9 +42,22 @@ public class User {
     /** 状态：0-停用，1-正常，2-锁定 */
     private Integer status;
 
+    /** 性别：男/女 */
+    private String gender;
+
+    /** 出生年月（yyyy-MM） */
+    private String birthDate;
+
+    /** 用户头像附件相对路径（yyyyMMdd/uuid.ext，经 /attachments/preview 展示） */
+    private String avatar;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+
+    /** 人员资质列表（非持久化字段，创建/更新用户时随请求传入） */
+    @TableField(exist = false)
+    private java.util.List<UserQualification> qualifications;
 }

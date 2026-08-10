@@ -8,9 +8,14 @@ import com.flow.engine.dto.DataModelResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -47,7 +52,7 @@ public class ModelDataService {
         if (keyword != null && !keyword.isBlank() && !columns.isEmpty()) {
             List<String> likes = new ArrayList<>();
             for (String col : columns) {
-                likes.add("CAST(" + col + " AS TEXT) LIKE ?");
+                likes.add("CAST(" + col + " AS CHAR) LIKE ?");
                 args.add("%" + keyword.trim() + "%");
             }
             where.append(" WHERE (").append(String.join(" OR ", likes)).append(")");
@@ -161,8 +166,12 @@ public class ModelDataService {
 
     /**
      * 流程结束回填写入：跳过必填校验，表未生成时静默跳过（返回 null）
+     * <p>
+     * REQUIRES_NEW：调用方（FormDataWriteBackService）以 try-catch 容忍回填失败，
+     * 必须独立事务，否则失败时会把流程主事务标记为 rollback-only，
+     * 导致提交时抛出 UnexpectedRollbackException。
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Long writeBackInsert(String modelKey, Map<String, Object> data) {
         DataModelResponse model = requireModel(modelKey);
         if (model.getMainTable() == null) {
@@ -236,6 +245,10 @@ public class ModelDataService {
             args.add(extraValue);
         }
         for (DataModelRequest.FieldDefinition field : safeFields(def)) {
+            // id 为物理表内置自增主键，不参与 INSERT
+            if ("id".equals(field.getFieldKey())) {
+                continue;
+            }
             if (data.containsKey(field.getFieldKey())) {
                 cols.add(dataModelService.sanitizeIdentifier(field.getFieldKey()));
                 args.add(toSqlValue(data.get(field.getFieldKey())));
@@ -248,9 +261,18 @@ public class ModelDataService {
         args.add(now);
 
         String placeholders = String.join(", ", java.util.Collections.nCopies(cols.size(), "?"));
-        jdbcTemplate.update("INSERT INTO " + table + " (" + String.join(", ", cols) + ") VALUES (" + placeholders + ")",
-                args.toArray());
-        return jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
+        String sql = "INSERT INTO " + table + " (" + String.join(", ", cols) + ") VALUES (" + placeholders + ")";
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        Object[] argArray = args.toArray();
+        jdbcTemplate.update(con -> {
+            PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            for (int i = 0; i < argArray.length; i++) {
+                ps.setObject(i + 1, argArray[i]);
+            }
+            return ps;
+        }, keyHolder);
+        Number key = keyHolder.getKey();
+        return key != null ? key.longValue() : null;
     }
 
     /** 必填字段校验 */
@@ -296,7 +318,8 @@ public class ModelDataService {
 
     private boolean tableExists(String tableName) {
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?", Integer.class, tableName);
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
+                Integer.class, tableName);
         return count != null && count > 0;
     }
 }

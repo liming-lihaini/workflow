@@ -21,6 +21,7 @@ public class EmsEntrustVO {
     private String sampleFreq;      // 采集频率编码（关联字典 moni_sample_freq）
     private String sampleFreqName; // 采集频率名称（关联字典 moni_sample_freq）
     private Integer urgent;          // 是否紧急（0-否，1-是）
+    private String startDate;       // 开始日期（yyyy-MM-dd）
     private String status;
     private String description;    // 委托说明（富文本）
     private String submitBy;
@@ -43,6 +44,7 @@ public class EmsEntrustVO {
         vo.setSampleFreq(e.getSampleFreq());
         vo.setSampleFreqName(e.getSampleFreqName());
         vo.setUrgent(e.getUrgent());
+        vo.setStartDate(e.getStartDate());
         vo.setStatus(e.getStatus());
         vo.setDescription(e.getDescription());
         vo.setSubmitBy(e.getSubmitBy());

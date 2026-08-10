@@ -17,7 +17,6 @@ import java.util.Random;
  * 在 CustomerDataInitializer(@Order 11) 之后执行，保证有客户可关联。
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
 @Order(12)
 public class EntrustDataInitializer implements CommandLineRunner {

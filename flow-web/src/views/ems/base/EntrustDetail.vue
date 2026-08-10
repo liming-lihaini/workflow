@@ -16,6 +16,7 @@
         <a-descriptions-item label="委托编号">{{ vo.entrustNo || '系统自动生成' }}</a-descriptions-item>
         <a-descriptions-item label="客户">{{ vo.custName || '-' }}</a-descriptions-item>
         <a-descriptions-item label="来源">{{ vo.sourceName || vo.source || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="开始日期">{{ vo.startDate || '-' }}</a-descriptions-item>
         <a-descriptions-item label="状态">{{ vo.status || '-' }}</a-descriptions-item>
         <a-descriptions-item label="创建人">{{ (vo.createName || vo.createBy) ? (vo.createName || '') + (vo.createBy ? '(' + vo.createBy + ')' : '') : '-' }}</a-descriptions-item>
         <a-descriptions-item label="创建时间">{{ renderDate(vo.createTime) }}</a-descriptions-item>
@@ -46,7 +47,7 @@
       <div v-else class="empty-tip">暂无附件</div>
     </a-card>
 
-    <a-card title="监测点位（委托基础信息）" size="small" class="block">
+    <a-card title="监测点位" size="small" class="block">
       <a-table
         :columns="pointColumns"
         :data-source="vo.points || []"

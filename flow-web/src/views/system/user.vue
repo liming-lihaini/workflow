@@ -107,39 +107,157 @@
       </a-col>
     </a-row>
 
-    <a-modal
-      v-model:open="modalVisible"
+    <a-drawer
+      :open="modalVisible"
       :title="editingRecord ? '编辑用户' : '新建用户'"
-      @ok="handleSubmit"
-      :confirm-loading="submitLoading"
+      :width="1000"
+      placement="right"
+      @close="modalVisible = false"
     >
       <a-form :model="formState" layout="vertical">
-        <a-form-item label="用户名" required>
-          <a-input v-model:value="formState.username" :disabled="!!editingRecord" />
-        </a-form-item>
-        <a-form-item label="姓名" required>
-          <a-input v-model:value="formState.realName" />
-        </a-form-item>
-        <a-form-item label="密码" v-if="!editingRecord">
-          <a-input-password v-model:value="formState.password" />
-        </a-form-item>
-        <a-form-item label="部门">
-          <a-tree-select
-            v-model:value="formState.deptId"
-            :tree-data="deptTree"
-            :field-names="{ label: 'deptName', value: 'id', children: 'children' }"
-            placeholder="请选择部门"
-            allow-clear
-          />
-        </a-form-item>
-        <a-form-item label="状态">
-          <a-select v-model:value="formState.status">
-            <a-select-option :value="1">启用</a-select-option>
-            <a-select-option :value="0">禁用</a-select-option>
-          </a-select>
-        </a-form-item>
+        <a-row :gutter="24">
+          <!-- 左侧：用户头像 -->
+          <a-col :span="6">
+            <a-form-item label="用户头像">
+              <a-upload
+                class="avatar-uploader"
+                :show-upload-list="false"
+                :custom-request="handleAvatarUpload"
+                accept="image/*"
+              >
+                <div class="avatar-box">
+                  <img v-if="formState.avatar" :src="avatarPreviewUrl" alt="avatar" />
+                  <div v-else class="avatar-placeholder">
+                    <LoadingOutlined v-if="avatarUploading" />
+                    <PlusOutlined v-else />
+                    <div class="avatar-tip">{{ avatarUploading ? '上传中' : '上传头像' }}</div>
+                  </div>
+                </div>
+              </a-upload>
+              <div v-if="formState.avatar" style="margin-top: 6px">
+                <span class="action-link danger" @click="formState.avatar = ''">移除头像</span>
+              </div>
+            </a-form-item>
+          </a-col>
+          <!-- 右侧：基础信息 -->
+          <a-col :span="18">
+            <a-row :gutter="12">
+              <a-col :span="12">
+                <a-form-item label="用户名" required>
+                  <a-input v-model:value="formState.username" :disabled="!!editingRecord" />
+                </a-form-item>
+              </a-col>
+              <a-col :span="12">
+                <a-form-item label="姓名" required>
+                  <a-input v-model:value="formState.realName" />
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <a-row :gutter="12">
+              <a-col :span="12">
+                <a-form-item label="密码" v-if="!editingRecord">
+                  <a-input-password v-model:value="formState.password" />
+                </a-form-item>
+                <a-form-item label="性别">
+                  <a-select v-model:value="formState.gender" placeholder="请选择性别" allow-clear>
+                    <a-select-option value="男">男</a-select-option>
+                    <a-select-option value="女">女</a-select-option>
+                  </a-select>
+                </a-form-item>
+              </a-col>
+              <a-col :span="12">
+                <a-form-item label="状态">
+                  <a-select v-model:value="formState.status">
+                    <a-select-option :value="1">启用</a-select-option>
+                    <a-select-option :value="0">禁用</a-select-option>
+                  </a-select>
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <a-row :gutter="12">
+              <a-col :span="12">
+                <a-form-item label="部门">
+                  <a-tree-select
+                    v-model:value="formState.deptId"
+                    :tree-data="deptTree"
+                    :field-names="{ label: 'deptName', value: 'id', children: 'children' }"
+                    placeholder="请选择部门"
+                    allow-clear
+                  />
+                </a-form-item>
+              </a-col>
+              <a-col :span="12">
+                <a-form-item label="出生年月">
+                  <a-date-picker
+                    v-model:value="formState.birthDate"
+                    picker="month"
+                    placeholder="请选择出生年月"
+                    style="width: 100%"
+                    value-format="YYYY-MM"
+                  />
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <a-row :gutter="12">
+              <a-col :span="12">
+                <a-form-item label="手机号">
+                  <a-input v-model:value="formState.phone" placeholder="请输入手机号" />
+                </a-form-item>
+              </a-col>
+              <a-col :span="12">
+                <a-form-item label="电子邮箱">
+                  <a-input v-model:value="formState.email" placeholder="请输入电子邮箱" />
+                </a-form-item>
+              </a-col>
+            </a-row>
+          </a-col>
+        </a-row>
+
+        <!-- 人员资质（支持多条） -->
+        <a-divider orientation="left" class="qual-divider">人员资质</a-divider>
+        <div v-for="(q, qi) in formState.qualifications" :key="qi" class="qual-item">
+          <div class="qual-head">
+            <span class="qual-index">资质 {{ qi + 1 }}</span>
+            <span class="action-link danger" @click="removeQualification(qi)">删除</span>
+          </div>
+          <a-row :gutter="8">
+            <a-col :span="12">
+              <a-input v-model:value="q.qualName" placeholder="资质名称 *" />
+            </a-col>
+            <a-col :span="12">
+              <a-input v-model:value="q.certNo" placeholder="证书编号" />
+            </a-col>
+          </a-row>
+          <a-row :gutter="8" style="margin-top: 8px">
+            <a-col :span="12">
+              <a-input v-model:value="q.issuer" placeholder="颁发机构" />
+            </a-col>
+            <a-col :span="12">
+              <a-date-picker
+                v-model:value="q.expireDate"
+                placeholder="过期时间"
+                style="width: 100%"
+                value-format="YYYY-MM-DD"
+              />
+            </a-col>
+          </a-row>
+          <a-row style="margin-top: 8px">
+            <a-col :span="24">
+              <a-input v-model:value="q.remark" placeholder="备注" />
+            </a-col>
+          </a-row>
+        </div>
+        <a-button type="dashed" block @click="addQualification">+ 添加资质</a-button>
       </a-form>
-    </a-modal>
+      <template #footer>
+        <div style="text-align: right">
+          <a-space>
+            <a-button @click="modalVisible = false">取消</a-button>
+            <a-button type="primary" :loading="submitLoading" @click="handleSubmit">保存</a-button>
+          </a-space>
+        </div>
+      </template>
+    </a-drawer>
 
     <!-- 授权角色弹窗 -->
     <a-modal
@@ -171,8 +289,9 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Empty } from 'ant-design-vue'
-import { DownCircleOutlined, RightCircleOutlined } from '@ant-design/icons-vue'
-import { getUsersPage, createUser, updateUser, deleteUser, resetPassword, getDeptTree, getRoles, getUserRoles, setUserRoles } from '../../api/system'
+import { DownCircleOutlined, RightCircleOutlined, PlusOutlined, LoadingOutlined } from '@ant-design/icons-vue'
+import { getUsersPage, createUser, updateUser, deleteUser, resetPassword, getDeptTree, getRoles, getUserRoles, setUserRoles, getUserDetail } from '../../api/system'
+import { uploadAttachment } from '../../api/attachment'
 import { renderDate } from '../../utils/date'
 import { usePermission } from '../../composables/usePermission'
 import { useResizableColumns } from '../../composables/useResizableTable'
@@ -278,16 +397,87 @@ const formState = reactive({
   realName: '',
   password: '',
   deptId: null,
-  status: 1
+  status: 1,
+  phone: '',
+  email: '',
+  gender: undefined,
+  birthDate: null,
+  avatar: '',
+  qualifications: []
 })
 
-function showModal(record) {
+// ========== 头像上传 ==========
+const avatarUploading = ref(false)
+const avatarPreviewUrl = computed(() =>
+  formState.avatar ? `/api/v1/attachments/preview?path=${encodeURIComponent(formState.avatar)}` : '')
+
+/** 头像上传：走通用附件接口，保存相对路径 */
+async function handleAvatarUpload({ file, onSuccess, onError }) {
+  if (!file.type || !file.type.startsWith('image/')) {
+    message.warning('请选择图片文件作为头像')
+    onError && onError(new Error('not image'))
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    message.warning('头像图片不能超过 2MB')
+    onError && onError(new Error('too large'))
+    return
+  }
+  avatarUploading.value = true
+  try {
+    const res = await uploadAttachment(file)
+    const data = res.data || res
+    formState.avatar = data.path
+    message.success('头像上传成功')
+    onSuccess && onSuccess(data)
+  } catch (e) {
+    message.error('头像上传失败')
+    onError && onError(e)
+  }
+  avatarUploading.value = false
+}
+
+/** 新增一条空白资质 */
+function addQualification() {
+  formState.qualifications.push({ qualName: '', certNo: '', issuer: '', expireDate: null, remark: '' })
+}
+
+function removeQualification(index) {
+  formState.qualifications.splice(index, 1)
+}
+
+async function showModal(record) {
   if (record) {
     editingRecord.value = record
     formState.username = record.username
     formState.realName = record.realName
     formState.deptId = record.deptId
     formState.status = record.status
+    formState.phone = record.phone || ''
+    formState.email = record.email || ''
+    formState.gender = record.gender || undefined
+    formState.birthDate = record.birthDate || null
+    formState.avatar = record.avatar || ''
+    formState.qualifications = []
+    // 加载已有资质（编辑时回显）
+    try {
+      const res = await getUserDetail(record.id)
+      const detail = res.data || res || {}
+      formState.phone = detail.phone || ''
+      formState.email = detail.email || ''
+      formState.gender = detail.gender || undefined
+      formState.birthDate = detail.birthDate || null
+      formState.avatar = detail.avatar || ''
+      formState.qualifications = (detail.qualifications || []).map(q => ({
+        qualName: q.qualName || '',
+        certNo: q.certNo || '',
+        issuer: q.issuer || '',
+        expireDate: q.expireDate || null,
+        remark: q.remark || ''
+      }))
+    } catch {
+      formState.qualifications = []
+    }
   } else {
     editingRecord.value = null
     formState.username = ''
@@ -295,6 +485,12 @@ function showModal(record) {
     formState.password = '123456'
     formState.deptId = selectedDeptId.value
     formState.status = 1
+    formState.phone = ''
+    formState.email = ''
+    formState.gender = undefined
+    formState.birthDate = null
+    formState.avatar = ''
+    formState.qualifications = []
   }
   modalVisible.value = true
 }
@@ -340,13 +536,23 @@ async function handleSubmit() {
     message.warning('请填写必填项')
     return
   }
+  if (formState.qualifications.some(q => !q.qualName)) {
+    message.warning('请填写每条资质的资质名称')
+    return
+  }
   submitLoading.value = true
   try {
     if (editingRecord.value) {
       await updateUser(editingRecord.value.id, {
         realName: formState.realName,
         deptId: formState.deptId,
-        status: formState.status
+        status: formState.status,
+        phone: formState.phone,
+        email: formState.email,
+        gender: formState.gender,
+        birthDate: formState.birthDate,
+        avatar: formState.avatar,
+        qualifications: formState.qualifications
       })
       message.success('更新成功')
     } else {
@@ -515,5 +721,68 @@ onMounted(() => {
 }
 .role-user-info {
   margin-bottom: 4px;
+}
+
+/* 人员资质录入 */
+.qual-divider {
+  margin: 4px 0 12px !important;
+  font-size: 13px;
+}
+.qual-item {
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  background: #fafafa;
+}
+.qual-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.qual-index {
+  font-size: 12px;
+  font-weight: 600;
+  color: #595959;
+}
+
+/* 头像上传 */
+.avatar-uploader :deep(.ant-upload) {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+.avatar-box {
+  width: 128px;
+  height: 128px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px dashed #d9d9d9;
+  background: #fafafa;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.avatar-box:hover {
+  border-color: #1677ff;
+}
+.avatar-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #8c8c8c;
+  font-size: 18px;
+}
+.avatar-tip {
+  font-size: 12px;
 }
 </style>

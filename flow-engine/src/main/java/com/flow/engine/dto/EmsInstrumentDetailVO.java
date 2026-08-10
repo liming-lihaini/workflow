@@ -23,6 +23,8 @@ public class EmsInstrumentDetailVO {
 
     private List<CalibRecord> calibRecords;
     private List<SamplingTask> samplingTasks;
+    /** 关联流程（入库申请等 SBTKRKSQ / SBTKRKSQ_PL 流程实例） */
+    private List<RelatedProcess> relatedProcesses;
 
     @Data
     public static class CalibRecord {
@@ -39,5 +41,17 @@ public class EmsInstrumentDetailVO {
         private String orderStatus;
         private String planStart;
         private String planEnd;
+    }
+
+    @Data
+    public static class RelatedProcess {
+        private Long processInstanceId;
+        private String instanceNo;
+        private String processKey;
+        private String processName;
+        /** 状态文案：运行中/已完成/已暂停/已终止 */
+        private String statusText;
+        private String startUser;
+        private String startTime;
     }
 }

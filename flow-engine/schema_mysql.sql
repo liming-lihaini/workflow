@@ -416,7 +416,8 @@ CREATE TABLE IF NOT EXISTS `t_instrument` (
     `purchase_date` DATETIME(6),
     `last_calib_date` DATETIME(6),
     `cert_no` VARCHAR(512),
-    `remark` LONGTEXT
+    `remark` LONGTEXT,
+    `create_by` VARCHAR(512)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='t_instrument';
 
 CREATE TABLE IF NOT EXISTS `t_instrument_calib` (

@@ -301,13 +301,17 @@ public class DataModelService {
         boolean existed = tableExists(tableName);
 
         StringBuilder ddl = new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (\n");
-        ddl.append("    id INTEGER PRIMARY KEY AUTOINCREMENT");
+        ddl.append("    id BIGINT AUTO_INCREMENT PRIMARY KEY");
         if (parentTable != null) {
-            ddl.append(",\n    main_id INTEGER");
+            ddl.append(",\n    main_id BIGINT");
         }
         int fieldCount = 0;
         if (table.getFields() != null) {
             for (DataModelRequest.FieldDefinition field : table.getFields()) {
+                // id 为物理表内置自增主键，跳过避免与主键列冲突
+                if ("id".equals(field.getFieldKey())) {
+                    continue;
+                }
                 String column = sanitizeIdentifier(field.getFieldKey());
                 ddl.append(",\n    ").append(column).append(" ").append(sqlType(field.getType()));
                 if (Boolean.TRUE.equals(field.getRequired())) {
@@ -316,15 +320,22 @@ public class DataModelService {
                 fieldCount++;
             }
         }
-        ddl.append(",\n    create_time TEXT,\n    update_time TEXT\n)");
+        ddl.append(",\n    create_time DATETIME,\n    update_time DATETIME\n)");
 
         jdbcTemplate.execute(ddl.toString());
         ddlList.add(ddl.toString());
 
         if (parentTable != null) {
-            String indexDdl = "CREATE INDEX IF NOT EXISTS idx_" + tableName + "_main_id ON " + tableName + "(main_id)";
-            jdbcTemplate.execute(indexDdl);
-            ddlList.add(indexDdl);
+            // MySQL 不支持 CREATE INDEX IF NOT EXISTS，先探测索引是否存在
+            String indexName = "idx_" + tableName + "_main_id";
+            Integer indexCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?",
+                    Integer.class, tableName, indexName);
+            if (indexCount == null || indexCount == 0) {
+                String indexDdl = "CREATE INDEX " + indexName + " ON " + tableName + "(main_id)";
+                jdbcTemplate.execute(indexDdl);
+                ddlList.add(indexDdl);
+            }
         }
 
         Map<String, Object> info = new LinkedHashMap<>();
@@ -356,19 +367,21 @@ public class DataModelService {
         return cleaned;
     }
 
-    /** 模型字段类型 → SQLite 列类型 */
+    /** 模型字段类型 → MySQL 列类型 */
     private String sqlType(String type) {
         if (type == null) return "TEXT";
         return switch (type) {
-            case "number", "amount", "computed" -> "NUMERIC";
-            default -> "TEXT"; // text/date/datetime/file/person/department 均以 TEXT 存储
+            case "number", "amount", "computed" -> "DECIMAL(18,4)";
+            case "datetime" -> "DATETIME";
+            default -> "TEXT"; // text/date/file/person/department 均以 TEXT 存储
         };
     }
 
-    /** 判断 SQLite 表是否已存在 */
+    /** 判断 MySQL 表是否已存在 */
     private boolean tableExists(String tableName) {
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?", Integer.class, tableName);
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
+                Integer.class, tableName);
         return count != null && count > 0;
     }
 

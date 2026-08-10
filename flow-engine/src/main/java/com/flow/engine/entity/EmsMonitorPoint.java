@@ -1,6 +1,7 @@
 package com.flow.engine.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -23,6 +24,8 @@ public class EmsMonitorPoint {
     private Double lat;
     private String pointType;
     private String pointTypeName;  // 点位类型名称（字典 value）
+    /** condition 为 MySQL 保留字，需反引号转义 */
+    @TableField("`condition`")
     private String condition;
     /** 监测因子（检测项目，多个用逗号分隔，值取自字典 moni_monitor_factor） */
     private String factors;

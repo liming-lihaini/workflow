@@ -10,7 +10,9 @@
           </a-radio-group>
           <a-input-search v-if="viewMode === 'list'" v-model:value="kw" placeholder="搜索编号/名称/型号" style="width: 220px" allow-clear @search="load" />
           <a-select v-if="viewMode === 'list'" v-model:value="statusFilter" placeholder="状态" allow-clear style="width: 120px" :options="statusFilterOptions" @change="load" />
-          <a-button type="primary" v-if="viewMode === 'list'" @click="showDrawer()">新增设备</a-button>
+          <template v-if="viewMode === 'list'">
+            <a-button type="primary" @click="showDrawer()">新增设备</a-button>
+          </template>
         </a-space>
       </div>
       <!-- 列表模式 -->
@@ -41,6 +43,8 @@
               <span :style="{ color: isExpiring(record) ? '#fa8c16' : 'inherit' }">{{ record.calibDue || '-' }}</span>
             </template>
             <template v-if="column.key === 'action'">
+              <span class="action-link" @click="openDetail(record)">申请详情</span>
+              <a-divider type="vertical" />
               <span class="action-link" @click="showDrawer(record)">编辑</span>
               <a-divider type="vertical" />
               <span class="action-link" @click="showCalibrate(record)">校准登记</span>
@@ -227,7 +231,7 @@ const columns = [
   { title: '状态', key: 'status', dataIndex: 'status', width: 90 },
   { title: '校准到期', key: 'calibDue', dataIndex: 'calibDue', width: 120 },
   { title: '证书号', dataIndex: 'certNo', key: 'certNo' },
-  { title: '操作', key: 'action', width: 240 }
+  { title: '操作', key: 'action', width: 300 }
 ]
 
 const form = reactive({ id: undefined, code: '', name: '', model: '', manufacturer: '', purchaseDate: null, calibDue: null, status: '在用', certNo: '', remark: '' })

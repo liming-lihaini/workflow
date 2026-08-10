@@ -101,4 +101,40 @@ public class AttachmentController {
         Files.copy(file, response.getOutputStream());
         response.flushBuffer();
     }
+
+    /**
+     * 内联预览（供头像等 <img> 直连展示）：按扩展名返回图片 Content-Type，
+     * 非图片类型回退为 octet-stream。路径校验规则与 download 一致。
+     */
+    @GetMapping("/preview")
+    public void preview(@RequestParam("path") String path,
+                        HttpServletResponse response) throws IOException {
+        if (!StringUtils.hasText(path) || !PATH_PATTERN.matcher(path).matches()) {
+            throw new BusinessException(ErrorCode.PARAM_INVALID, "非法的附件路径");
+        }
+        Path file = Paths.get(baseDir).resolve(path).normalize();
+        if (!file.startsWith(Paths.get(baseDir).normalize()) || !Files.isRegularFile(file)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "附件不存在");
+        }
+
+        String fileName = file.getFileName().toString();
+        String ext = "";
+        int dotIdx = fileName.lastIndexOf('.');
+        if (dotIdx >= 0 && dotIdx < fileName.length() - 1) {
+            ext = fileName.substring(dotIdx + 1).toLowerCase();
+        }
+        String contentType = switch (ext) {
+            case "png" -> "image/png";
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "gif" -> "image/gif";
+            case "webp" -> "image/webp";
+            case "bmp" -> "image/bmp";
+            default -> "application/octet-stream";
+        };
+        response.setContentType(contentType);
+        response.setContentLengthLong(Files.size(file));
+        response.setHeader("Content-Disposition", "inline");
+        Files.copy(file, response.getOutputStream());
+        response.flushBuffer();
+    }
 }

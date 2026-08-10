@@ -67,11 +67,11 @@ public class FormDataWriteBackService {
                         log.debug("[FormWriteBack] 模型 {} 尚未生成数据表，跳过回填", modelKey);
                     }
                 } catch (Exception e) {
-                    log.warn("[FormWriteBack] 模型 {} 回填失败: {}", modelKey, e.getMessage());
+                    log.warn("[FormWriteBack] 模型 {} 回填失败: {}", modelKey, e.getMessage(), e);
                 }
             }
         } catch (Exception e) {
-            log.warn("[FormWriteBack] 流程 {} 表单数据回填失败: {}", processInstanceId, e.getMessage());
+            log.warn("[FormWriteBack] 流程 {} 表单数据回填失败: {}", processInstanceId, e.getMessage(), e);
         }
     }
 

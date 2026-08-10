@@ -7,9 +7,11 @@ import com.flow.engine.entity.Dept;
 import com.flow.engine.entity.Role;
 import com.flow.engine.entity.User;
 import com.flow.engine.entity.UserPost;
+import com.flow.engine.entity.UserQualification;
 import com.flow.engine.mapper.DeptMapper;
 import com.flow.engine.mapper.UserMapper;
 import com.flow.engine.mapper.UserPostMapper;
+import com.flow.engine.mapper.UserQualificationMapper;
 import com.flow.engine.service.RolePermissionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,7 @@ public class UserService {
     private final UserMapper userMapper;
     private final UserPostMapper userPostMapper;
     private final DeptMapper deptMapper;
+    private final UserQualificationMapper userQualificationMapper;
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private RolePermissionService rolePermissionService;
@@ -67,6 +70,9 @@ public class UserService {
             userPost.setIsMain(1);
             userPostMapper.insert(userPost);
         }
+
+        // 保存人员资质（支持多条）
+        saveQualifications(user.getId(), user.getQualifications());
 
         log.info("创建用户: id={}, username={}", user.getId(), user.getUsername());
         return user;
@@ -147,6 +153,9 @@ public class UserService {
             item.put("postId", user.getPostId());
             item.put("securityLevel", user.getSecurityLevel());
             item.put("status", user.getStatus());
+            item.put("gender", user.getGender());
+            item.put("birthDate", user.getBirthDate());
+            item.put("avatar", user.getAvatar());
             item.put("createTime", user.getCreateTime());
             item.put("updateTime", user.getUpdateTime());
             list.add(item);
@@ -172,8 +181,16 @@ public class UserService {
         if (user.getPostId() != null) existing.setPostId(user.getPostId());
         if (user.getSecurityLevel() != null) existing.setSecurityLevel(user.getSecurityLevel());
         if (user.getStatus() != null) existing.setStatus(user.getStatus());
+        if (user.getGender() != null) existing.setGender(user.getGender());
+        if (user.getBirthDate() != null) existing.setBirthDate(user.getBirthDate());
+        if (user.getAvatar() != null) existing.setAvatar(user.getAvatar());
         existing.setUpdateTime(LocalDateTime.now());
         userMapper.updateById(existing);
+        // 资质列表整体替换（传 null 表示本次不修改资质）
+        if (user.getQualifications() != null) {
+            deleteQualifications(id);
+            saveQualifications(id, user.getQualifications());
+        }
         log.info("更新用户: id={}", id);
         return existing;
     }
@@ -186,6 +203,8 @@ public class UserService {
         userMapper.deleteById(id);
         // 删除兼职记录
         userPostMapper.delete(new LambdaQueryWrapper<UserPost>().eq(UserPost::getUserId, id));
+        // 删除资质信息
+        deleteQualifications(id);
         log.info("删除用户: id={}", id);
     }
 
@@ -261,6 +280,39 @@ public class UserService {
     }
 
     /**
+     * 获取用户资质列表
+     */
+    public List<UserQualification> listQualifications(Long userId) {
+        return userQualificationMapper.selectList(
+                new LambdaQueryWrapper<UserQualification>().eq(UserQualification::getUserId, userId));
+    }
+
+    /**
+     * 保存用户资质（多条），空列表/null 不做处理
+     */
+    private void saveQualifications(Long userId, List<UserQualification> qualifications) {
+        if (qualifications == null || qualifications.isEmpty()) {
+            return;
+        }
+        for (UserQualification q : qualifications) {
+            // 忽略前端误传的 id，统一绑定当前用户
+            q.setId(null);
+            q.setUserId(userId);
+            q.setCreateTime(LocalDateTime.now());
+            q.setUpdateTime(LocalDateTime.now());
+            userQualificationMapper.insert(q);
+        }
+    }
+
+    /**
+     * 删除用户全部资质
+     */
+    private void deleteQualifications(Long userId) {
+        userQualificationMapper.delete(
+                new LambdaQueryWrapper<UserQualification>().eq(UserQualification::getUserId, userId));
+    }
+
+    /**
      * 获取用户详情（含部门名称、角色列表、兼职列表）
      */
     public java.util.Map<String, Object> getUserDetail(Long id) {
@@ -275,6 +327,9 @@ public class UserService {
         detail.put("postId", user.getPostId());
         detail.put("securityLevel", user.getSecurityLevel());
         detail.put("status", user.getStatus());
+        detail.put("gender", user.getGender());
+        detail.put("birthDate", user.getBirthDate());
+        detail.put("avatar", user.getAvatar());
         detail.put("createTime", user.getCreateTime());
         detail.put("updateTime", user.getUpdateTime());
 
@@ -314,6 +369,9 @@ public class UserService {
             postList.add(item);
         }
         detail.put("posts", postList);
+
+        // 资质列表
+        detail.put("qualifications", listQualifications(id));
 
         return detail;
     }

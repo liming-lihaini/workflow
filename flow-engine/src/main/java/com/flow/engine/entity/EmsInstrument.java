@@ -27,6 +27,7 @@ public class EmsInstrument {
     private String certNo;           // 校准证书编号
     private String status;          // 在用/临期/停用/维修/报废（5.5.3 + F2）
     private String remark;          // 备注
+    private String createBy;        // 创建人（入库审批通过时取流程申请人）
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

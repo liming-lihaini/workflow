@@ -17,11 +17,21 @@
 - [LogController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/LogController.java)
 - [MonitorController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/MonitorController.java)
 - [AdminController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/AdminController.java)
+- [ProfileController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/ProfileController.java)
 - [ProcessController.java](file://flow-engine/src/main/java/com/flow/engine/controller/ProcessController.java)
 - [ProcessInstanceController.java](file://flow-engine/src/main/java/com/flow/engine/controller/ProcessInstanceController.java)
 - [TaskController.java](file://flow-engine/src/main/java/com/flow/engine/controller/TaskController.java)
 - [DataModelController.java](file://flow-engine/src/main/java/com/flow/engine/controller/DataModelController.java)
+- [ModelDataController.java](file://flow-engine/src/main/java/com/flow/engine/controller/ModelDataController.java)
 - [WebhookController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/WebhookController.java)
+- [EmsBaseDataController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsBaseDataController.java)
+- [EmsSamplingController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsSamplingController.java)
+- [EmsQualityController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsQualityController.java)
+- [EmsReportController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsReportController.java)
+- [EmsDashboardController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsDashboardController.java)
+- [EmsSharedController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsSharedController.java)
+- [EmsBaseController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsBaseController.java)
+- [ApiTokenService.java](file://flow-engine/src/main/java/com/flow/engine/service/ApiTokenService.java)
 - [RequestContext.java](file://flow-engine/src/main/java/com/flow/engine/common/RequestContext.java)
 - [RequestIdFilter.java](file://flow-engine/src/main/java/com/flow/engine/common/RequestIdFilter.java)
 - [AuthService.java](file://flow-engine/src/main/java/com/flow/engine/service/AuthService.java)
@@ -33,6 +43,17 @@
 - [AccessLogInterceptor.java](file://flow-engine/src/main/java/com/flow/engine/interceptor/AccessLogInterceptor.java)
 - [schema.sql](file://flow-engine/src/main/resources/db/schema.sql)
 </cite>
+
+## 更新摘要
+**所做更改**
+- 新增环境监测LIMS基础数据管理API（EmsBaseDataController）详细文档
+- 新增采样与样品管理API（EmsSamplingController）完整说明
+- 新增质量控制API（EmsQualityController）接口规范
+- 新增报告管理API（EmsReportController）端点说明
+- 新增驾驶舱统计API（EmsDashboardController）功能描述
+- 新增共享实体API（EmsSharedController）使用说明
+- 新增基础设施底座API（EmsBaseController）工具接口
+- 完善环境监测业务模块的认证授权机制说明
 
 ## 目录
 1. [简介](#简介)
@@ -51,6 +72,7 @@
 - 统一响应格式与错误码定义
 - 认证授权机制（JWT令牌、权限校验）
 - 各业务模块API端点清单与调用示例
+- **环境监测LIMS系统完整API规范**：基础数据管理、采样操作、委托订单、质量控制、报告管理等
 - 分页查询、批量操作、文件上传等通用能力约定
 - API版本管理与向后兼容策略
 - Postman集合与Swagger集成建议
@@ -68,6 +90,7 @@ Service --> Engine["流程引擎<br/>节点执行器"]
 Service --> DB[(数据库)]
 Web --> Interceptor["拦截器/切面<br/>访问日志/操作日志"]
 Web --> Auth["认证授权<br/>JWT/权限评估"]
+Web --> EMS["环境监测LIMS<br/>业务控制器"]
 ```
 
 **图示来源** 
@@ -242,6 +265,58 @@ UC-->>C : "统一响应"
 - [RoleController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/RoleController.java)
 - [PermissionController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/PermissionController.java)
 
+### 用户资料管理API
+- 个人资料管理
+  - 获取当前用户详细信息
+  - 更新个人基本信息（姓名、邮箱、手机号等）
+  - 修改头像与个人信息
+  - 查看账户设置偏好
+- 安全设置
+  - 修改密码
+  - 绑定第三方账号
+  - 查看登录历史
+
+**章节来源**
+- [ProfileController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/ProfileController.java)
+
+### API令牌管理API
+- API令牌管理
+  - 生成新的API访问令牌
+  - 查看已创建的令牌列表
+  - 撤销/删除指定令牌
+  - 设置令牌有效期与权限范围
+- 令牌验证
+  - 服务端自动验证令牌有效性
+  - 支持令牌权限范围控制
+  - 令牌使用统计与审计
+
+```mermaid
+sequenceDiagram
+participant C as "客户端"
+participant PC as "ProfileController"
+participant ATS as "ApiTokenService"
+participant DB as "数据库"
+C->>PC : "POST /api/profile/tokens"
+PC->>ATS : "生成新令牌"
+ATS->>DB : "保存令牌信息"
+DB-->>ATS : "返回令牌ID"
+ATS-->>PC : "返回生成的令牌"
+PC-->>C : "统一响应{token,expiresAt}"
+C->>PC : "GET /api/profile/tokens"
+PC->>ATS : "查询令牌列表"
+ATS->>DB : "读取令牌记录"
+DB-->>ATS : "返回令牌列表"
+ATS-->>PC : "返回令牌信息"
+PC-->>C : "统一响应"
+```
+
+**图示来源**
+- [ProfileController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/ProfileController.java)
+- [ApiTokenService.java](file://flow-engine/src/main/java/com/flow/engine/service/ApiTokenService.java)
+
+**章节来源**
+- [ApiTokenService.java](file://flow-engine/src/main/java/com/flow/engine/service/ApiTokenService.java)
+
 ### 字典与配置管理API
 - 字典类型与项
   - 字典类型CRUD
@@ -365,6 +440,44 @@ TC-->>C : "统一响应"
 **章节来源**
 - [DataModelController.java](file://flow-engine/src/main/java/com/flow/engine/controller/DataModelController.java)
 
+### 数据模型操作API
+- 数据模型操作
+  - 动态数据模型定义与管理
+  - 模型字段类型支持（文本、数字、日期、选择等）
+  - 模型间关联关系配置
+  - 数据验证规则定义
+- 模型实例操作
+  - 基于动态模型的CRUD操作
+  - 复杂查询条件构建
+  - 批量数据处理
+  - 数据导入导出
+
+```mermaid
+sequenceDiagram
+participant C as "客户端"
+participant MC as "ModelDataController"
+participant MS as "ModelDataService"
+participant DB as "数据库"
+C->>MC : "POST /api/model-data/create"
+MC->>MS : "创建模型实例"
+MS->>DB : "根据模型定义存储数据"
+DB-->>MS : "返回实例ID"
+MS-->>MC : "返回创建结果"
+MC-->>C : "统一响应"
+C->>MC : "GET /api/model-data/query?modelId=xxx"
+MC->>MS : "查询模型数据"
+MS->>DB : "动态构建查询语句"
+DB-->>MS : "返回查询结果"
+MS-->>MC : "返回数据列表"
+MC-->>C : "统一响应"
+```
+
+**图示来源**
+- [ModelDataController.java](file://flow-engine/src/main/java/com/flow/engine/controller/ModelDataController.java)
+
+**章节来源**
+- [ModelDataController.java](file://flow-engine/src/main/java/com/flow/engine/controller/ModelDataController.java)
+
 ### Webhook回调API
 - 事件订阅
   - 注册/管理Webhook
@@ -385,7 +498,214 @@ TC-->>C : "统一响应"
 **章节来源**
 - [AdminController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/AdminController.java)
 
-## 依赖关系分析
+### 环境监测LIMS基础数据管理API
+**新增** 环境监测LIMS系统的基础数据管理功能，提供完整的CRUD操作和业务流程支持。
+
+#### 客户管理
+- 创建客户：`POST /api/v1/ems/base/customers`
+- 查询客户列表：`GET /api/v1/ems/base/customers`
+- 更新客户：`PUT /api/v1/ems/base/customers/{id}`
+- 禁用客户：`POST /api/v1/ems/base/customers/{id}/disable`
+- 获取客户详情：`GET /api/v1/ems/base/customers/{id}/detail`
+- 批量删除客户：`POST /api/v1/ems/base/customers/batch-delete`
+- 导入客户：`POST /api/v1/ems/base/customers/import`
+- 下载模板：`GET /api/v1/ems/base/customers/template`
+
+#### 委托单管理
+- 创建委托：`POST /api/v1/ems/base/entrusts`
+- 查询委托列表：`GET /api/v1/ems/base/entrusts`
+- 获取委托详情：`GET /api/v1/ems/base/entrusts/{id}`
+- 提交委托：`POST /api/v1/ems/base/entrusts/{id}/submit`
+- 技术确认：`POST /api/v1/ems/base/entrusts/{id}/tech-confirm`
+- 驳回委托：`POST /api/v1/ems/base/entrusts/{id}/reject`
+- 批量删除：`POST /api/v1/ems/base/entrusts/batch-delete`
+
+#### 车辆管理
+- 创建车辆：`POST /api/v1/ems/base/vehicles`
+- 更新车辆：`PUT /api/v1/ems/base/vehicles/{id}`
+- 删除车辆：`DELETE /api/v1/ems/base/vehicles/{id}`
+- 查询车辆列表：`GET /api/v1/ems/base/vehicles`
+- 获取车辆详情：`GET /api/v1/ems/base/vehicles/{id}/detail`
+- 车辆维修保养：`POST /api/v1/ems/base/vehicles/{id}/maintenances`
+
+#### 仪器设备管理
+- 创建设备：`POST /api/v1/ems/base/instruments`
+- 更新设备：`PUT /api/v1/ems/base/instruments/{id}`
+- 删除设备：`DELETE /api/v1/ems/base/instruments/{id}`
+- 查询设备列表：`GET /api/v1/ems/base/instruments`
+- 设备校准：`POST /api/v1/ems/base/instruments/{id}/calibrate`
+- 获取设备详情：`GET /api/v1/ems/base/instruments/{id}/detail`
+- 校准预警：`GET /api/v1/ems/base/instruments/expiring`
+
+#### 采样参数配置
+- 查询配置列表：`GET /api/v1/ems/base/sample-param-config`
+- 获取配置详情：`GET /api/v1/ems/base/sample-param-config/{id}`
+- 保存配置：`POST /api/v1/ems/base/sample-param-config`
+- 删除配置：`DELETE /api/v1/ems/base/sample-param-config/{id}`
+- 批量删除：`POST /api/v1/ems/base/sample-param-config/batch-delete`
+
+**章节来源**
+- [EmsBaseDataController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsBaseDataController.java)
+
+### 采样与样品管理API
+**新增** 环境监测采样与样品管理的完整功能，支持采样记录、样品管理、现场照片上传等。
+
+#### 采样记录管理
+- 创建采样记录：`POST /api/v1/ems/base/sampling/records`
+- 更新采样记录：`PUT /api/v1/ems/base/sampling/records/{id}`
+- 完成采样记录：`POST /api/v1/ems/base/sampling/records/{id}/complete`
+- 查询采样记录：`GET /api/v1/ems/base/sampling/records`
+- 删除采样记录：`DELETE /api/v1/ems/base/sampling/records/{id}`
+
+#### 样品管理
+- 创建样品：`POST /api/v1/ems/base/sampling/samples`
+- 更新样品：`PUT /api/v1/ems/base/sampling/samples/{id}`
+- 手动收集样品：`POST /api/v1/ems/base/sampling/samples/manual-collect`
+- 收样工作台采集：`POST /api/v1/ems/base/sampling/samples/collect`
+- 样品处置：`POST /api/v1/ems/base/sampling/samples/{id}/dispose`
+- 样品接收：`POST /api/v1/ems/base/sampling/samples/{id}/receive`
+- 样品派发：`POST /api/v1/ems/base/sampling/samples/{id}/dispatch`
+- 查询样品列表：`GET /api/v1/ems/base/sampling/samples`
+- 获取样品详情：`GET /api/v1/ems/base/sampling/samples/{id}/detail`
+- 删除样品：`DELETE /api/v1/ems/base/sampling/samples/{id}`
+
+#### 现场照片管理
+- 上传现场照片：`POST /api/v1/ems/base/sampling/samples/photo-upload`
+- 访问现场照片：`GET /api/v1/ems/base/sampling/samples/photo/{dateDir}/{fileName}`
+- 添加照片：`POST /api/v1/ems/base/sampling/photos`
+- 查询照片列表：`GET /api/v1/ems/base/sampling/photos`
+
+#### 留样库管理
+- 留样：`POST /api/v1/ems/base/sampling/samples/{id}/retain`
+- 查询留样列表：`GET /api/v1/ems/base/sampling/retains`
+- 留样统计：`GET /api/v1/ems/base/sampling/retains/stats`
+- 申请处置：`POST /api/v1/ems/base/sampling/retains/{id}/dispose`
+- 删除留样：`DELETE /api/v1/ems/base/sampling/retains/{id}`
+- 即将到期留样：`GET /api/v1/ems/base/sampling/retains/expiring`
+
+#### 收样工作台
+- 工作台数据：`GET /api/v1/ems/base/sampling/workbench`
+
+**章节来源**
+- [EmsSamplingController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsSamplingController.java)
+
+### 质量控制API
+**新增** 环境监测质量控制功能，包括标准物质、耗材、危化品台账、质控计划等管理。
+
+#### 标准物质管理
+- 保存标准物质：`POST /api/v1/ems/quality/materials`
+- 查询标准物质：`GET /api/v1/ems/quality/materials`
+
+#### 耗材管理
+- 保存耗材：`POST /api/v1/ems/quality/consumables`
+- 查询耗材：`GET /api/v1/ems/quality/consumables`
+
+#### 危化品台账
+- 保存危化品：`POST /api/v1/ems/quality/hazardous`
+- 查询危化品：`GET /api/v1/ems/quality/hazardous`
+- 申请使用：`POST /api/v1/ems/quality/hazardous/{id}/apply`
+- 审批使用：`POST /api/v1/ems/quality/hazardous/{id}/approve`
+
+#### 质控计划
+- 保存计划：`POST /api/v1/ems/quality/plans`
+- 查询计划：`GET /api/v1/ems/quality/plans`
+- 获取计划详情：`GET /api/v1/ems/quality/plans/{id}`
+- 提交计划：`POST /api/v1/ems/quality/plans/{id}/submit`
+- 审批计划：`POST /api/v1/ems/quality/plans/{id}/approve`
+- 完成计划：`POST /api/v1/ems/quality/plans/{id}/complete`
+
+#### 监控活动
+- 保存活动：`POST /api/v1/ems/quality/activities`
+- 查询活动：`GET /api/v1/ems/quality/activities`
+
+#### 能力验证
+- 保存能力验证：`POST /api/v1/ems/quality/proficiency`
+- 查询能力验证：`GET /api/v1/ems/quality/proficiency`
+
+#### 实验室间比对
+- 保存比对：`POST /api/v1/ems/quality/interlab`
+- 查询比对：`GET /api/v1/ems/quality/interlab`
+
+#### 重复性试验
+- 保存试验：`POST /api/v1/ems/quality/repeat`
+- 查询试验：`GET /api/v1/ems/quality/repeat`
+
+#### 闸门校验
+- 材料闸门：`GET /api/v1/ems/quality/gate/material`
+- 仪器闸门：`GET /api/v1/ems/quality/gate/instrument`
+
+**章节来源**
+- [EmsQualityController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsQualityController.java)
+
+### 报告管理API
+**新增** 环境监测报告生成与审核功能，支持模板管理、报告生成、审核流程。
+
+#### 模板管理
+- 查询模板列表：`GET /api/v1/ems/report/templates`
+- 创建模板：`POST /api/v1/ems/report/template`
+
+#### 报告生成
+- 查询待处理任务：`GET /api/v1/ems/report/pending-tasks`
+- 生成报告：`POST /api/v1/ems/report/generate`
+
+#### 报告管理
+- 查询报告列表：`GET /api/v1/ems/report/list`
+- 获取报告详情：`GET /api/v1/ems/report/{id}`
+
+#### 报告审核
+- 批准报告：`POST /api/v1/ems/report/{id}/approve`
+- 驳回报告：`POST /api/v1/ems/report/{id}/reject`
+
+**章节来源**
+- [EmsReportController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsReportController.java)
+
+### 驾驶舱统计API
+**新增** 环境监测数据驾驶舱与统计分析功能，提供概览统计和看板卡片。
+
+#### 概览统计
+- 获取概览数据：`GET /api/v1/ems/dashboard/overview`
+
+#### 委托看板
+- 获取委托卡片：`GET /api/v1/ems/dashboard/entrust-cards`
+
+**章节来源**
+- [EmsDashboardController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsDashboardController.java)
+
+### 共享实体API
+**新增** 环境监测系统共享实体管理，包括文件元信息、预警、站内信等跨模块功能。
+
+#### 文件管理
+- 归档文件：`POST /api/v1/ems/shared/files`
+- 查询文件：`GET /api/v1/ems/shared/files`
+
+#### 预警管理
+- 推送预警：`POST /api/v1/ems/shared/alerts`
+- 查询预警：`GET /api/v1/ems/shared/alerts`
+
+#### 站内信
+- 发送站内信：`POST /api/v1/ems/shared/messages`
+- 查询站内信：`GET /api/v1/ems/shared/messages`
+
+**章节来源**
+- [EmsSharedController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsSharedController.java)
+
+### 基础设施底座API
+**新增** 环境监测基础设施底座功能，包括状态机、编号引擎、公式计算等基础能力。
+
+#### 状态机
+- 驱动状态迁移：`POST /api/v1/statemachine/fire`
+- 查询可用迁移：`GET /api/v1/statemachine/transitions`
+
+#### 编号引擎
+- 生成业务单号：`GET /api/v1/seq/next`
+
+#### 公式计算
+- 公式计算：`POST /api/v1/calc`
+
+**章节来源**
+- [EmsBaseController.java](file://flow-engine/src/main/java/com/flow/engine/controllers/EmsBaseController.java)
+
+### 依赖关系分析
 - 控制器与服务层解耦：控制器仅做参数校验与响应封装，业务逻辑下沉至服务层
 - 权限评估可扩展：通过接口抽象与实现类替换，支持不同权限策略
 - 日志与审计横切：通过拦截器与切面实现非侵入式记录
@@ -442,7 +762,7 @@ Controllers --> Logs["日志/审计"]
 - [OperationLogAspect.java](file://flow-engine/src/main/java/com/flow/engine/aspect/OperationLogAspect.java)
 
 ## 结论
-本API文档提供了流程引擎后端的统一接口规范、认证授权机制、统一响应与错误码定义，以及主要业务模块的接口说明与调用示例。通过标准化的设计，便于前后端协作与第三方系统集成。建议在项目中持续完善接口文档与测试用例，确保向后兼容与稳定性。
+本API文档提供了流程引擎后端的统一接口规范、认证授权机制、统一响应与错误码定义，以及主要业务模块的接口说明与调用示例。**特别新增了环境监测LIMS系统的完整API规范**，包括基础数据管理、采样操作、委托订单、质量控制、报告管理等核心功能模块。通过标准化的设计，便于前后端协作与第三方系统集成。建议在项目中持续完善接口文档与测试用例，确保向后兼容与稳定性。
 
 [本节为总结性内容，不直接分析具体文件]
 
@@ -474,6 +794,11 @@ Controllers --> Logs["日志/审计"]
   - 部门CRUD：/api/depts
   - 角色CRUD：/api/roles
   - 权限管理：/api/permissions
+- 用户资料管理
+  - 获取个人资料：GET /api/profile
+  - 更新个人资料：PUT /api/profile
+  - 修改密码：POST /api/profile/password
+  - API令牌管理：/api/profile/tokens
 - 字典与配置
   - 字典类型：/api/dict/types
   - 字典项：/api/dict/items
@@ -488,10 +813,17 @@ Controllers --> Logs["日志/审计"]
 - 数据模型
   - 数据模型：/api/data-models
   - 模型实例：/api/model-instances
+  - 数据模型操作：/api/model-data
 - Webhook
   - Webhook管理：/api/webhooks
-
-[本节为概念性清单，不直接分析具体文件]
+- **环境监测LIMS**
+  - 基础数据：/api/v1/ems/base/*
+  - 采样管理：/api/v1/ems/base/sampling/*
+  - 质量控制：/api/v1/ems/quality/*
+  - 报告管理：/api/v1/ems/report/*
+  - 驾驶舱统计：/api/v1/ems/dashboard/*
+  - 共享实体：/api/v1/ems/shared/*
+  - 基础设施：/api/v1/*
 
 ### 统一响应示例
 - 成功响应
@@ -543,3 +875,25 @@ Controllers --> Logs["日志/审计"]
   - 记录requestId用于排障
 
 [本节为通用指导，不直接分析具体文件]
+
+### 前端API模块集成
+- API模块结构
+  - auth.js：认证相关接口
+  - user.js：用户管理接口
+  - profile.js：用户资料管理接口
+  - model.js：数据模型管理接口
+  - modelData.js：数据模型操作接口
+  - ems.js：环境监测LIMS接口
+  - request.js：HTTP请求封装
+- 使用示例
+  - 导入对应模块
+  - 调用API方法
+  - 处理统一响应格式
+
+**章节来源**
+- [auth.js](file://flow-web/src/api/auth.js)
+- [profile.js](file://flow-web/src/api/profile.js)
+- [model.js](file://flow-web/src/api/model.js)
+- [modelData.js](file://flow-web/src/api/modelData.js)
+- [ems.js](file://flow-web/src/api/ems.js)
+- [request.js](file://flow-web/src/api/request.js)

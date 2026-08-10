@@ -15,7 +15,6 @@ import java.util.Random;
  * 在 schema.sql 和 PermissionDataInitializer 之后执行
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
 @Order(13)
 public class TestDataInitializer implements CommandLineRunner {

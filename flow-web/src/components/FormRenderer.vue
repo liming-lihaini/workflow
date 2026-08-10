@@ -162,7 +162,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, h, markRaw, nextTick } from 'vue'
+import { ref, computed, watch, h, markRaw, nextTick, onMounted } from 'vue'
 import {
   Input, Textarea, InputNumber, DatePicker, TimePicker,
   Select, Radio, Checkbox, TreeSelect, Cascader, Upload, Button, Tag, message
@@ -171,6 +171,7 @@ import SubTableRenderer from './SubTableRenderer.vue'
 import DataRefRenderer from './DataRefRenderer.vue'
 import RichTextEditor from './RichTextEditor.vue'
 import { uploadAttachment, downloadAttachment } from '../api/attachment'
+import { getUsersPage, getDeptTree } from '../api/system'
 
 const props = defineProps({
   /** formJson 字符串或对象（sections 嵌套结构或旧 fields 结构） */
@@ -358,6 +359,72 @@ function getComponent(field) {
   return markRaw(map[type] || Input)
 }
 
+// --- 人员选择：远程搜索（与表单设计器预览一致，防抖 300ms），部门选择：树形数据 ---
+const userOptions = ref([])
+const userLoading = ref(false)
+const deptTreeData = ref([])
+let userSearchTimer = null
+
+function mapUserOptions(records) {
+  return (Array.isArray(records) ? records : []).map(u => ({
+    value: u.username || u.id,
+    label: `${u.realName || u.username} (${u.username || u.id})`
+  }))
+}
+
+async function loadUsers(keyword) {
+  userLoading.value = true
+  try {
+    const params = { page: 1, size: keyword ? 10 : 50 }
+    if (keyword) params.keyword = keyword
+    const res = await getUsersPage(params)
+    const d = res.data || res
+    const records = d.records || d.list || d || []
+    userOptions.value = mapUserOptions(records)
+  } catch {
+    userOptions.value = []
+  } finally {
+    userLoading.value = false
+  }
+}
+
+// 人员控件输入搜索（关闭本地过滤，走远程查询）
+function handleUserSearch(keyword) {
+  clearTimeout(userSearchTimer)
+  userSearchTimer = setTimeout(() => loadUsers(keyword || ''), 300)
+}
+
+function convertDeptTree(nodes) {
+  return nodes.map(n => ({
+    title: n.deptName || n.name,
+    value: String(n.id),
+    key: String(n.id),
+    children: n.children ? convertDeptTree(n.children) : []
+  }))
+}
+
+async function loadDeptTree() {
+  try {
+    const res = await getDeptTree()
+    const d = res.data || res
+    deptTreeData.value = convertDeptTree(Array.isArray(d) ? d : [])
+  } catch { /* 部门树加载失败时保持空选项 */ }
+}
+
+// 表单含人员控件时初始加载首页人员，保证下拉打开即有候选项
+function hasFieldType(type) {
+  const fj = parseFormJson()
+  if (fj && fj.sections) {
+    return fj.sections.some(s => (s.children || []).some(r => (r.cells || []).some(c => (c.fields || []).some(f => f.type === type))))
+  }
+  return parsedFields.value.some(f => f.type === type)
+}
+
+onMounted(() => {
+  if (hasFieldType('user')) loadUsers('')
+  if (hasFieldType('dept')) loadDeptTree()
+})
+
 // 返回组件的 props
 function getComponentProps(field) {
   const type = field.type || 'text'
@@ -371,11 +438,26 @@ function getComponentProps(field) {
   if (type === 'date') return { ...base, style: { width: '100%' }, valueFormat: 'YYYY-MM-DD' }
   if (type === 'time') return { ...base, style: { width: '100%' }, valueFormat: 'HH:mm:ss' }
   if (type === 'datetime') return { ...base, style: { width: '100%' }, showTime: true, valueFormat: 'YYYY-MM-DD HH:mm:ss' }
-  if (type === 'select' || type === 'user') {
+  if (type === 'select') {
     const options = getFieldOptions(field)
     return { ...base, options: options.map(o => ({ value: o.value, label: o.text })), showSearch: true }
   }
-  if (type === 'dept') return { ...base, placeholder: '选择部门', treeDefaultExpandAll: true }
+  if (type === 'user') {
+    // 人员选择：远程搜索加载用户，关闭本地过滤
+    return {
+      ...base,
+      placeholder: field.placeholder || '搜索人员',
+      style: { width: '100%' },
+      options: userOptions.value,
+      showSearch: true,
+      filterOption: false,
+      onSearch: handleUserSearch,
+      loading: userLoading.value
+    }
+  }
+  if (type === 'dept') {
+    return { ...base, placeholder: field.placeholder || '选择部门', treeData: deptTreeData.value, treeDefaultExpandAll: true, showSearch: true, treeNodeFilterProp: 'title' }
+  }
   if (type === 'cascader') {
     let options = []
     try { options = JSON.parse(field.cascaderOptionsJson || '[]') } catch { options = [] }
@@ -445,10 +527,26 @@ function getDisplayValue(field) {
   const val = localValues.value[key]
   if (val === undefined || val === null || val === '') return '-'
   // 如果是 select/radio，显示标签
-  if (['select', 'radio', 'user'].includes(field.type)) {
+  if (['select', 'radio'].includes(field.type)) {
     const opts = getFieldOptions(field)
     const opt = opts.find(o => o.value === val)
     if (opt) return opt.text
+  }
+  // 人员控件：按已加载的用户选项回显姓名
+  if (field.type === 'user') {
+    const opt = userOptions.value.find(o => String(o.value) === String(val))
+    return opt ? opt.label : String(val)
+  }
+  // 部门控件：在部门树中查找名称回显
+  if (field.type === 'dept') {
+    const findDept = (nodes) => {
+      for (const n of nodes) {
+        if (String(n.value) === String(val)) return n.title
+        if (n.children) { const r = findDept(n.children); if (r) return r }
+      }
+      return null
+    }
+    return findDept(deptTreeData.value) || String(val)
   }
   if (Array.isArray(val)) return val.join(', ')
   return String(val)

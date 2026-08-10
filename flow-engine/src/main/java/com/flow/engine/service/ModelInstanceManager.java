@@ -14,6 +14,7 @@ import com.flow.engine.parser.DataModelParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
@@ -40,8 +41,11 @@ public class ModelInstanceManager {
 
     /**
      * 创建模型实例
+     * <p>
+     * REQUIRES_NEW：流程启动监听器（DataModelProcessListener）以 try-catch 容忍创建失败，
+     * 必须独立事务，避免失败时把流程主事务标记为 rollback-only。
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ModelInstanceResponse createInstance(ModelInstanceRequest request) {
         DataModel model = dataModelService.getByModelKey(request.getModelKey());
         DataModelRequest modelDef = dataModelParser.parse(model.getModelJson());
@@ -126,8 +130,10 @@ public class ModelInstanceManager {
 
     /**
      * 归档模型实例（流程结束时调用）
+     * <p>
+     * REQUIRES_NEW：流程完成监听器以 try-catch 容忍归档失败，需独立事务。
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void archiveInstance(String instanceId) {
         ModelInstance entity = getByInstanceId(instanceId);
         // 归档操作：标记实例为只读（这里简化处理，仅记录日志）
