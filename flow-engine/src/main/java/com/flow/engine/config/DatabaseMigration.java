@@ -41,6 +41,8 @@ public class DatabaseMigration implements CommandLineRunner {
         addColumnIfAbsent("t_entrust", "description", "TEXT");
         // 委托开始日期
         addColumnIfAbsent("t_entrust", "start_date", "VARCHAR(32)");
+        // 委托来源流程实例ID（委托申请流程审批通过 Webhook 写入，幂等键）
+        addColumnIfAbsent("t_entrust", "process_instance_id", "BIGINT");
         // 数据模型来源标识（builtin-系统内置只读 / custom-用户自定义）
         addColumnIfAbsent("wf_data_model", "source", "VARCHAR(32) DEFAULT 'custom'");
         // 存量模型回填来源标识，并将系统内置模型标记为 builtin
@@ -210,6 +212,8 @@ public class DatabaseMigration implements CommandLineRunner {
         initInstrumentInboundForms();
         // 注册「新设备入库」流程（单台/批量）及审批节点 Webhook（审批通过后写入 t_instrument）
         initInstrumentInboundProcesses();
+        // 注册「检测委托申请」流程（技术部审批）及审批节点 Webhook（审批通过后创建委托单）
+        initEntrustApplyProcess();
 
         // ===== 收样工作台-样品采集（手动收集样品扩展字段） =====
         // 样品关联采样派单/委托单/点位，并存储检测类别、检测项目、采样参数值、
@@ -663,6 +667,149 @@ public class DatabaseMigration implements CommandLineRunner {
      */
     private void upsertInstrumentWebhook(String webhookKey, String name, String processKey) {
         String url = "http://localhost:8080/api/webhook/instrument/inbound";
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM wf_webhook WHERE webhook_key='" + webhookKey + "'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) {
+                st.executeUpdate("UPDATE wf_webhook SET name='" + name + "', url='" + url + "', method='POST', "
+                        + "payload_template=NULL, trigger_events='[\"NODE_COMPLETED\"]', process_key='" + processKey
+                        + "', node_id='userTask_approve', status=1, update_time=CURRENT_TIMESTAMP WHERE webhook_key='" + webhookKey + "'");
+            } else {
+                st.executeUpdate("INSERT INTO wf_webhook (webhook_key, name, url, method, payload_template, "
+                        + "timeout, retry_count, trigger_events, process_key, node_id, status, create_time, update_time) "
+                        + "VALUES ('" + webhookKey + "', '" + name + "', '" + url + "', 'POST', NULL, 5000, 3, "
+                        + "'[\"NODE_COMPLETED\"]', '" + processKey + "', 'userTask_approve', 1, "
+                        + "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+            }
+        } catch (Exception ignored) {
+            // 幂等保护
+        }
+    }
+
+    /**
+     * 注册「检测委托申请」流程及技术部审批节点 Webhook（幂等热更）。
+     * <p>
+     * 流程结构：开始 -> 技术部审批(userTask_approve) -> 结束；
+     * 申请人在发起流程时填写 entrust_apply（检测委托申请）表单。
+     * 组织数据中若无「技术部」则自动创建（负责人取自技术研发中心，兜底 sys_admin），
+     * 审批节点直接指派给技术部负责人。
+     * 审批通过（NODE_COMPLETED）时由 Webhook 回调 /api/webhook/entrust/confirm：
+     * 创建委托单（状态=已确认，生成委托单号 WT+yyyyMMdd+序号）并写入监测点位子表。
+     */
+    private void initEntrustApplyProcess() {
+        try {
+            ensureTechDept();
+            String approver = lookupDeptLeaderUsername("技术部");
+            if (approver == null || approver.isEmpty()) approver = "sys_admin";
+            upsertEntrustApplyProcess("JCWTSQ", approver);
+            upsertEntrustApplyWebhook("entrust_apply_confirm_hook", "检测委托申请-创建委托单", "JCWTSQ");
+        } catch (Exception ignored) {
+            // 幂等保护；若相关表不存在则跳过，不影响主流程
+        }
+    }
+
+    /** 确保组织中存在「技术部」（负责人取自技术研发中心，兜底 sys_admin） */
+    private void ensureTechDept() throws Exception {
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM sys_dept WHERE dept_name='技术部'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) return;
+            Long leaderId = null;
+            String leaderName = null;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT u.id, u.real_name FROM sys_dept d JOIN sys_user u ON u.id = d.leader_id "
+                            + "WHERE d.dept_name='技术研发中心' LIMIT 1")) {
+                if (rs.next()) { leaderId = rs.getLong(1); leaderName = rs.getString(2); }
+            }
+            if (leaderId == null) {
+                try (java.sql.ResultSet rs = st.executeQuery(
+                        "SELECT id, real_name FROM sys_user WHERE username='sys_admin' LIMIT 1")) {
+                    if (rs.next()) { leaderId = rs.getLong(1); leaderName = rs.getString(2); }
+                }
+            }
+            st.executeUpdate("INSERT INTO sys_dept (parent_id, dept_name, dept_code, dept_type, sort_order, "
+                    + "leader_id, leader_name, status, create_time, update_time) VALUES (0, '技术部', 'TECH_DEPT', "
+                    + "'dept', 999, " + (leaderId == null ? "NULL" : leaderId) + ", "
+                    + (leaderName == null ? "NULL" : "'" + leaderName + "'") + ", 1, NOW(), NOW())");
+        }
+    }
+
+    /** 按部门名查询部门负责人的登录账号 */
+    private String lookupDeptLeaderUsername(String deptName) {
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement();
+             java.sql.ResultSet rs = st.executeQuery(
+                     "SELECT u.username FROM sys_dept d JOIN sys_user u ON u.id = d.leader_id "
+                             + "WHERE d.dept_name='" + deptName + "' LIMIT 1")) {
+            if (rs.next()) return rs.getString(1);
+        } catch (Exception ignored) {
+            // 幂等保护
+        }
+        return null;
+    }
+
+    private void upsertEntrustApplyProcess(String processKey, String approver) throws Exception {
+        String processName = "检测委托申请";
+        String formKey = "entrust_apply";
+        String description = "检测委托申请：发起申请(填写委托表单) -> 技术部审批 -> 审批通过自动创建委托单(已确认+委托单号)";
+
+        Map<String, Object> def = new LinkedHashMap<>();
+        def.put("processKey", processKey);
+        def.put("processName", processName);
+        def.put("formKey", formKey);
+
+        List<Map<String, Object>> nodes = new ArrayList<>();
+        nodes.add(buildProcessNode("start_1", "start", "开始", null, null, null, 300, 50, new LinkedHashMap<>()));
+
+        Map<String, Object> approveProps = new LinkedHashMap<>();
+        approveProps.put("formKey", formKey);
+        nodes.add(buildProcessNode("userTask_approve", "userTask", "技术部审批",
+                approver, approver, "user", 300, 200, approveProps));
+
+        nodes.add(buildProcessNode("end_1", "end", "结束", null, null, null, 300, 350, new LinkedHashMap<>()));
+        def.put("nodes", nodes);
+
+        List<Map<String, Object>> edges = new ArrayList<>();
+        edges.add(buildProcessEdge("edge_1", "start_1", "userTask_approve"));
+        edges.add(buildProcessEdge("edge_2", "userTask_approve", "end_1"));
+        def.put("edges", edges);
+
+        String processJson = JsonUtils.toJson(def).replace("'", "''");
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM wf_process_definition WHERE process_key='" + processKey + "'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) {
+                st.executeUpdate("UPDATE wf_process_definition SET process_name='" + processName
+                        + "', process_json='" + processJson + "', description='" + description
+                        + "', update_time=CURRENT_TIMESTAMP WHERE process_key='" + processKey + "'");
+            } else {
+                st.executeUpdate("INSERT INTO wf_process_definition (process_key, process_name, version, "
+                        + "process_json, category, process_type, description, status, deployment_id, create_time, update_time) "
+                        + "VALUES ('" + processKey + "', '" + processName + "', 1, '" + processJson
+                        + "', '委托管理', 'approval', '" + description + "', 1, "
+                        + "'seed-" + processKey.toLowerCase() + "', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+            }
+        }
+    }
+
+    /**
+     * 注册检测委托申请 Webhook：绑定流程的技术部审批节点(userTask_approve)，NODE_COMPLETED 触发。
+     * payload_template 留空 -> 发送完整 payload（含 formData：委托信息与监测点位子表），
+     * 由 /api/webhook/entrust/confirm 接口创建委托单（状态=已确认，生成委托单号）。
+     */
+    private void upsertEntrustApplyWebhook(String webhookKey, String name, String processKey) {
+        String url = "http://localhost:8080/api/webhook/entrust/confirm";
         try (Connection conn = dataSource.getConnection();
              Statement st = conn.createStatement()) {
             int cnt = 0;

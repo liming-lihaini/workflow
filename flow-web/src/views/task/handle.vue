@@ -66,6 +66,7 @@
                     :mode="formMode"
                     :field-permissions="fieldPermMap"
                     :node-permission="nodePermission"
+                    :dict-data="dictData"
                   />
                 </a-spin>
               </div>
@@ -222,6 +223,7 @@ import { getTaskDetail, getTasksByInstance, completeTask, rejectTask, transferTa
 import dayjs from 'dayjs'
 import { getProcessInstance, getProcessVariables, getProcessDefinitionByKey } from '../../api/process'
 import { getForm } from '../../api/form'
+import { getDictItemsByCode } from '../../api/dict'
 import { formatDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
 import { usePermission } from '../../composables/usePermission'
@@ -246,6 +248,7 @@ const formLoading = ref(false)
 const formJson = ref(null)
 const formFields = ref([])
 const formValues = ref({})
+const dictData = ref({})
 
 // 表单权限
 const fieldPermMap = ref({})
@@ -586,6 +589,8 @@ async function loadAll() {
           if (formDef.formJson) {
             formJson.value = typeof formDef.formJson === 'string'
               ? JSON.parse(formDef.formJson) : formDef.formJson
+            // 加载表单字段引用的数据字典，供只读模式下拉值翻译显示
+            loadFormDictData(formJson.value)
           }
         }
       }
@@ -660,6 +665,26 @@ async function loadAll() {
     message.error('加载任务详情失败: ' + (e.message || ''))
   }
   formLoading.value = false
+}
+
+// 收集表单字段中引用数据字典的 dictCode 并批量加载，供只读模式下拉项值翻译显示
+async function loadFormDictData(formJson) {
+  const codes = new Set()
+  try {
+    const json = typeof formJson === 'string' ? JSON.parse(formJson) : formJson
+    ;(json.sections || []).forEach(s => (s.children || []).forEach(r => (r.cells || []).forEach(c => (c.fields || []).forEach(f => {
+      if (f.optionsSource === 'dict' && f.dictCode) codes.add(f.dictCode)
+    }))))
+  } catch { /* ignore */ }
+  const map = {}
+  await Promise.all([...codes].map(async code => {
+    try {
+      const res = await getDictItemsByCode(code)
+      const items = res.data || res || []
+      map[code] = items.map(it => ({ itemValue: it.itemValue, itemText: it.itemText }))
+    } catch { /* 单字典加载失败不影响其余 */ }
+  }))
+  dictData.value = map
 }
 
 // ====== 操作 ======

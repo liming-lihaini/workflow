@@ -31,6 +31,8 @@ public class EmsEntrust {
     private String createName;     // 创建人-姓名（realName）
     private String updateBy;       // 更新人-工号（username）
     private String updateName;     // 更新人-姓名（realName）
+    /** 来源流程实例ID（委托申请流程审批通过时由 Webhook 写入，幂等键） */
+    private Long processInstanceId;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

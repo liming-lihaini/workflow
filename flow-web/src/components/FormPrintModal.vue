@@ -46,6 +46,7 @@
             :fields="formFields"
             v-model="formValues"
             mode="readonly"
+            :dict-data="dictData"
           />
         </div>
 
@@ -86,6 +87,7 @@ import { jsPDF } from 'jspdf'
 import { getTaskDetail, getTasksByInstance } from '../api/task'
 import { getProcessInstance, getProcessVariables, getProcessDefinitionByKey } from '../api/process'
 import { getForm } from '../api/form'
+import { getDictItemsByCode } from '../api/dict'
 import { formatDate } from '../utils/date'
 import FormRenderer from './FormRenderer.vue'
 
@@ -107,6 +109,7 @@ const processInfo = ref({})
 const formJson = ref(null)
 const formFields = ref([])
 const formValues = ref({})
+const dictData = ref({})
 const taskHistory = ref([])
 
 const modalTitle = ref('')
@@ -178,6 +181,8 @@ async function loadData() {
           if (formDef.formJson) {
             formJson.value = typeof formDef.formJson === 'string'
               ? JSON.parse(formDef.formJson) : formDef.formJson
+            // 加载表单字段引用的数据字典，供只读下拉值翻译显示
+            await loadFormDictData(formJson.value)
           }
         }
       }
@@ -285,12 +290,33 @@ async function handleDownloadPdf() {
   }
 }
 
+// 收集表单字段中引用数据字典的 dictCode 并批量加载，供只读模式下拉项值翻译显示
+async function loadFormDictData(formJson) {
+  const codes = new Set()
+  try {
+    const json = typeof formJson === 'string' ? JSON.parse(formJson) : formJson
+    ;(json.sections || []).forEach(s => (s.children || []).forEach(r => (r.cells || []).forEach(c => (c.fields || []).forEach(f => {
+      if (f.optionsSource === 'dict' && f.dictCode) codes.add(f.dictCode)
+    }))))
+  } catch { /* ignore */ }
+  const map = {}
+  await Promise.all([...codes].map(async code => {
+    try {
+      const res = await getDictItemsByCode(code)
+      const items = res.data || res || []
+      map[code] = items.map(it => ({ itemValue: it.itemValue, itemText: it.itemText }))
+    } catch { /* 单字典加载失败不影响其余 */ }
+  }))
+  dictData.value = map
+}
+
 function handleClose() {
   visible.value = false
   processInfo.value = {}
   formJson.value = null
   formFields.value = []
   formValues.value = {}
+  dictData.value = {}
   taskHistory.value = []
 }
 </script>
