@@ -1,6 +1,8 @@
 # Build output
 target/
 dist/
+dist_check/
+dist_verify/
 
 # Dependencies
 node_modules/

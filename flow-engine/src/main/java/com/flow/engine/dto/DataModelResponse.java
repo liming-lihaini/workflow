@@ -16,6 +16,8 @@ public class DataModelResponse {
     private String modelJson;
     private Integer version;
     private Integer status;
+    /** 模型来源：builtin-系统内置（只读），custom-用户自定义 */
+    private String source;
     private DataModelRequest.TableDefinition mainTable;
     private List<DataModelRequest.TableDefinition> subTables;
     private String createTime;

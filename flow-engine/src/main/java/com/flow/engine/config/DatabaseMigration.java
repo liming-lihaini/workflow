@@ -41,6 +41,10 @@ public class DatabaseMigration implements CommandLineRunner {
         addColumnIfAbsent("t_entrust", "description", "TEXT");
         // 委托开始日期
         addColumnIfAbsent("t_entrust", "start_date", "VARCHAR(32)");
+        // 数据模型来源标识（builtin-系统内置只读 / custom-用户自定义）
+        addColumnIfAbsent("wf_data_model", "source", "VARCHAR(32) DEFAULT 'custom'");
+        // 存量模型回填来源标识，并将系统内置模型标记为 builtin
+        backfillDataModelSource();
         // 监测点位归属委托（ISSUE-023 改造：点位作为委托基础信息）
         addColumnIfAbsent("t_monitor_point", "entrust_id", "INTEGER");
         // 点位扩展信息（ISSUE-026：监测因子/执行标准/监测频次/备注）
@@ -405,10 +409,10 @@ public class DatabaseMigration implements CommandLineRunner {
             if (cnt > 0) {
                 // 已存在：同步最新模型结构（含类别字典绑定），保证字典继承生效
                 st.executeUpdate("UPDATE wf_data_model SET model_json='" + modelJson
-                        + "', model_name='危险品', version=1, status=1 WHERE model_key='hazardous'");
+                        + "', model_name='危险品', version=1, status=1, source='builtin' WHERE model_key='hazardous'");
             } else {
-                st.executeUpdate("INSERT INTO wf_data_model (model_key, model_name, model_json, version, status) "
-                        + "VALUES ('hazardous', '危险品', '" + modelJson + "', 1, 1)");
+                st.executeUpdate("INSERT INTO wf_data_model (model_key, model_name, model_json, version, status, source) "
+                        + "VALUES ('hazardous', '危险品', '" + modelJson + "', 1, 1, 'builtin')");
             }
         } catch (Exception ignored) {
             // 幂等保护；若表/字段不存在则跳过，不影响主流程
@@ -454,10 +458,10 @@ public class DatabaseMigration implements CommandLineRunner {
             }
             if (cnt > 0) {
                 st.executeUpdate("UPDATE wf_data_model SET model_json='" + modelJson
-                        + "', model_name='样品留样', version=1, status=1 WHERE model_key='retain'");
+                        + "', model_name='样品留样', version=1, status=1, source='builtin' WHERE model_key='retain'");
             } else {
-                st.executeUpdate("INSERT INTO wf_data_model (model_key, model_name, model_json, version, status) "
-                        + "VALUES ('retain', '样品留样', '" + modelJson + "', 1, 1)");
+                st.executeUpdate("INSERT INTO wf_data_model (model_key, model_name, model_json, version, status, source) "
+                        + "VALUES ('retain', '样品留样', '" + modelJson + "', 1, 1, 'builtin')");
             }
         } catch (Exception ignored) {
             // 幂等保护；若表/字段不存在则跳过，不影响主流程
@@ -496,10 +500,10 @@ public class DatabaseMigration implements CommandLineRunner {
             }
             if (cnt > 0) {
                 st.executeUpdate("UPDATE wf_data_model SET model_json='" + modelJson
-                        + "', model_name='仪器设备', version=1, status=1 WHERE model_key='instrument'");
+                        + "', model_name='仪器设备', version=1, status=1, source='builtin' WHERE model_key='instrument'");
             } else {
-                st.executeUpdate("INSERT INTO wf_data_model (model_key, model_name, model_json, version, status) "
-                        + "VALUES ('instrument', '仪器设备', '" + modelJson + "', 1, 1)");
+                st.executeUpdate("INSERT INTO wf_data_model (model_key, model_name, model_json, version, status, source) "
+                        + "VALUES ('instrument', '仪器设备', '" + modelJson + "', 1, 1, 'builtin')");
             }
         } catch (Exception ignored) {
             // 幂等保护；若表/字段不存在则跳过，不影响主流程
@@ -781,6 +785,21 @@ public class DatabaseMigration implements CommandLineRunner {
             st.execute(String.format("ALTER TABLE %s ADD COLUMN %s %s", table, column, type));
         } catch (Exception ignored) {
             // 列已存在或不可添加时忽略
+        }
+    }
+
+    /**
+     * 回填数据模型来源标识：存量记录默认用户自定义；
+     * 系统内置模型（危化品/样品留样/仪器设备/检测委托）标记为 builtin，在数据模型模块只读。
+     */
+    private void backfillDataModelSource() {
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            st.executeUpdate("UPDATE wf_data_model SET source = 'custom' WHERE source IS NULL OR source = ''");
+            st.executeUpdate("UPDATE wf_data_model SET source = 'builtin' "
+                    + "WHERE model_key IN ('hazardous', 'retain', 'instrument', 'entrust')");
+        } catch (Exception ignored) {
+            // 幂等保护；若表/字段不存在则跳过，不影响主流程
         }
     }
 

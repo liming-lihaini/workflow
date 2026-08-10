@@ -138,7 +138,7 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item label="开始日期">
+            <a-form-item label="开始日期" required>
               <a-date-picker
                 v-model:value="formState.startDate"
                 placeholder="请选择开始日期"

@@ -896,6 +896,7 @@ CREATE TABLE IF NOT EXISTS `wf_data_model` (
     `model_json` LONGTEXT,
     `version` BIGINT,
     `status` BIGINT,
+    `source` VARCHAR(32) DEFAULT 'custom' COMMENT '模型来源：builtin-系统内置（只读），custom-用户自定义',
     `create_time` DATETIME(6),
     `update_time` DATETIME(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='wf_data_model';

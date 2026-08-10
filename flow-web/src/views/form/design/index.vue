@@ -135,9 +135,16 @@
             </a-form-item>
             <!-- 选项配置 -->
             <template v-if="['select','radio','checkbox','cascader'].includes(selectedField.type)">
+              <a-form-item v-if="selectedField.type === 'select'" label="选择模式">
+                <a-radio-group v-model:value="selectedField.selectMode">
+                  <a-radio value="single">单选</a-radio>
+                  <a-radio value="multiple">多选</a-radio>
+                </a-radio-group>
+              </a-form-item>
               <a-form-item label="选项来源">
                 <a-radio-group v-model:value="selectedField.optionsSource" @change="handleOptionsSourceChange">
                   <a-radio value="manual">手动</a-radio><a-radio value="dict">字典</a-radio>
+                  <a-radio v-if="selectedField.type === 'select'" value="api">接口</a-radio>
                 </a-radio-group>
               </a-form-item>
               <a-form-item v-if="selectedField.optionsSource === 'dict'" label="数据字典">
@@ -150,6 +157,39 @@
               </a-form-item>
               <a-form-item v-if="selectedField.optionsSource === 'manual' && selectedField.type === 'cascader'" label="级联选项(JSON)">
                 <a-textarea v-model:value="selectedField.cascaderOptionsJson" :rows="4" placeholder='[{"value":"a","label":"A","children":[{"value":"a1","label":"A1"}]}]' />
+              </a-form-item>
+              <!-- 接口选项配置 -->
+              <a-form-item v-if="selectedField.optionsSource === 'api' && selectedField.type === 'select'" label="接口配置">
+                <div style="display: flex; gap: 4px; margin-bottom: 4px">
+                  <a-select v-model:value="selectedField.api.method" size="small" style="width: 80px">
+                    <a-select-option value="GET">GET</a-select-option>
+                    <a-select-option value="POST">POST</a-select-option>
+                  </a-select>
+                  <a-input v-model:value="selectedField.api.url" placeholder="接口地址 /api/v1/xxx/${formData.字段标识}" size="small" style="flex: 1" />
+                </div>
+                <div v-for="(p, pIdx) in (selectedField.api.params || [])" :key="pIdx"
+                  style="display: flex; gap: 4px; margin-bottom: 4px; align-items: center;">
+                  <a-input v-model:value="p.name" placeholder="参数名" style="width: 28%" size="small" />
+                  <a-input v-model:value="p.value" placeholder="值(支持${formData.字段标识})" style="width: 40%" size="small" />
+                  <a-select v-model:value="p.in" size="small" style="width: 32%">
+                    <a-select-option value="query">Query</a-select-option>
+                    <a-select-option value="body">Body</a-select-option>
+                    <a-select-option value="header">Header</a-select-option>
+                  </a-select>
+                  <a-button type="text" size="small" danger @click="removeApiParam(pIdx)"><DeleteOutlined /></a-button>
+                </div>
+                <a-button type="dashed" size="small" block @click="addApiParam" style="margin-bottom: 4px">+ 添加参数</a-button>
+                <div style="display: flex; gap: 4px; margin-bottom: 4px">
+                  <a-input v-model:value="selectedField.api.dataPath" placeholder="数据路径 data" size="small" />
+                  <a-input v-model:value="selectedField.api.valueField" placeholder="值字段 value" size="small" />
+                  <a-input v-model:value="selectedField.api.labelField" placeholder="标签字段 label" size="small" />
+                </div>
+                <div class="formula-help" style="margin-top: 4px">
+                  <div class="formula-help-title">接口地址与参数值支持引用表单字段值：</div>
+                  <div>• <code>${formData.字段标识}</code> 或 <code>${字段标识}</code>，如 <code>/api/v1/customers/${formData.custId}</code></div>
+                  <div>• 被引用字段值变化时自动重新拉取选项</div>
+                  <div>• 返回值按数据路径、值字段、标签字段转换为下拉选项</div>
+                </div>
               </a-form-item>
             </template>
             <!-- 计算控件公式配置 -->
@@ -371,9 +411,11 @@
                   <a-date-picker v-else-if="field.type==='date'" v-model:value="previewData[field.field]" style="width:100%" />
                   <a-time-picker v-else-if="field.type==='time'" v-model:value="previewData[field.field]" style="width:100%" />
                   <a-date-picker v-else-if="field.type==='datetime'" v-model:value="previewData[field.field]" show-time style="width:100%" />
-                  <a-select v-else-if="field.type==='select'" v-model:value="previewData[field.field]" style="width:100%">
-                    <a-select-option v-for="opt in getFieldOptions(field)" :key="opt.value" :value="opt.value">{{ opt.text }}</a-select-option>
-                  </a-select>
+                  <a-select v-else-if="field.type==='select'" v-model:value="previewData[field.field]"
+                    :mode="field.selectMode === 'multiple' ? 'multiple' : undefined"
+                    :options="getFieldOptions(field).map(o => ({ value: o.value, label: o.text }))"
+                    :loading="!!previewApiLoading[field.field]"
+                    show-search option-filter-prop="label" allow-clear style="width:100%" />
                   <a-radio-group v-else-if="field.type==='radio'" v-model:value="previewData[field.field]">
                     <a-radio v-for="opt in getFieldOptions(field)" :key="opt.value" :value="opt.value">{{ opt.text }}</a-radio>
                   </a-radio-group>
@@ -411,7 +453,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch as vueWatch } from 'vue'
+import { ref, reactive, computed, onMounted, watch as vueWatch } from 'vue'
 import { useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -429,6 +471,7 @@ import { getDictTypes, getDictItemsByCode } from '../../../api/dict'
 import { getUsersPage, getDeptTree } from '../../../api/system'
 import DataRefRenderer from '../../../components/DataRefRenderer.vue'
 import RichTextEditor from '../../../components/RichTextEditor.vue'
+import { useApiOptions, collectApiFields } from '../../../composables/useApiOptions'
 
 const route = useRoute()
 const formKey = ref(route.query.formKey || '')
@@ -477,10 +520,26 @@ let idCounter = 0
 function genId(p) { return `${p}_${++idCounter}` }
 
 function getFieldOptions(field) {
+  if (field.optionsSource === 'api') {
+    return (previewApiOptions[field.field] || []).map(o => ({ value: o.value, text: o.label }))
+  }
   if (field.optionsSource === 'dict' && field.dictCode) return dictItemsCache[field.dictCode] || []
   if (!field.optionsText) return []
   return field.optionsText.split('\n').filter(Boolean).map(l => { const [v, ...r] = l.split(':'); return { value: v.trim(), text: r.join(':').trim() || v.trim() } })
 }
+
+// 预览区接口选项：收集 optionsSource=api 的下拉字段，模板参数变化自动重拉
+const previewApiFields = computed(() => collectApiFields(sections.value))
+const { apiOptions: previewApiOptions, apiLoading: previewApiLoading } = useApiOptions(previewApiFields, computed(() => previewData))
+
+/** 补全下拉字段的接口配置默认结构 */
+function ensureFieldApi(f) {
+  if (!f.api) f.api = { method: 'GET', url: '', params: [], dataPath: 'data', valueField: 'value', labelField: 'label' }
+  if (!Array.isArray(f.api.params)) f.api.params = []
+  return f.api
+}
+function addApiParam() { ensureFieldApi(selectedField.value).params.push({ name: '', value: '', in: 'query' }) }
+function removeApiParam(idx) { selectedField.value.api.params.splice(idx, 1) }
 function getCascaderOptions(field) {
   if (field.optionsSource === 'dict' && field.dictCode) return dictItemsCache[field.dictCode] || []
   try { return JSON.parse(field.cascaderOptionsJson || '[]') } catch { return [] }
@@ -505,6 +564,14 @@ function onPreviewOpen() {
     // 确保引用数据字典的字段在预览前已加载字典项，避免下拉/单选/复选项空白
     sections.value.forEach(s => s.children?.forEach(r => r.cells?.forEach(c => c.fields?.forEach(f => {
       if (f.optionsSource === 'dict' && f.dictCode) handleDictChange(f.dictCode)
+      if (f.type === 'select') {
+        if (!f.selectMode) f.selectMode = 'single'
+        ensureFieldApi(f)
+        // 多选下拉初始化为数组
+        if (f.selectMode === 'multiple' && !Array.isArray(previewData[f.field])) {
+          previewData[f.field] = previewData[f.field] ? [previewData[f.field]] : []
+        }
+      }
     }))))
   }
 }
@@ -653,6 +720,8 @@ function createField(comp) {
     optionsSource: ['select','radio','checkbox','cascader'].includes(comp.type) ? 'manual' : undefined,
     dictCode: null, modelField: null,
     cascaderOptionsJson: comp.type === 'cascader' ? '[{"value":"1","label":"选项1","children":[{"value":"1-1","label":"子选项1"}]}]' : undefined,
+    selectMode: comp.type === 'select' ? 'single' : undefined,
+    api: comp.type === 'select' ? { method: 'GET', url: '', params: [], dataPath: 'data', valueField: 'value', labelField: 'label' } : undefined,
     formula: comp.type === 'calculation' ? '' : undefined,
     calcUnit: comp.type === 'calculation' ? 'day' : undefined
   }
@@ -670,7 +739,13 @@ function createField(comp) {
 function selectSection(s) { selectedSection.value = s; selectedRow.value = null; selectedCell.value = null; selectedField.value = null }
 function selectRow(r) { selectedRow.value = r; selectedField.value = null }
 function selectCell(c) { selectedCell.value = c; selectedField.value = null }
-function selectField(f) { selectedField.value = f }
+function selectField(f) {
+  selectedField.value = f
+  if (f.type === 'select') {
+    if (!f.selectMode) f.selectMode = 'single'
+    ensureFieldApi(f)
+  }
+}
 
 // --- Operations ---
 function moveSection(i, d) { const n = i + d; if (n < 0 || n >= sections.value.length) return; [sections.value[i], sections.value[n]] = [sections.value[n], sections.value[i]] }
@@ -680,8 +755,10 @@ function removeRow(section, i) { section.children.splice(i, 1); selectedRow.valu
 function removeField(cell, i) { cell.fields.splice(i, 1); selectedField.value = null }
 
 function handleOptionsSourceChange() {
-  if (selectedField.value.optionsSource === 'dict') selectedField.value.optionsText = ''
-  else selectedField.value.dictCode = null
+  const src = selectedField.value.optionsSource
+  if (src === 'manual') selectedField.value.dictCode = null
+  else selectedField.value.optionsText = ''
+  if (src === 'api' && selectedField.value.type === 'select') ensureFieldApi(selectedField.value)
 }
 async function handleDictChange(code) {
   if (!code || dictItemsCache[code]) return

@@ -30,6 +30,9 @@ public class DataModel {
     /** 状态：0-草稿，1-已发布 */
     private Integer status;
 
+    /** 模型来源：builtin-系统内置（只读），custom-用户自定义 */
+    private String source;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

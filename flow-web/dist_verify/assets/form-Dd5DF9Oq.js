@@ -1,1 +1,0 @@
-import{X as t}from"./index-B7CmNlcs.js";function n(r){return t.get("/forms",{params:r})}function s(){return t.get("/forms/all")}function u(r){return t.get(`/forms/${r}`)}function m(r){return t.post("/forms",r)}function f(r,e){return t.put(`/forms/${r}`,e)}function a(r){return t.delete(`/forms/${r}`)}export{u as a,n as b,m as c,a as d,s as g,f as u};

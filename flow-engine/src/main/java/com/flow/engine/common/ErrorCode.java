@@ -67,6 +67,7 @@ public enum ErrorCode {
     FORM_NOT_FOUND(1052, "表单不存在"),
     FORM_VALIDATION_FAILED(1053, "表单校验失败"),
     MODEL_NAME_DUPLICATE(1054, "数据模型名称已存在"),
+    MODEL_BUILTIN_READONLY(1055, "系统内置模型只读，不能修改"),
     PARAM_ERROR(400, "参数错误");
 
     private final int code;

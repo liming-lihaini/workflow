@@ -41,6 +41,18 @@ public class DataModelService {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /** 模型来源：系统内置（只读） */
+    public static final String SOURCE_BUILTIN = "builtin";
+    /** 模型来源：用户自定义 */
+    public static final String SOURCE_CUSTOM = "custom";
+
+    /** 系统内置模型只读守卫：禁止更新/删除/发布/生成表 */
+    private void assertNotBuiltin(DataModel entity) {
+        if (SOURCE_BUILTIN.equals(entity.getSource())) {
+            throw new BusinessException(ErrorCode.MODEL_BUILTIN_READONLY);
+        }
+    }
+
     /** 合法数据库标识符（防 SQL 注入，表名/字段名清洗后必须匹配） */
     private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
 
@@ -71,6 +83,7 @@ public class DataModelService {
         entity.setModelJson(dataModelParser.toJson(request));
         entity.setVersion(1);
         entity.setStatus(0); // 草稿
+        entity.setSource(SOURCE_CUSTOM); // API 创建的均为用户自定义，内置模型由系统种子化
 
         dataModelMapper.insert(entity);
         log.info("创建数据模型: modelKey={}", request.getModelKey());
@@ -108,6 +121,7 @@ public class DataModelService {
                 resp.setModelJson(entity.getModelJson());
                 resp.setVersion(entity.getVersion());
                 resp.setStatus(entity.getStatus());
+                resp.setSource(entity.getSource());
                 resp.setCreateTime(entity.getCreateTime() != null ? entity.getCreateTime().format(FORMATTER) : null);
                 resp.setUpdateTime(entity.getUpdateTime() != null ? entity.getUpdateTime().format(FORMATTER) : null);
                 return resp;
@@ -121,6 +135,7 @@ public class DataModelService {
     @Transactional
     public DataModelResponse updateModel(String modelKey, DataModelRequest request) {
         DataModel entity = getByModelKey(modelKey);
+        assertNotBuiltin(entity);
 
         if (entity.getStatus() != null && entity.getStatus() == 1) {
             throw new BusinessException(ErrorCode.MODEL_ALREADY_PUBLISHED);
@@ -149,6 +164,7 @@ public class DataModelService {
     @Transactional
     public void deleteModel(String modelKey) {
         DataModel entity = getByModelKey(modelKey);
+        assertNotBuiltin(entity);
 
         if (entity.getStatus() != null && entity.getStatus() == 1) {
             throw new BusinessException(ErrorCode.MODEL_ALREADY_PUBLISHED);
@@ -164,6 +180,7 @@ public class DataModelService {
     @Transactional
     public DataModelResponse publishModel(String modelKey) {
         DataModel entity = getByModelKey(modelKey);
+        assertNotBuiltin(entity);
 
         if (entity.getStatus() != null && entity.getStatus() == 1) {
             throw new BusinessException(ErrorCode.MODEL_ALREADY_PUBLISHED);
@@ -261,6 +278,7 @@ public class DataModelService {
     @Transactional
     public Map<String, Object> generateTables(String modelKey) {
         DataModel entity = getByModelKey(modelKey);
+        assertNotBuiltin(entity);
         DataModelRequest model = dataModelParser.parse(entity.getModelJson());
         if (model.getMainTable() == null) {
             throw new BusinessException(ErrorCode.MODEL_VALIDATION_FAILED, "主表定义不能为空");
@@ -393,6 +411,7 @@ public class DataModelService {
         resp.setModelJson(entity.getModelJson());
         resp.setVersion(entity.getVersion());
         resp.setStatus(entity.getStatus());
+        resp.setSource(entity.getSource());
         resp.setMainTable(parsed.getMainTable());
         resp.setSubTables(parsed.getSubTables());
         resp.setCreateTime(entity.getCreateTime() != null ? entity.getCreateTime().format(FORMATTER) : null);

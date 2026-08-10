@@ -18,21 +18,31 @@
         @change="handleTableChange"
       >
         <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'source'">
+            <a-tag :color="record.source === 'builtin' ? 'blue' : 'default'">
+              {{ record.source === 'builtin' ? '系统内置' : '用户自定义' }}
+            </a-tag>
+          </template>
           <template v-if="column.key === 'status'">
             <a-tag :color="record.status === 1 ? 'green' : 'default'">
               {{ record.status === 1 ? '已发布' : '草稿' }}
             </a-tag>
           </template>
           <template v-if="column.key === 'action'">
-            <span class="action-link" @click="handleEdit(record)">编辑</span>
-            <a-divider type="vertical" />
-            <span class="action-link" @click="handlePublish(record)" v-if="record.status !== 1">发布</span>
-            <a-divider type="vertical" v-if="record.status !== 1" />
-            <span class="action-link" @click="handleGenerateTables(record)">生成表</span>
-            <a-divider type="vertical" />
-            <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
-              <span class="action-link danger">删除</span>
-            </a-popconfirm>
+            <template v-if="record.source === 'builtin'">
+              <span class="action-link" @click="showModal(record, true)">查看</span>
+            </template>
+            <template v-else>
+              <span class="action-link" @click="handleEdit(record)">编辑</span>
+              <a-divider type="vertical" />
+              <span class="action-link" @click="handlePublish(record)" v-if="record.status !== 1">发布</span>
+              <a-divider type="vertical" v-if="record.status !== 1" />
+              <span class="action-link" @click="handleGenerateTables(record)">生成表</span>
+              <a-divider type="vertical" />
+              <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
+                <span class="action-link danger">删除</span>
+              </a-popconfirm>
+            </template>
           </template>
         </template>
       </a-table>
@@ -41,7 +51,7 @@
     <!-- 新建/编辑抽屉 -->
     <a-drawer
       v-model:open="modalVisible"
-      :title="editingRecord ? '编辑数据模型' : '新建数据模型'"
+      :title="isReadonly ? '查看数据模型' : (editingRecord ? '编辑数据模型' : '新建数据模型')"
       placement="right"
       :width="1000"
       :body-style="{ paddingBottom: '64px' }"
@@ -50,12 +60,12 @@
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="模型Key" required>
-              <a-input v-model:value="formState.modelKey" :disabled="!!editingRecord" placeholder="如：leave-data" />
+              <a-input v-model:value="formState.modelKey" :disabled="isReadonly || !!editingRecord" placeholder="如：leave-data" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item label="模型名称" required>
-              <a-input v-model:value="formState.modelName" placeholder="请输入模型名称" />
+              <a-input v-model:value="formState.modelName" :disabled="isReadonly" placeholder="请输入模型名称" />
             </a-form-item>
           </a-col>
         </a-row>
@@ -65,19 +75,19 @@
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="表名">
-              <a-input v-model:value="formState.mainTable.tableName" placeholder="如：main" />
+              <a-input v-model:value="formState.mainTable.tableName" :disabled="isReadonly" placeholder="如：main" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item label="表标签">
-              <a-input v-model:value="formState.mainTable.label" placeholder="如：主表" />
+              <a-input v-model:value="formState.mainTable.label" :disabled="isReadonly" placeholder="如：主表" />
             </a-form-item>
           </a-col>
         </a-row>
 
         <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
           <span style="font-weight: 600; font-size: 14px;">主表字段</span>
-          <a-button type="dashed" size="small" @click="addField">+ 添加字段</a-button>
+          <a-button v-if="!isReadonly" type="dashed" size="small" @click="addField">+ 添加字段</a-button>
         </div>
         <a-table
           :columns="fieldColumns"
@@ -89,13 +99,13 @@
         >
           <template #bodyCell="{ column, record, index }">
             <template v-if="column.key === 'fieldKey'">
-              <a-input v-model:value="record.fieldKey" size="small" placeholder="字段标识" />
+              <a-input v-model:value="record.fieldKey" size="small" placeholder="字段标识" :disabled="isReadonly" />
             </template>
             <template v-if="column.key === 'label'">
-              <a-input v-model:value="record.label" size="small" placeholder="字段名称" />
+              <a-input v-model:value="record.label" size="small" placeholder="字段名称" :disabled="isReadonly" />
             </template>
             <template v-if="column.key === 'type'">
-              <a-select v-model:value="record.type" size="small" style="width: 100%" placeholder="类型">
+              <a-select v-model:value="record.type" size="small" style="width: 100%" placeholder="类型" :disabled="isReadonly">
                 <a-select-option value="text">文本</a-select-option>
                 <a-select-option value="number">数字</a-select-option>
                 <a-select-option value="amount">金额</a-select-option>
@@ -108,10 +118,10 @@
               </a-select>
             </template>
             <template v-if="column.key === 'required'">
-              <a-checkbox v-model:checked="record.required" />
+              <a-checkbox v-model:checked="record.required" :disabled="isReadonly" />
             </template>
             <template v-if="column.key === 'action'">
-              <a-popconfirm title="确定删除该字段？" @confirm="removeField(index)">
+              <a-popconfirm v-if="!isReadonly" title="确定删除该字段？" @confirm="removeField(index)">
                 <a-button type="link" danger size="small">删除</a-button>
               </a-popconfirm>
             </template>
@@ -121,24 +131,24 @@
         <!-- 子表定义 -->
         <div style="margin-top: 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
           <span style="font-weight: 600; font-size: 14px;">子表定义</span>
-          <a-button type="dashed" size="small" @click="addSubTable">+ 添加子表</a-button>
+          <a-button v-if="!isReadonly" type="dashed" size="small" @click="addSubTable">+ 添加子表</a-button>
         </div>
         <a-collapse v-model:activeKey="activeSubTables" v-if="formState.subTables.length > 0">
           <a-collapse-panel v-for="(subTable, stIdx) in formState.subTables" :key="String(stIdx)" :header="subTable.label || subTable.tableName || ('子表 ' + (stIdx + 1))">
             <template #extra>
-              <a-popconfirm title="确定删除该子表？" @confirm.stop="removeSubTable(stIdx)">
+              <a-popconfirm v-if="!isReadonly" title="确定删除该子表？" @confirm.stop="removeSubTable(stIdx)">
                 <a-button type="link" danger size="small" @click.stop>删除子表</a-button>
               </a-popconfirm>
             </template>
             <a-row :gutter="16">
               <a-col :span="12">
                 <a-form-item label="表名">
-                  <a-input v-model:value="subTable.tableName" placeholder="如：items" />
+                  <a-input v-model:value="subTable.tableName" :disabled="isReadonly" placeholder="如：items" />
                 </a-form-item>
               </a-col>
               <a-col :span="12">
                 <a-form-item label="表标签">
-                  <a-input v-model:value="subTable.label" placeholder="如：明细" />
+                  <a-input v-model:value="subTable.label" :disabled="isReadonly" placeholder="如：明细" />
                 </a-form-item>
               </a-col>
             </a-row>
@@ -156,13 +166,13 @@
             >
               <template #bodyCell="{ column, record, index }">
                 <template v-if="column.key === 'fieldKey'">
-                  <a-input v-model:value="record.fieldKey" size="small" placeholder="字段标识" />
+                  <a-input v-model:value="record.fieldKey" size="small" placeholder="字段标识" :disabled="isReadonly" />
                 </template>
                 <template v-if="column.key === 'label'">
-                  <a-input v-model:value="record.label" size="small" placeholder="字段名称" />
+                  <a-input v-model:value="record.label" size="small" placeholder="字段名称" :disabled="isReadonly" />
                 </template>
                 <template v-if="column.key === 'type'">
-                  <a-select v-model:value="record.type" size="small" style="width: 100%" placeholder="类型">
+                  <a-select v-model:value="record.type" size="small" style="width: 100%" placeholder="类型" :disabled="isReadonly">
                     <a-select-option value="text">文本</a-select-option>
                     <a-select-option value="number">数字</a-select-option>
                     <a-select-option value="amount">金额</a-select-option>
@@ -175,10 +185,10 @@
                   </a-select>
                 </template>
                 <template v-if="column.key === 'required'">
-                  <a-checkbox v-model:checked="record.required" />
+                  <a-checkbox v-model:checked="record.required" :disabled="isReadonly" />
                 </template>
                 <template v-if="column.key === 'action'">
-                  <a-popconfirm title="确定删除该字段？" @confirm="removeSubField(stIdx, index)">
+                  <a-popconfirm v-if="!isReadonly" title="确定删除该字段？" @confirm="removeSubField(stIdx, index)">
                     <a-button type="link" danger size="small">删除</a-button>
                   </a-popconfirm>
                 </template>
@@ -191,7 +201,7 @@
         <div style="text-align: right;">
           <a-space>
             <a-button @click="modalVisible = false">取消</a-button>
-            <a-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</a-button>
+            <a-button v-if="!isReadonly" type="primary" :loading="submitLoading" @click="handleSubmit">确定</a-button>
           </a-space>
         </div>
       </template>
@@ -245,6 +255,7 @@ const submitLoading = ref(false)
 const dataList = ref([])
 const modalVisible = ref(false)
 const editingRecord = ref(null)
+const isReadonly = ref(false)
 const activeSubTables = ref([])
 const genResultVisible = ref(false)
 const genResult = ref(null)
@@ -261,6 +272,7 @@ const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
   { title: '模型Key', dataIndex: 'modelKey', key: 'modelKey' },
   { title: '模型名称', dataIndex: 'modelName', key: 'modelName' },
+  { title: '类型', key: 'source', width: 110 },
   { title: '版本', dataIndex: 'version', key: 'version', width: 80 },
   { title: '状态', key: 'status', width: 100 },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
@@ -303,10 +315,12 @@ function resetForm() {
   formState.mainTable = { tableName: 'main', label: '主表', fields: [createEmptyField()] }
   formState.subTables = []
   editingRecord.value = null
+  isReadonly.value = false
   activeSubTables.value = []
 }
 
-function showModal(record) {
+function showModal(record, readonly = false) {
+  isReadonly.value = readonly
   if (record) {
     editingRecord.value = record
     formState.modelKey = record.modelKey

@@ -172,6 +172,7 @@ import DataRefRenderer from './DataRefRenderer.vue'
 import RichTextEditor from './RichTextEditor.vue'
 import { uploadAttachment, downloadAttachment } from '../api/attachment'
 import { getUsersPage, getDeptTree } from '../api/system'
+import { useApiOptions, collectApiFields } from '../composables/useApiOptions'
 
 const props = defineProps({
   /** formJson 字符串或对象（sections 嵌套结构或旧 fields 结构） */
@@ -247,6 +248,14 @@ const parsedFields = computed(() => {
   return []
 })
 
+// 接口选项来源字段（嵌套结构 + 旧扁平结构），配合表单值模板参数自动拉取
+const parsedApiFields = computed(() => {
+  const nested = collectApiFields(parsedSections.value)
+  const flat = parsedFields.value.filter(f => f.type === 'select' && f.optionsSource === 'api' && f.api && f.api.url)
+  return [...nested, ...flat]
+})
+const { apiOptions, apiLoading } = useApiOptions(parsedApiFields, localValues)
+
 function parseFormJson() {
   if (!props.formJson) return null
   if (typeof props.formJson === 'string') {
@@ -265,7 +274,9 @@ function normalizeField(f) {
     optionsText: f.optionsText || '',
     optionsSource: f.optionsSource || 'manual',
     dictCode: f.dictCode || '',
-    modelField: f.modelField || ''
+    modelField: f.modelField || '',
+    selectMode: f.selectMode || 'single',
+    api: f.api || null
   }
 }
 
@@ -440,7 +451,14 @@ function getComponentProps(field) {
   if (type === 'datetime') return { ...base, style: { width: '100%' }, showTime: true, valueFormat: 'YYYY-MM-DD HH:mm:ss' }
   if (type === 'select') {
     const options = getFieldOptions(field)
-    return { ...base, options: options.map(o => ({ value: o.value, label: o.text })), showSearch: true }
+    return {
+      ...base,
+      mode: field.selectMode === 'multiple' ? 'multiple' : undefined,
+      options: options.map(o => ({ value: o.value, label: o.text })),
+      showSearch: true,
+      optionFilterProp: 'label',
+      loading: !!apiLoading[field.field || field.key]
+    }
   }
   if (type === 'user') {
     // 人员选择：远程搜索加载用户，关闭本地过滤
@@ -478,6 +496,11 @@ function getComponentProps(field) {
 
 // 获取字段选项
 function getFieldOptions(field) {
+  // 接口选项来源：由 useApiOptions 按模板参数自动拉取
+  if (field.optionsSource === 'api') {
+    const key = field.field || field.key || field.id
+    return (apiOptions[key] || []).map(o => ({ value: o.value, text: o.label }))
+  }
   // 优先从字典数据获取（后端 DictItem 字段为 itemValue/itemText）
   if (field.dictCode && props.dictData[field.dictCode]) {
     return props.dictData[field.dictCode].map(item => ({
@@ -526,10 +549,14 @@ function getDisplayValue(field) {
   const key = field.field || field.key
   const val = localValues.value[key]
   if (val === undefined || val === null || val === '') return '-'
-  // 如果是 select/radio，显示标签
+  // 如果是 select/radio，显示标签（含接口选项与多选数组）
   if (['select', 'radio'].includes(field.type)) {
     const opts = getFieldOptions(field)
-    const opt = opts.find(o => o.value === val)
+    if (Array.isArray(val)) {
+      const texts = val.map(v => { const o = opts.find(x => String(x.value) === String(v)); return o ? o.text : String(v) })
+      return texts.join(', ')
+    }
+    const opt = opts.find(o => String(o.value) === String(val))
     if (opt) return opt.text
   }
   // 人员控件：按已加载的用户选项回显姓名
