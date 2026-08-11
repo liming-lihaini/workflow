@@ -35,8 +35,10 @@ export const rejectEntrust = (id, reviewerId, opinion) =>
   request.post(`/ems/base/entrusts/${id}/reject`, null, { params: { reviewerId, opinion } })
 export const batchDeleteEntrusts = (ids) =>
   request.post('/ems/base/entrusts/batch-delete', ids)
+// 委托操作历史（详情页「操作记录」）
+export const getEntrustHistory = (id) => request.get(`/ems/base/entrusts/${id}/history`)
 
-// 采样订单 / 调度派单（ISSUE-023）
+// 采样任务 / 调度派单（ISSUE-023）
 export const genSamplingOrders = (entrustId) =>
   request.post(`/ems/base/sampling-order/gen`, null, { params: { entrustId } })
 // 按采集频率再次派单：同一委托追加生成一张待派单订单（要求委托已确认，BR-023-09）
@@ -57,7 +59,7 @@ export const batchDeleteSampleParamConfig = (ids) =>
 export const getSamplingOrders = (params) => request.get('/ems/base/sampling-orders', { params })
 // 采样调度看板聚合（点位名称/派单计划区间/负责人），支持按订单号/负责人/状态筛选
 export const getDispatchBoardList = (params) => request.get('/ems/base/sampling-orders/dispatch-list', { params })
-// 删除采样订单（级联删除关联派单）
+// 删除采样任务（级联删除关联派单）
 export const deleteSamplingOrder = (id) => request.delete(`/ems/base/sampling-orders/${id}`)
 // 批量派单：同一派单信息派发到多个订单（参数均为 query）
 export const batchDispatch = (params) => request.post('/ems/base/sampling-orders/batch-dispatch', null, { params })

@@ -138,8 +138,21 @@ public class EmsBaseDataController {
         return Result.ok(entrustService.getVO(id));
     }
 
+    /** 委托操作历史（详情页「操作记录」，按时间倒序） */
+    @GetMapping("/entrusts/{id}/history")
+    public Result<List<com.flow.engine.entity.EmsEntrustHistory>> getEntrustHistory(@PathVariable Long id) {
+        return Result.ok(entrustService.listHistory(id));
+    }
+
     @PostMapping("/entrusts/{id}/submit")
     public Result<com.flow.engine.dto.EmsEntrustVO> submitEntrust(@PathVariable Long id, @RequestParam(required = false) String submitBy) {
+        // 前端未传或传占位值时，回退为当前登录用户，保证操作历史的操作人准确
+        if (submitBy == null || submitBy.isBlank() || "current-user".equals(submitBy)) {
+            User op = currentUser();
+            if (op != null && op.getUsername() != null) {
+                submitBy = op.getUsername();
+            }
+        }
         EmsEntrust e = entrustService.submit(id, submitBy);
         return Result.ok(entrustService.getVO(e.getId()));
     }
@@ -235,7 +248,7 @@ public class EmsBaseDataController {
         return Result.ok(dispatchService.getVehicleDetail(id));
     }
 
-    // ---------- 采样订单（5.1+5.2） ----------
+    // ---------- 采样任务（5.1+5.2） ----------
     @PostMapping("/sampling-order/gen")
     public Result<Integer> genOrders(@RequestParam Long entrustId) {
         EmsEntrust e = entrustService.getById(entrustId);
@@ -273,7 +286,7 @@ public class EmsBaseDataController {
         return Result.ok(samplingOrderService.listDispatchBoard(orderNo, leadName, status));
     }
 
-    /** 删除采样订单（级联删除关联派单，ISSUE-037） */
+    /** 删除采样任务（级联删除关联派单，ISSUE-037） */
     @DeleteMapping("/sampling-orders/{id}")
     public Result<Void> deleteSamplingOrder(@PathVariable Long id) {
         samplingOrderService.deleteOrder(id);
@@ -360,7 +373,7 @@ public class EmsBaseDataController {
     }
 
     /**
-     * 清空全部采样派单数据（采样记录 + 采样订单 + 采样照片）。
+     * 清空全部采样派单数据（采样记录 + 采样任务 + 采样照片）。
      * 仅清理采样业务线，不影响委托单/监测点位/样品/人员/设备等基础数据。谨慎调用。
      */
     @PostMapping("/sampling/clear")

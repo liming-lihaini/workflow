@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * 环境监测 - 采样订单（TRD 5.1+5.2 状态机核心，BR-023-02 拆单生成）
+ * 环境监测 - 采样任务（TRD 5.1+5.2 状态机核心，BR-023-02 拆单生成）
  */
 @Data
 @TableName("t_sampling_order")

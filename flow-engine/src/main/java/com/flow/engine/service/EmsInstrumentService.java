@@ -135,7 +135,7 @@ public class EmsInstrumentService extends ServiceImpl<EmsInstrumentMapper, EmsIn
         }
         vo.setCalibRecords(calibList);
 
-        // 关联采样任务：设备 -> 派单设备关联 -> 派单 -> 采样订单
+        // 关联采样任务：设备 -> 派单设备关联 -> 派单 -> 采样任务
         List<EmsDispatchDevice> links = dispatchDeviceService.list(
                 new LambdaQueryWrapper<EmsDispatchDevice>().eq(EmsDispatchDevice::getInstrumentId, id));
         Map<Long, EmsInstrumentDetailVO.SamplingTask> taskMap = new LinkedHashMap<>();

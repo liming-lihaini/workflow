@@ -570,6 +570,16 @@ CREATE TABLE IF NOT EXISTS `t_qc_history` (
     `create_time` DATETIME(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='t_qc_history';
 
+CREATE TABLE IF NOT EXISTS `t_entrust_history` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `entrust_id` BIGINT,
+    `action` VARCHAR(32),
+    `content` LONGTEXT,
+    `operator_id` VARCHAR(64),
+    `operator_name` VARCHAR(64),
+    `create_time` DATETIME(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='t_entrust_history';
+
 CREATE TABLE IF NOT EXISTS `t_qc_plan` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
     `plan_no` VARCHAR(512),

@@ -6,11 +6,14 @@ import com.flow.engine.dto.EmsEntrustVO;
 import com.flow.engine.entity.DictItem;
 import com.flow.engine.entity.EmsCustomer;
 import com.flow.engine.entity.EmsEntrust;
+import com.flow.engine.entity.EmsEntrustHistory;
 import com.flow.engine.entity.User;
 import com.flow.engine.entity.EmsEntrustReview;
 import com.flow.engine.entity.EmsMonitorPoint;
 import com.flow.engine.entity.EmsSamplingOrder;
+import com.flow.engine.mapper.EmsEntrustHistoryMapper;
 import com.flow.engine.mapper.EmsEntrustMapper;
+import com.flow.engine.mapper.UserMapper;
 import com.flow.engine.util.CodeGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,6 +49,10 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
     @Autowired
     private DictService dictService;
     @Autowired
+    private EmsEntrustHistoryMapper historyMapper;
+    @Autowired
+    private UserMapper userMapper;
+    @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     /** 来源字典 code（TRD 5.1 t_entrust.source） */
@@ -72,10 +79,12 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         e.setStatus("待技术确认");
         e.setUpdateTime(LocalDateTime.now());
         this.updateById(e);
+        User op = lookupUserByName(submitBy);
+        recordHistory(id, "提交", "提交委托，进入技术确认", submitBy, op == null ? null : op.getRealName());
         return e;
     }
 
-    /** 技术确认通过（BR-023-01）：写 review + 状态→已确认 + 拆单生成采样订单（BR-023-02） */
+    /** 技术确认通过（BR-023-01）：写 review + 状态→已确认 + 拆单生成采样任务（BR-023-02） */
     @Transactional
     public EmsEntrust techConfirm(Long id, Long reviewerId, String opinion) {
         EmsEntrust e = require(id);
@@ -103,6 +112,11 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         this.updateById(e);
 
         samplingOrderService.genFromEntrust(e);
+        User op = lookupUserById(reviewerId);
+        recordHistory(id, "技术确认", "技术确认通过，委托编号 " + e.getEntrustNo()
+                + "，状态：待技术确认 → 已确认；意见：" + stripHtml(opinion),
+                op == null ? String.valueOf(reviewerId) : op.getUsername(),
+                op == null ? null : op.getRealName());
         return e;
     }
 
@@ -127,6 +141,10 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         e.setStatus("已退回");
         e.setUpdateTime(LocalDateTime.now());
         this.updateById(e);
+        User op = lookupUserById(reviewerId);
+        recordHistory(id, "退回", "技术确认退回，状态：待技术确认 → 已退回；意见：" + opinion,
+                op == null ? String.valueOf(reviewerId) : op.getUsername(),
+                op == null ? null : op.getRealName());
         return e;
     }
 
@@ -146,6 +164,7 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         e.setStatus("已收样");
         e.setUpdateTime(LocalDateTime.now());
         this.updateById(e);
+        recordHistory(id, "收样", "收样完成，状态 → 已收样", "system", "系统");
         return e;
     }
 
@@ -160,7 +179,7 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
             jdbcTemplate.update("DELETE FROM t_monitor_point WHERE entrust_id = ?", id);
             // 委托明细
             jdbcTemplate.update("DELETE FROM t_entrust_detail WHERE entrust_id = ?", id);
-            // 采样订单 + 其派单
+            // 采样任务 + 其派单
             List<Long> orderIds = jdbcTemplate.queryForList(
                     "SELECT id FROM t_sampling_order WHERE entrust_id = ?", Long.class, id);
             if (orderIds != null && !orderIds.isEmpty()) {
@@ -168,6 +187,8 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
                 jdbcTemplate.update("DELETE FROM t_dispatch WHERE order_id IN (" + inSql + ")");
                 jdbcTemplate.update("DELETE FROM t_sampling_order WHERE entrust_id = ?", id);
             }
+            // 操作历史随委托一并清理
+            historyMapper.delete(new LambdaQueryWrapper<EmsEntrustHistory>().eq(EmsEntrustHistory::getEntrustId, id));
         }
         removeByIds(ids);
     }
@@ -282,6 +303,16 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
             }
             monitorPointService.saveBatch(points);
         }
+        // 操作历史：新建 / 编辑
+        if (isNew) {
+            recordHistory(e.getId(), "新建", "新建检测委托【" + e.getEntrustName() + "】",
+                    operator == null ? null : operator.getUsername(),
+                    operator == null ? null : operator.getRealName());
+        } else {
+            recordHistory(e.getId(), "编辑", "编辑委托信息【" + e.getEntrustName() + "】",
+                    operator == null ? null : operator.getUsername(),
+                    operator == null ? null : operator.getRealName());
+        }
         return getVO(e.getId());
     }
 
@@ -341,5 +372,49 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
             throw new IllegalArgumentException("委托不存在");
         }
         return e;
+    }
+
+    // ===================== 操作历史（详情页「操作记录」展示） =====================
+
+    /** 委托操作历史列表（按时间倒序） */
+    public List<EmsEntrustHistory> listHistory(Long entrustId) {
+        return historyMapper.selectList(new LambdaQueryWrapper<EmsEntrustHistory>()
+                .eq(EmsEntrustHistory::getEntrustId, entrustId)
+                .orderByDesc(EmsEntrustHistory::getId));
+    }
+
+    private void recordHistory(Long entrustId, String action, String content, String opBy, String opName) {
+        EmsEntrustHistory h = new EmsEntrustHistory();
+        h.setEntrustId(entrustId);
+        h.setAction(action);
+        h.setContent(content);
+        h.setOperatorId(opBy);
+        h.setOperatorName(opName);
+        h.setCreateTime(LocalDateTime.now());
+        historyMapper.insert(h);
+    }
+
+    private User lookupUserById(Long userId) {
+        if (userId == null) return null;
+        try {
+            return userMapper.selectById(userId);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private User lookupUserByName(String username) {
+        if (!StringUtils.hasText(username)) return null;
+        try {
+            return userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** 富文本意见转纯文本（去标签），用于操作历史展示；review 表仍存原始 HTML */
+    private String stripHtml(String html) {
+        if (!StringUtils.hasText(html)) return "";
+        return html.replaceAll("<[^>]+>", "").replaceAll("&nbsp;", " ").trim();
     }
 }

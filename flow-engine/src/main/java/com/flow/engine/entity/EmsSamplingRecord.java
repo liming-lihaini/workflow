@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class EmsSamplingRecord {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private Long orderId;     // 采样订单ID
+    private Long orderId;     // 采样任务ID
     private Long dispatchId;  // 派单ID
     private Long pointId;     // 监测点位ID
     private String sampler;   // 采样人

@@ -18,7 +18,7 @@ public class EmsSample {
     private Long id;
     private String barcode;      // 样品条码（YP前缀）
     private Long samplingId;     // 采样记录ID
-    private Long orderId;        // 采样订单ID
+    private Long orderId;        // 采样任务ID
     private Long pointId;        // 监测点位ID
     private String name;         // 样品名称
     private String type;         // 样品类型（水样/气样/土壤等）

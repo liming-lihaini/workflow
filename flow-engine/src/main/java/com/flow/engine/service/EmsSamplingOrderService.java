@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 环境监测 - 采样订单服务（TRD 5.1+5.2，BR-023-02 拆单）
+ * 环境监测 - 采样任务服务（TRD 5.1+5.2，BR-023-02 拆单）
  * 以委托单为主体生成「待派单」订单，支持按采集频率再次派单（redispatch）。
  */
 @Service
@@ -213,7 +213,7 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
     }
 
     /**
-     * 删除采样订单：级联删除关联派单（避免孤儿数据），再删除订单本身。
+     * 删除采样任务：级联删除关联派单（避免孤儿数据），再删除任务本身。
      */
     @Transactional
     public void deleteOrder(Long id) {

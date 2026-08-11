@@ -65,7 +65,7 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
                                 LocalDateTime planStart, LocalDateTime planEnd, String note, java.util.Set<Long> excludeOrderIds) {
         EmsSamplingOrder order = samplingOrderService.getById(orderId);
         if (order == null) {
-            throw new BusinessException("采样订单不存在");
+            throw new BusinessException("采样任务不存在");
         }
         if (!"待派单".equals(order.getStatus())) {
             throw new BusinessException("仅待派单状态可派单，当前：" + order.getStatus());

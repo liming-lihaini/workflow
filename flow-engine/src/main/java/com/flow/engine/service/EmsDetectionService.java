@@ -74,7 +74,7 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
         // 检测任务创建完成，关联样品状态变更为「实验室监测中」
         if (sample != null) {
             updateSampleStatus(sampleId, "实验室监测中");
-            // 同步关联采样订单状态为「实验室监测中」
+            // 同步关联采样任务状态为「实验室监测中」
             if (sample.getOrderId() != null) {
                 updateOrderStatus(sample.getOrderId(), "实验室监测中");
             }
@@ -92,7 +92,7 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
         sampleMapper.update(null, uw);
     }
 
-    /** 联动更新关联采样订单状态。 */
+    /** 联动更新关联采样任务状态。 */
     private void updateOrderStatus(Long orderId, String status) {
         EmsSamplingOrder order = samplingOrderService.getById(orderId);
         if (order == null || status.equals(order.getStatus())) return;

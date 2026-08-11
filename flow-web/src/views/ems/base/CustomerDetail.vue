@@ -120,7 +120,12 @@ onMounted(load)
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  padding: 16px 10px;
+  /* 信息头固定：吸附在滚动视口顶部，其余内容超长时由其下方滚动 */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f0f4f9;
 }
 .page-title {
   font-size: 16px;

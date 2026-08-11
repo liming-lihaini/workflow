@@ -29,6 +29,7 @@ public class EmsEntrustVO {
     private String createName;     // 创建人-姓名（realName）
     private String updateBy;       // 更新人-工号（username）
     private String updateName;     // 更新人-姓名（realName）
+    private Long processInstanceId; // 来源流程实例ID（委托申请流程，详情页展示关联流程）
     private String createTime;
     private String updateTime;
     private List<EmsMonitorPoint> points;  // 监测点位（委托基础信息）
@@ -52,6 +53,7 @@ public class EmsEntrustVO {
         vo.setCreateName(e.getCreateName());
         vo.setUpdateBy(e.getUpdateBy());
         vo.setUpdateName(e.getUpdateName());
+        vo.setProcessInstanceId(e.getProcessInstanceId());
         vo.setCreateTime(e.getCreateTime() == null ? null : e.getCreateTime().toString());
         vo.setUpdateTime(e.getUpdateTime() == null ? null : e.getUpdateTime().toString());
         return vo;

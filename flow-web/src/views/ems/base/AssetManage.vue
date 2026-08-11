@@ -684,7 +684,7 @@ function formatFlowTime(t) {
   return dayjs(String(t).replace(' ', 'T')).format('YYYY-MM-DD HH:mm')
 }
 
-/* ============ 设备使用日历（参考车辆使用日历：行×日网格，占用区间取采样订单派单 planStart~planEnd） ============ */
+/* ============ 设备使用日历（参考车辆使用日历：行×日网格，占用区间取采样任务派单 planStart~planEnd） ============ */
 const instViewMode = ref('list')
 const instCalLoading = ref(false)
 const instCalUnit = ref('month')

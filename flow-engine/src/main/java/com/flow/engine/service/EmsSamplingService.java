@@ -60,7 +60,7 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
     // ===================== 采样记录 =====================
 
     public EmsSamplingRecord createRecord(EmsSamplingRecord rec) {
-        if (rec.getOrderId() == null) throw new BusinessException("采样订单ID不能为空");
+        if (rec.getOrderId() == null) throw new BusinessException("采样任务ID不能为空");
         if (rec.getPointId() == null) throw new BusinessException("监测点位不能为空");
         rec.setStatus(StringUtils.hasText(rec.getStatus()) ? rec.getStatus() : "采样中");
         rec.setCreateTime(LocalDateTime.now());
@@ -79,7 +79,7 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         return rec;
     }
 
-    /** 完成采样（采样中 → 采样完成），并同步采样订单状态 */
+    /** 完成采样（采样中 → 采样完成），并同步采样任务状态 */
     @Transactional(rollbackFor = Exception.class)
     public EmsSamplingRecord completeRecord(Long id) {
         EmsSamplingRecord exist = getById(id);
@@ -109,9 +109,9 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
     }
 
     /**
-     * 清空全部采样派单数据：采样记录 + 采样订单 + 采样照片（bizType='sampling_record'）。
+     * 清空全部采样派单数据：采样记录 + 采样任务 + 采样照片（bizType='sampling_record'）。
      * 仅清理采样业务线，不影响委托单/监测点位/样品/人员/设备等基础数据。物理删除，谨慎调用。
-     * @return 清除的采样订单记录数
+     * @return 清除的采样任务记录数
      */
     @Transactional
     public int clearAll() {

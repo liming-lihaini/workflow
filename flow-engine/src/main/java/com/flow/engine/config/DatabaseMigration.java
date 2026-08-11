@@ -41,6 +41,16 @@ public class DatabaseMigration implements CommandLineRunner {
                 + "operator_name VARCHAR(64), "
                 + "create_time DATETIME(6)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+        // 检测委托操作历史表（新建、编辑、提交、技术确认、退回、收样等处置轨迹）
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_entrust_history ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "entrust_id BIGINT, "
+                + "action VARCHAR(32), "
+                + "content LONGTEXT, "
+                + "operator_id VARCHAR(64), "
+                + "operator_name VARCHAR(64), "
+                + "create_time DATETIME(6)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
         // 用户档案扩展字段（性别/出生年月/头像）
         addColumnIfAbsent("sys_user", "gender", "VARCHAR(16)");
         addColumnIfAbsent("sys_user", "birth_date", "VARCHAR(32)");

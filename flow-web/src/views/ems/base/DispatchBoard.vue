@@ -100,7 +100,7 @@
               <a-space>
                 <span v-if="record.status === '待派单' && hasPerm('ems:dispatch')" class="action-link" @click="openDispatch(record)">派单</span>
                 <span class="action-link" @click="openDetail(record)">详情</span>
-                <a-popconfirm title="确认删除该采样订单？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
+                <a-popconfirm title="确认删除该采样任务？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
                   <span class="action-link danger" @click.stop>删除</span>
                 </a-popconfirm>
               </a-space>
@@ -160,7 +160,7 @@
                 <a-space>
                   <span v-if="record.status === '待派单' && hasPerm('ems:dispatch')" class="action-link" @click="openDispatch(record)">派单</span>
                   <span class="action-link" @click="openDetail(record)">详情</span>
-                  <a-popconfirm title="确认删除该采样订单？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
+                  <a-popconfirm title="确认删除该采样任务？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
                     <span class="action-link danger" @click.stop>删除</span>
                   </a-popconfirm>
                 </a-space>
@@ -275,7 +275,7 @@ function antColorHex(c) {
   return ANT_HEX[c] || c || '#8c8c8c'
 }
 
-// 采样订单状态全过程（用于筛选下拉）
+// 采样任务状态全过程（用于筛选下拉）
 const ORDER_STATUS_CHAIN = [
   '待派单', '已派单'
 ]
@@ -444,7 +444,7 @@ function closeDispatch() {
 
 function handleDeleteOrder(order) {
   deleteSamplingOrder(order.id).then(() => {
-    message.success('采样订单已删除')
+    message.success('采样任务已删除')
     loadOrders()
   }).catch(() => {})
 }

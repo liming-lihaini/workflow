@@ -972,7 +972,7 @@ async function handleDownloadPdf() {
 .tab-content {
   max-width: 1400px;
   margin: 0 auto 10px;
-  padding: 0 10px;
+  padding: 10px 0px;
 }
 .tab-panel {
   background: #fff;

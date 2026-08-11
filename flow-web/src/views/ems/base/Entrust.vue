@@ -60,13 +60,11 @@
               <span class="action-link">提交</span>
             </a-popconfirm>
             <a-divider v-if="record.status === '草稿' || record.status === '已退回'" type="vertical" />
-            <a-popconfirm
+            <span
               v-if="record.status === '待技术确认'"
-              title="确认技术评审通过并拆单？"
-              @confirm="handleTechConfirm(record)"
-            >
-              <span class="action-link">技术确认</span>
-            </a-popconfirm>
+              class="action-link"
+              @click.stop="handleTechConfirm(record)"
+            >技术确认</span>
             <a-divider v-if="record.status === '待技术确认'" type="vertical" />
             <a-popconfirm
               v-if="record.status === '待技术确认'"
@@ -248,6 +246,16 @@
     <a-modal v-model:open="rejectVisible" title="退回委托" @ok="confirmReject" ok-text="确认退回">
       <a-textarea v-model:value="rejectForm.opinion" placeholder="必填退回意见(BR-023-06)" :rows="3" />
     </a-modal>
+
+    <!-- 技术确认意见弹窗：富文本输入，提交后关闭弹窗并由 v-if 销毁富文本组件 -->
+    <a-modal v-model:open="techConfirmVisible" title="技术确认" ok-text="确认通过" @ok="confirmTechConfirm">
+      <div style="margin-bottom:8px">确认技术评审通过并拆单生成采样任务，请填写确认意见：</div>
+      <RichTextEditor
+        v-if="techConfirmVisible"
+        v-model:value="techConfirmForm.opinion"
+        placeholder="请输入确认意见（必填）"
+      />
+    </a-modal>
   </div>
 </template>
 
@@ -302,6 +310,10 @@ function configItemOptions(type) {
 
 const rejectVisible = ref(false)
 const rejectForm = reactive({ record: null, opinion: '' })
+
+// 技术确认意见弹窗（富文本）
+const techConfirmVisible = ref(false)
+const techConfirmForm = reactive({ record: null, opinion: '' })
 
 // 委托附件（多附件上传）
 const attachments = ref([])              // [{ uid, name, path, status }]
@@ -696,8 +708,22 @@ function handleAttachmentRemove(file) {
 
 
 function handleTechConfirm(record) {
-  techConfirmEntrust(record.id, 1, '方法适用、能力满足').then(() => {
-    message.success('技术确认通过，已拆单生成采样订单')
+  techConfirmForm.record = record
+  techConfirmForm.opinion = ''
+  techConfirmVisible.value = true
+}
+
+function confirmTechConfirm() {
+  // 富文本去标签后校验非空（必填确认意见）
+  const plain = String(techConfirmForm.opinion || '').replace(/<[^>]+>/g, '').trim()
+  if (!plain) {
+    message.warning('请填写确认意见')
+    return
+  }
+  techConfirmEntrust(techConfirmForm.record.id, 1, techConfirmForm.opinion).then(() => {
+    message.success('技术确认通过，已拆单生成采样任务')
+    // 关闭弹窗：v-if 同步销毁富文本组件，避免残留编辑状态
+    techConfirmVisible.value = false
     loadData()
   }).catch(() => {})
 }
@@ -706,7 +732,7 @@ function handleTechConfirm(record) {
 function handleRedispatch(record) {
   redispatchSamplingOrder(record.id).then((res) => {
     const orderNo = res?.data?.orderNo
-    message.success(orderNo ? `已生成采样订单 ${orderNo}，请到采样调度看板派单` : '已生成采样订单，请到采样调度看板派单')
+    message.success(orderNo ? `已生成采样任务 ${orderNo}，请到采样调度看板派单` : '已生成采样任务，请到采样调度看板派单')
     loadData()
   }).catch(() => {})
 }

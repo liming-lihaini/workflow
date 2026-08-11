@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="page-toolbar">
-      <a-button @click="emit('close')">
+      <a-button @click="emit('close')" size="small">
         <template #icon><span class="btn-icon">←</span></template>
         返回
       </a-button>
@@ -89,6 +89,53 @@
         </template>
       </a-table>
     </a-card>
+
+    <!-- 关联流程信息：委托申请流程（Webhook 创建时写入 processInstanceId） -->
+    <a-card v-if="vo.processInstanceId" title="关联流程信息" size="small" class="block">
+      <a-descriptions v-if="procInfo" :column="2" bordered size="small" :label-style="{ width: '120px' }">
+        <a-descriptions-item label="流程名称">{{ procInfo.processName || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="流程编号">{{ procInfo.instanceNo || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="流程状态">
+          <a-tag :color="procStatusColor(procInfo.status)">{{ procInfo.statusDesc || '-' }}</a-tag>
+        </a-descriptions-item>
+        <a-descriptions-item label="发起人">{{ procInfo.startUser || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="发起时间">{{ renderDateTime(procInfo.startTime) }}</a-descriptions-item>
+        <a-descriptions-item label="结束时间">{{ renderDateTime(procInfo.endTime) }}</a-descriptions-item>
+        <a-descriptions-item label="当前节点">{{ procInfo.currentNodeName || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="当前办理人">{{ procInfo.currentAssignee || '-' }}</a-descriptions-item>
+      </a-descriptions>
+      <a-divider class="title-divider" orientation="left">办理记录</a-divider>
+      <a-timeline v-if="procTasks.length">
+        <a-timeline-item v-for="t in procTasks" :key="t.id" :color="taskTimelineColor(t)">
+          <div class="hist-line">
+            <span class="hist-action">{{ t.nodeName || t.nodeId || '-' }}</span>
+            <a-tag v-if="t.taskActionDesc">{{ t.taskActionDesc }}</a-tag>
+            <a-tag :color="taskTagColor(t.status)">{{ t.statusDesc || '-' }}</a-tag>
+          </div>
+          <div class="hist-meta">
+            {{ t.assignee || t.candidateUsers || '未指派' }} · 完成时间：{{ renderDateTime(t.completeTime) }}
+          </div>
+        </a-timeline-item>
+      </a-timeline>
+      <div v-else class="empty-tip">暂无办理记录</div>
+    </a-card>
+
+    <!-- 操作记录：委托的新建/编辑/提交/技术确认/退回/收样等处置轨迹 -->
+    <a-card title="操作记录" size="small" class="block">
+      <a-timeline v-if="histories.length">
+        <a-timeline-item v-for="h in histories" :key="h.id" :color="historyColor(h.action)">
+          <div class="hist-line">
+            <a-tag :color="historyColor(h.action)">{{ h.action }}</a-tag>
+            <span class="hist-content">{{ h.content }}</span>
+          </div>
+          <div class="hist-meta">
+            {{ h.operatorName ? h.operatorName + (h.operatorId ? '(' + h.operatorId + ')' : '') : (h.operatorId || '系统') }}
+            · {{ renderDateTime(h.createTime) }}
+          </div>
+        </a-timeline-item>
+      </a-timeline>
+      <div v-else class="empty-tip">暂无操作记录</div>
+    </a-card>
   </div>
 </template>
 
@@ -99,7 +146,9 @@ import {
   FileImageOutlined, FilePdfOutlined, FileExcelOutlined, FileWordOutlined,
   FileZipOutlined, FileOutlined, DownloadOutlined
 } from '@ant-design/icons-vue'
-import { getEntrust, getSamplingOrders, getFiles } from '../../../api/ems'
+import { getEntrust, getSamplingOrders, getFiles, getEntrustHistory } from '../../../api/ems'
+import { getProcessInstance } from '../../../api/process'
+import { getTasksByInstance } from '../../../api/task'
 
 const props = defineProps({ id: { type: [Number, String], required: true } })
 const emit = defineEmits(['close'])
@@ -108,6 +157,10 @@ const router = useRouter()
 const vo = ref({})
 const dispatchOrders = ref([])
 const attachments = ref([])
+// 操作记录（委托处置轨迹）与关联流程（委托申请流程实例 + 办理任务）
+const histories = ref([])
+const procInfo = ref(null)
+const procTasks = ref([])
 
 function attachmentUrl(file) {
   // 后端下载接口：GET /api/v1/attachments/download?path=&name=
@@ -164,6 +217,52 @@ function renderDate(v) {
   return str
 }
 
+/** 日期时间展示：yyyy-MM-dd HH:mm */
+function renderDateTime(v) {
+  if (!v) return '-'
+  return String(v).replace('T', ' ').substring(0, 16)
+}
+
+// 操作记录动作颜色
+function historyColor(action) {
+  return ({
+    '新建': 'blue', '编辑': 'cyan', '提交': 'orange',
+    '技术确认': 'green', '退回': 'red', '收样': 'purple', '删除': 'default'
+  })[action] || 'default'
+}
+
+// 流程状态颜色（0-运行中/1-已完成/2-已终止等，按描述兜底）
+function procStatusColor(status) {
+  return ({ 0: 'blue', 1: 'green', 2: 'red', 3: 'orange' })[status] || 'default'
+}
+
+// 办理任务：时间线节点颜色与状态标签颜色（status：0-待处理，1-处理中，2-已完成）
+function taskTimelineColor(t) {
+  if (t.status === 2) return 'green'
+  if (t.status === 1) return 'blue'
+  return 'gray'
+}
+function taskTagColor(status) {
+  return ({ 0: 'default', 1: 'blue', 2: 'green' })[status] || 'default'
+}
+
+function loadHistories() {
+  getEntrustHistory(props.id).then((res) => {
+    histories.value = res.data || res || []
+  }).catch(() => {})
+}
+
+/** 关联流程：按委托的 processInstanceId 拉取实例信息与办理任务 */
+function loadRelatedProcess(processInstanceId) {
+  if (!processInstanceId) return
+  getProcessInstance(processInstanceId).then((res) => {
+    procInfo.value = res.data || res
+  }).catch(() => {})
+  getTasksByInstance(processInstanceId).then((res) => {
+    procTasks.value = res.data || res || []
+  }).catch(() => {})
+}
+
 const dispatchColumns = [
   { title: '订单号', key: 'orderNo', width: 140 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
@@ -194,9 +293,12 @@ function loadAttachments() {
 onMounted(() => {
   getEntrust(props.id).then((res) => {
     vo.value = res.data || res
+    // 委托详情返回后按来源流程实例加载关联流程信息
+    loadRelatedProcess(vo.value.processInstanceId)
   }).catch(() => {})
   loadDispatchOrders()
   loadAttachments()
+  loadHistories()
 })
 </script>
 
@@ -208,8 +310,13 @@ onMounted(() => {
 .page-toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 0;
+  gap: 12px;  
+  padding: 16px 10px;
+  /* 信息头固定：吸附在滚动视口顶部，其余内容超长时由其下方滚动 */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f0f4f9;
 }
 .page-title {
   font-size: 16px;
@@ -239,6 +346,26 @@ onMounted(() => {
   color: #bfbfbf;
   font-size: 13px;
   padding: 8px 0;
+}
+/* 操作记录 / 办理记录时间线 */
+.hist-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hist-action {
+  font-weight: 500;
+  font-size: 13px;
+}
+.hist-content {
+  font-size: 13px;
+  color: #262626;
+}
+.hist-meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #8c8c8c;
 }
 .link-text {
   color: #2563EB;

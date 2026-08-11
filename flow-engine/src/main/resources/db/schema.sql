@@ -491,7 +491,7 @@ CREATE TABLE IF NOT EXISTS t_entrust_review (
     result       TEXT,   -- PASS-通过 / REJECT-退回
     review_at    TEXT
 );
--- 采样订单（BR-023-02 拆单生成，状态机核心）
+-- 采样任务（BR-023-02 拆单生成，状态机核心）
 CREATE TABLE IF NOT EXISTS t_sampling_order (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     order_no     TEXT,
@@ -651,7 +651,7 @@ CREATE TABLE IF NOT EXISTS t_instrument_calib (
 
 CREATE TABLE IF NOT EXISTS t_sampling_record (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id      INTEGER,      -- 采样订单ID
+    order_id      INTEGER,      -- 采样任务ID
     dispatch_id   INTEGER,      -- 派单ID
     point_id      INTEGER,      -- 监测点位ID
     sampler       TEXT,         -- 采样人
@@ -675,7 +675,7 @@ CREATE TABLE IF NOT EXISTS t_sample (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     barcode       TEXT,         -- 样品条码（YP前缀）
     sampling_id   INTEGER,      -- 采样记录ID
-    order_id      INTEGER,      -- 采样订单ID
+    order_id      INTEGER,      -- 采样任务ID
     point_id      INTEGER,      -- 监测点位ID
     name          TEXT,         -- 样品名称
     type          TEXT,         -- 样品类型（水样/气样/土壤等）

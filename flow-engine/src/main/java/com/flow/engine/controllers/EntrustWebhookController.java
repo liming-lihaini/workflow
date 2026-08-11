@@ -4,12 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.flow.engine.common.Result;
 import com.flow.engine.entity.DictItem;
 import com.flow.engine.entity.EmsEntrust;
+import com.flow.engine.entity.EmsEntrustHistory;
 import com.flow.engine.entity.EmsFileMeta;
 import com.flow.engine.entity.EmsMonitorPoint;
 import com.flow.engine.entity.EmsSampleParamConfig;
 import com.flow.engine.entity.ProcessInstance;
 import com.flow.engine.entity.User;
 import com.flow.engine.mapper.EmsEntrustMapper;
+import com.flow.engine.mapper.EmsEntrustHistoryMapper;
 import com.flow.engine.mapper.EmsFileMetaMapper;
 import com.flow.engine.mapper.EmsMonitorPointMapper;
 import com.flow.engine.mapper.EmsSampleParamConfigMapper;
@@ -49,6 +51,7 @@ import java.util.Map;
 public class EntrustWebhookController {
 
     private final EmsEntrustMapper entrustMapper;
+    private final EmsEntrustHistoryMapper entrustHistoryMapper;
     private final EmsMonitorPointMapper monitorPointMapper;
     private final ProcessInstanceMapper processInstanceMapper;
     private final UserMapper userMapper;
@@ -57,6 +60,7 @@ public class EntrustWebhookController {
     private final DictService dictService;
 
     public EntrustWebhookController(EmsEntrustMapper entrustMapper,
+                                    EmsEntrustHistoryMapper entrustHistoryMapper,
                                     EmsMonitorPointMapper monitorPointMapper,
                                     ProcessInstanceMapper processInstanceMapper,
                                     UserMapper userMapper,
@@ -64,6 +68,7 @@ public class EntrustWebhookController {
                                     EmsFileMetaMapper fileMetaMapper,
                                     DictService dictService) {
         this.entrustMapper = entrustMapper;
+        this.entrustHistoryMapper = entrustHistoryMapper;
         this.monitorPointMapper = monitorPointMapper;
         this.processInstanceMapper = processInstanceMapper;
         this.userMapper = userMapper;
@@ -166,6 +171,16 @@ public class EntrustWebhookController {
         entrustMapper.insert(entrust);
         log.info("[EntrustWebhook] 创建委托单: entrustNo={}, entrustName={}, createBy={}",
                 entrust.getEntrustNo(), entrustName, createBy);
+        // 操作历史：流程审批通过自动创建
+        EmsEntrustHistory history = new EmsEntrustHistory();
+        history.setEntrustId(entrust.getId());
+        history.setAction("新建");
+        history.setContent("委托申请流程审批通过，自动创建检测委托【" + entrustName + "】"
+                + (processInstanceId != null ? "（流程实例 " + processInstanceId + "）" : ""));
+        history.setOperatorId(createBy);
+        history.setOperatorName(createName);
+        history.setCreateTime(approveTime);
+        entrustHistoryMapper.insert(history);
 
         // 监测点位子表（formData.points）逐行写入 t_monitor_point
         int pointCount = insertPoints(formData.get("points"), entrust, approveTime);
