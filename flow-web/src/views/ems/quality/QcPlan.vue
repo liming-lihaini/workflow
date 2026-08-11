@@ -1,19 +1,28 @@
 <template>
   <div class="page-container">
     <a-card title="质控计划" :bordered="false">
-      <a-space style="margin-bottom:16px">
-        <a-button type="primary" @click="openPlan()">+ 新建计划</a-button>
-        <a-input-search v-model:value="kw" placeholder="名称搜索" style="width:200px" @search="load" allow-clear />
-      </a-space>
-      <a-table
-        :columns="planCols"
-        :data-source="plans"
-        row-key="id"
-        :pagination="pg"
-        :loading="loading"
-        :expanded-row-keys="expandedKeys"
-        @expand="onPlanExpand"
-      >
+      <template #extra>
+        <a-radio-group v-model:value="viewMode" button-style="solid" size="small" @change="onViewChange">
+          <a-radio-button value="plan">计划视图</a-radio-button>
+          <a-radio-button value="task">任务视图</a-radio-button>
+        </a-radio-group>
+      </template>
+
+      <template v-if="viewMode === 'plan'">
+        <a-space style="margin-bottom:16px">
+          <a-button type="primary" @click="openPlan()">+ 新建计划</a-button>
+          <a-input-search v-model:value="kw" placeholder="名称搜索" style="width:200px" @search="load" allow-clear />
+        </a-space>
+        <a-table
+          :columns="planCols"
+          :data-source="plans"
+          row-key="id"
+          :pagination="pg"
+          :loading="loading"
+          :expanded-row-keys="expandedKeys"
+          :scroll="{ y: 480 }"
+          @expand="onPlanExpand"
+        >
         <template #expandedRowRender="{ record }">
           <div class="act-panel">
             <div class="act-toolbar">
@@ -76,6 +85,9 @@
           <template v-if="column.key === 'planNo'">
             <a @click="$router.push(`/ems/quality/plan-detail/${record.id}`)" style="font-family: monospace">{{ record.planNo }}</a>
           </template>
+          <template v-else-if="column.key === 'responsibleId'">
+            {{ record.responsibleName || record.responsibleId || '-' }}
+          </template>
           <template v-else-if="column.key === 'progress'">
             <span class="progress-text">{{ record.taskDone || 0 }}/{{ record.taskTotal || 0 }}</span>
           </template>
@@ -84,35 +96,129 @@
           </template>
           <template v-else-if="column.key === 'action'">
             <a-space>
-              <a v-if="record.status==='草稿'" @click="openPlan(record)">编辑</a>
+              <a @click="openPlan(record)">编辑</a>
               <a v-if="record.status==='草稿'" @click="submit(record)">提交</a>
               <a v-if="record.status==='审批中'" @click="approve(record)">审批通过</a>
               <a v-if="record.status==='执行中'" @click="complete(record)">完成</a>
               <a @click="openActivity(record)">添加活动</a>
-              <a v-if="record.status==='草稿'" class="danger-link" @click="removePlan(record)">删除</a>
+              <a class="danger-link" @click="removePlan(record)">删除</a>
             </a-space>
           </template>
         </template>
       </a-table>
-    </a-card>
+      </template>
 
-    <a-modal v-model:open="planVisible" :title="planForm.id?'编辑计划':'新建计划'" @ok="savePlan">
-      <a-form :model="planForm" layout="vertical">
-        <a-form-item label="计划名称"><a-input v-model:value="planForm.title" /></a-form-item>
-        <a-form-item label="年度"><a-input-number v-model:value="planForm.year" :min="2000" style="width:100%" /></a-form-item>
-        <a-form-item label="季度"><a-input v-model:value="planForm.quarter" placeholder="Q1/Q2/Q3/Q4/专项" /></a-form-item>
-        <a-form-item label="类型"><a-select v-model:value="planForm.type"><a-select-option value="年度">年度</a-select-option><a-select-option value="季度">季度</a-select-option><a-select-option value="专项">专项</a-select-option></a-select></a-form-item>
-        <a-form-item label="责任人">
+      <!-- 任务视图：全部质控活动任务，支持条件检索与分页 -->
+      <template v-else>
+      <a-form layout="inline" style="margin-bottom:16px; row-gap:12px">
+        <a-form-item label="名称">
+          <a-input v-model:value="tvState.keyword" placeholder="任务编号/活动类型/检测项目" style="width:220px" allow-clear @press-enter="searchTaskView" />
+        </a-form-item>
+        <a-form-item label="状态">
+          <a-select v-model:value="tvState.taskStatus" :options="taskStatusOptions" placeholder="全部" style="width:130px" allow-clear />
+        </a-form-item>
+        <a-form-item label="时间范围">
+          <a-range-picker v-model:value="tvState.dateRange" value-format="YYYY-MM-DD" style="width:240px" />
+        </a-form-item>
+        <a-form-item label="执行人">
           <a-select
-            v-model:value="planForm.responsibleId"
+            v-model:value="tvState.operatorId"
             :options="userOptions"
             :loading="userLoading"
             show-search
             allow-clear
             :filter-option="false"
             placeholder="输入姓名远程搜索"
+            style="width:180px"
             @search="onUserSearch"
           />
+        </a-form-item>
+        <a-form-item>
+          <a-space>
+            <a-button type="primary" @click="searchTaskView">查询</a-button>
+            <a-button @click="resetTaskView">重置</a-button>
+          </a-space>
+        </a-form-item>
+      </a-form>
+      <a-table
+        :columns="tvCols"
+        :data-source="tvState.list"
+        :loading="tvState.loading"
+        :pagination="{
+          current: tvState.page,
+          pageSize: tvState.size,
+          total: tvState.total,
+          showTotal: (t) => `共 ${t} 条`,
+          showSizeChanger: true,
+          onChange: (p, s) => { tvState.page = p; tvState.size = s; loadTaskView() }
+        }"
+        row-key="id"
+        size="small"
+        :scroll="{ y: 480 }"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'taskNo'">
+            <a @click="$router.push(`/ems/quality/activity-detail/${record.id}`)" style="font-family: monospace">{{ record.taskNo || '-' }}</a>
+          </template>
+          <template v-else-if="column.key === 'plan'">
+            <a v-if="record.planId" @click="$router.push(`/ems/quality/plan-detail/${record.planId}`)">{{ record.planTitle || record.planId }}</a>
+            <span v-else>-</span>
+          </template>
+          <template v-else-if="column.key === 'operator'">
+            {{ record.operatorName || record.operatorId || '-' }}
+          </template>
+          <template v-else-if="column.key === 'taskStatus'">
+            <a-tag :color="taskStatusColor(record.taskStatus)">{{ record.taskStatus || '-' }}</a-tag>
+          </template>
+        </template>
+      </a-table>
+      </template>
+    </a-card>
+
+    <a-modal v-model:open="planVisible" :title="planForm.id?'编辑计划':'新建计划'" width="720px" @ok="savePlan">
+      <a-form ref="planFormRef" :model="planForm" :rules="planRules" layout="vertical">
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="计划名称" name="title"><a-input v-model:value="planForm.title" /></a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="责任人" name="responsibleId">
+              <a-select
+                v-model:value="planForm.responsibleId"
+                :options="userOptions"
+                :loading="userLoading"
+                show-search
+                allow-clear
+                :filter-option="false"
+                placeholder="输入姓名远程搜索"
+                @search="onUserSearch"
+              />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="年度" name="year"><a-input-number v-model:value="planForm.year" :min="2000" style="width:100%" /></a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="季度" name="quarter"><a-input v-model:value="planForm.quarter" placeholder="Q1/Q2/Q3/Q4/专项" /></a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="开始日期" name="startDate">
+              <a-date-picker v-model:value="planForm.startDate" value-format="YYYY-MM-DD" style="width:100%" @change="() => planForm.endDate && planFormRef?.validateFields(['endDate'])" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="结束日期" name="endDate">
+              <a-date-picker v-model:value="planForm.endDate" value-format="YYYY-MM-DD" style="width:100%" @change="() => planForm.startDate && planFormRef?.validateFields(['startDate'])" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        
+        <a-form-item label="计划描述" name="description">
+          <RichTextEditor v-model:value="planForm.description" placeholder="请输入计划描述（支持完整富文本编辑）" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -168,12 +274,12 @@
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="开始日期" name="startDate">
-              <a-date-picker v-model:value="actForm.startDate" value-format="YYYY-MM-DD" style="width:100%" />
+              <a-date-picker v-model:value="actForm.startDate" value-format="YYYY-MM-DD" style="width:100%" @change="() => actForm.endDate && actFormRef?.validateFields(['endDate'])" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item label="结束日期" name="endDate">
-              <a-date-picker v-model:value="actForm.endDate" value-format="YYYY-MM-DD" style="width:100%" />
+              <a-date-picker v-model:value="actForm.endDate" value-format="YYYY-MM-DD" style="width:100%" @change="() => actForm.startDate && actFormRef?.validateFields(['startDate'])" />
             </a-form-item>
           </a-col>
         </a-row>
@@ -202,11 +308,10 @@ const loading = ref(false), kw = ref('')
 const plans = ref([])
 const pg = reactive({ current: 1, pageSize: 20, total: 0, onChange: (p) => { pg.current = p; load() } })
 const planCols = [
-  { title: '计划号', dataIndex: 'planNo', key: 'planNo', width: 120 },
+  { title: '计划号', dataIndex: 'planNo', key: 'planNo', width: 140 },
   { title: '名称', dataIndex: 'title', key: 'title' },
   { title: '年度', dataIndex: 'year', key: 'year', width: 80 },
-  { title: '季度', dataIndex: 'quarter', key: 'quarter', width: 80 },
-  { title: '类型', dataIndex: 'type', key: 'type', width: 80 },
+  { title: '季度', dataIndex: 'quarter', key: 'quarter', width: 120 },
   { title: '责任人', dataIndex: 'responsibleId', key: 'responsibleId', width: 120 },
   { title: '任务进度', key: 'progress', width: 100 },
   { title: '状态', key: 'status', width: 90 },
@@ -228,6 +333,45 @@ const actCols = [
   { title: '操作', key: 'op', width: 240 }
 ]
 const taskStatusColor = (s) => ({ '未开始':'default','进行中':'blue','已完成':'green','已取消':'red' }[s] || 'default')
+
+// ===================== 任务视图：全部质控活动任务，支持条件检索与分页 =====================
+const viewMode = ref('plan')
+const tvState = reactive({ keyword: '', taskStatus: undefined, dateRange: null, operatorId: undefined, page: 1, size: 10, total: 0, list: [], loading: false })
+const tvCols = [
+  { title: '任务编号', key: 'taskNo', width: 140 },
+  { title: '活动类型', dataIndex: 'qcType', key: 'qcType', width: 100 },
+  { title: '检测项目', dataIndex: 'item', key: 'item' },
+  { title: '所属计划', key: 'plan' },
+  { title: '活动执行人', key: 'operator', width: 110 },
+  { title: '任务状态', key: 'taskStatus', width: 100 },
+  { title: '开始日期', dataIndex: 'startDate', key: 'startDate', width: 110 },
+  { title: '结束日期', dataIndex: 'endDate', key: 'endDate', width: 110 }
+]
+async function loadTaskView() {
+  tvState.loading = true
+  try {
+    const params = { page: tvState.page, size: tvState.size }
+    if (tvState.keyword) params.keyword = tvState.keyword.trim()
+    if (tvState.taskStatus) params.taskStatus = tvState.taskStatus
+    if (tvState.operatorId) params.operatorId = tvState.operatorId
+    if (tvState.dateRange && tvState.dateRange.length === 2) {
+      params.startDateFrom = tvState.dateRange[0]
+      params.startDateTo = tvState.dateRange[1]
+    }
+    const res = await getQcActivities(params)
+    const p = res.data || res
+    tvState.list = p.records || p.list || []
+    tvState.total = p.total || tvState.list.length
+  } catch { /* 单次加载失败保持原状 */ } finally { tvState.loading = false }
+}
+function searchTaskView() { tvState.page = 1; loadTaskView() }
+function resetTaskView() {
+  tvState.keyword = ''; tvState.taskStatus = undefined; tvState.dateRange = null; tvState.operatorId = undefined
+  searchTaskView()
+}
+function onViewChange() {
+  if (viewMode.value === 'task') loadTaskView()
+}
 
 function ensureActState(planId) {
   if (!actState[planId]) {
@@ -256,7 +400,25 @@ async function loadTasks(planId) {
 }
 
 const planVisible = ref(false), curPlan = ref(null)
-const planForm = reactive({ id: null, title: '', year: new Date().getFullYear(), quarter: 'Q1', type: '年度', responsibleId: '' })
+const planForm = reactive({ id: null, title: '', year: new Date().getFullYear(), quarter: 'Q1', type: '年度', responsibleId: '', startDate: null, endDate: null, description: '' })
+
+// 新建/编辑质控计划必填项校验
+const planFormRef = ref(null)
+const planRules = {
+  title: [{ required: true, message: '请输入计划名称' }],
+  responsibleId: [{ required: true, message: '请选择责任人' }],
+  startDate: [{ required: true, message: '请选择开始日期' }],
+  endDate: [
+    { required: true, message: '请选择结束日期' },
+    { validator: (rule, value) => {
+        if (value && planForm.startDate && value < planForm.startDate) {
+          return Promise.reject('结束日期必须大于等于开始日期')
+        }
+        return Promise.resolve()
+      } }
+  ],
+  description: [{ required: true, message: '请输入计划描述' }]
+}
 function openPlan(r) {
   if (r) Object.assign(planForm, r)
   else Object.keys(planForm).forEach(k => { if (k!=='year') planForm[k]=null }); planForm.year = new Date().getFullYear()
@@ -268,6 +430,8 @@ function openPlan(r) {
   planVisible.value = true
 }
 async function savePlan() {
+  // 必填项校验不通过则阻止提交
+  try { await planFormRef.value.validate() } catch { return }
   await saveQcPlan({ ...planForm }, opParams()); message.success('已保存'); planVisible.value = false; load()
 }
 async function submit(r) { await submitQcPlan(r.id, null, opParams()); message.success('已提交审批'); load() }
@@ -290,13 +454,31 @@ const actForm = reactive({ id: null, qcType: '空白', item: undefined, result: 
 
 // 新建/编辑质控活动必填项校验
 const actFormRef = ref(null)
+// 活动日期校验：结束日期 >= 开始日期；活动日期不能超出所属计划的日期范围
+function validateActStartDate(rule, value) {
+  const plan = curPlan.value || {}
+  if (value && plan.startDate && value < plan.startDate) {
+    return Promise.reject(`开始日期不能早于计划开始日期（${plan.startDate}）`)
+  }
+  return Promise.resolve()
+}
+function validateActEndDate(rule, value) {
+  if (value && actForm.startDate && value < actForm.startDate) {
+    return Promise.reject('结束日期必须大于等于开始日期')
+  }
+  const plan = curPlan.value || {}
+  if (value && plan.endDate && value > plan.endDate) {
+    return Promise.reject(`结束日期不能晚于计划结束日期（${plan.endDate}）`)
+  }
+  return Promise.resolve()
+}
 const actRules = {
   qcType: [{ required: true, message: '请选择活动类型' }],
   item: [{ required: true, message: '请选择检测项目' }],
   operatorId: [{ required: true, message: '请选择活动执行人' }],
   taskStatus: [{ required: true, message: '请选择任务状态' }],
-  startDate: [{ required: true, message: '请选择开始日期' }],
-  endDate: [{ required: true, message: '请选择结束日期' }]
+  startDate: [{ required: true, message: '请选择开始日期' }, { validator: validateActStartDate }],
+  endDate: [{ required: true, message: '请选择结束日期' }, { validator: validateActEndDate }]
 }
 
 // 活动执行人：人员远程选择（/system/users/page，防抖300ms）

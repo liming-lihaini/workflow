@@ -2,6 +2,7 @@ package com.flow.engine.controllers;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.flow.engine.common.Result;
+import com.flow.engine.common.utils.JsonUtils;
 import com.flow.engine.entity.*;
 import com.flow.engine.service.EmsQualityService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,7 +115,8 @@ public class EmsQualityController {
     public Result<?> submitPlan(@PathVariable Long id,
                                 @RequestParam(required = false) String opBy,
                                 @RequestParam(required = false) String opName,
-                                @RequestBody(required = false) Map<String, Object> body) {
+                                @RequestBody(required = false) String rawBody) {
+        Map<String, Object> body = JsonUtils.parseBodyMapLoose(rawBody);
         String approver = body != null && body.get("approver") != null ? String.valueOf(body.get("approver")) : "审批人";
         return Result.ok(qualityService.submitPlan(id, approver, opBy, opName));
     }
@@ -122,7 +124,8 @@ public class EmsQualityController {
     public Result<?> approvePlan(@PathVariable Long id,
                                  @RequestParam(required = false) String opBy,
                                  @RequestParam(required = false) String opName,
-                                 @RequestBody(required = false) Map<String, Object> body) {
+                                 @RequestBody(required = false) String rawBody) {
+        Map<String, Object> body = JsonUtils.parseBodyMapLoose(rawBody);
         String approver = body != null && body.get("approver") != null ? String.valueOf(body.get("approver")) : "审批人";
         return Result.ok(qualityService.approvePlan(id, approver, opBy, opName));
     }
@@ -146,9 +149,11 @@ public class EmsQualityController {
                                     @RequestParam(required = false) String keyword,
                                     @RequestParam(required = false) String operatorId,
                                     @RequestParam(required = false) String taskStatus,
+                                    @RequestParam(required = false) String startDateFrom,
+                                    @RequestParam(required = false) String startDateTo,
                                     @RequestParam(defaultValue = "1") int page,
                                     @RequestParam(defaultValue = "20") int size) {
-        return Result.ok(qualityService.pageActivities(planId, qcType, keyword, operatorId, taskStatus, page, size));
+        return Result.ok(qualityService.pageActivities(planId, qcType, keyword, operatorId, taskStatus, startDateFrom, startDateTo, page, size));
     }
     /** 质控活动待办（工作台）：活动执行人名下未完成/未取消的活动 */
     @GetMapping("/activities/todos")

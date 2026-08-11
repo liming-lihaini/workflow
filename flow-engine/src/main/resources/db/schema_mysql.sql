@@ -584,6 +584,9 @@ CREATE TABLE IF NOT EXISTS `t_qc_plan` (
     `remark` LONGTEXT,
     `created_by` VARCHAR(64),
     `created_name` VARCHAR(64),
+    `start_date` DATETIME(6),
+    `end_date` DATETIME(6),
+    `description` LONGTEXT,
     `create_time` DATETIME(6),
     `update_time` DATETIME(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='t_qc_plan';

@@ -3,6 +3,7 @@ package com.flow.engine.common;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -33,6 +34,14 @@ public class GlobalExceptionHandler {
                 : ErrorCode.PARAM_INVALID.getMessage();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Result.fail(ErrorCode.PARAM_INVALID.getCode(), msg));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Result<Void>> handleMediaType(HttpMediaTypeNotSupportedException ex) {
+        log.warn("请求内容类型不支持: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(Result.fail(ErrorCode.PARAM_INVALID.getCode(),
+                        "请求内容类型不支持：" + ex.getContentType() + "，请使用 application/json"));
     }
 
     @ExceptionHandler(Exception.class)

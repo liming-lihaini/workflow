@@ -26,6 +26,9 @@ public class EmsQcPlan {
     private String remark;
     private String createdBy;    // 创建人账号
     private String createdName;  // 创建人名称
+    private LocalDate startDate;  // 计划开始日期
+    private LocalDate endDate;    // 计划结束日期
+    private String description;   // 计划描述（富文本）
     private LocalDate createTime;
     private LocalDate updateTime;
 
@@ -35,4 +38,7 @@ public class EmsQcPlan {
     /** 任务进度（非表字段）：已完成（taskStatus=已完成）的监控活动数 */
     @TableField(exist = false)
     private Integer taskDone;
+    /** 责任人姓名（非表字段）：由 responsibleId 关联用户表回填 */
+    @TableField(exist = false)
+    private String responsibleName;
 }

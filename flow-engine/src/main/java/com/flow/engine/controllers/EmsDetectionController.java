@@ -3,6 +3,7 @@ package com.flow.engine.controllers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.flow.engine.common.BusinessException;
 import com.flow.engine.common.Result;
+import com.flow.engine.common.utils.JsonUtils;
 import com.flow.engine.entity.EmsDetectionResult;
 import com.flow.engine.entity.EmsDetectionReview;
 import com.flow.engine.entity.EmsDetectionTask;
@@ -96,7 +97,8 @@ public class EmsDetectionController {
 
     /** 复核通过 */
     @PostMapping("/task/{id}/approve")
-    public Result<?> approve(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
+    public Result<?> approve(@PathVariable Long id, @RequestBody(required = false) String rawBody) {
+        Map<String, Object> body = JsonUtils.parseBodyMapLoose(rawBody);
         String reviewer = body != null && body.get("reviewer") != null ? String.valueOf(body.get("reviewer")) : "复核员";
         String opinion = body != null && body.get("opinion") != null ? String.valueOf(body.get("opinion")) : "";
         return Result.ok(detectionService.approve(id, reviewer, opinion));

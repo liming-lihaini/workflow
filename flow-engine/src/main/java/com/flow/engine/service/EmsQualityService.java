@@ -36,6 +36,7 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
     @Autowired private EmsMaterialFlowMapper materialFlowMapper;
     @Autowired private ProcessInstanceMapper processInstanceMapper;
     @Autowired private VariableMapper variableMapper;
+    @Autowired private UserMapper userMapper;
 
     private static final int EXPIRE_WARN_DAYS = 30; // 临期阈值
 
@@ -377,6 +378,7 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
         q.orderByDesc(EmsQcPlan::getCreateTime);
         Page<EmsQcPlan> result = this.page(new Page<>(page, size), q);
         fillTaskProgress(result.getRecords());
+        fillResponsibleName(result.getRecords());
         return result;
     }
 
@@ -400,13 +402,52 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
             p.setTaskDone(c[1]);
         }
     }
+    /** 回填责任人姓名：按 responsibleId 批量关联用户表（无对应用户时保留空值，前端回退展示账号） */
+    private void fillResponsibleName(java.util.List<EmsQcPlan> planList) {
+        if (planList == null || planList.isEmpty()) return;
+        java.util.List<String> ids = planList.stream()
+                .map(EmsQcPlan::getResponsibleId)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toList());
+        if (ids.isEmpty()) return;
+        List<User> users = userMapper.selectList(
+                new LambdaQueryWrapper<User>().in(User::getUsername, ids));
+        java.util.Map<String, String> nameMap = new java.util.HashMap<>();
+        for (User u : users) {
+            if (StringUtils.hasText(u.getRealName())) nameMap.put(u.getUsername(), u.getRealName());
+        }
+        for (EmsQcPlan p : planList) {
+            if (StringUtils.hasText(p.getResponsibleId())) {
+                p.setResponsibleName(nameMap.get(p.getResponsibleId()));
+            }
+        }
+    }
     public EmsQcPlan planDetail(Long id) {
         EmsQcPlan p = getPlan(id);
+        // 详情页同样聚合任务进度（taskTotal/taskDone），避免展示 0/0
+        if (p != null) fillTaskProgress(java.util.Collections.singletonList(p));
+        if (p != null) fillResponsibleName(java.util.Collections.singletonList(p));
         return p;
     }
 
     // ===================== 监控活动 / 能力验证 / 比对 / 重复 =====================
     public EmsQcActivity saveActivity(EmsQcActivity a, String opBy, String opName) {
+        // 活动日期校验：结束日期 >= 开始日期；活动日期不能超出所属计划的日期范围
+        if (a.getStartDate() != null && a.getEndDate() != null && a.getEndDate().isBefore(a.getStartDate())) {
+            throw new BusinessException("结束日期必须大于等于开始日期");
+        }
+        if (a.getPlanId() != null) {
+            EmsQcPlan plan = baseMapper.selectById(a.getPlanId());
+            if (plan != null) {
+                if (plan.getStartDate() != null && a.getStartDate() != null && a.getStartDate().isBefore(plan.getStartDate())) {
+                    throw new BusinessException("活动开始日期不能早于计划开始日期（" + plan.getStartDate() + "）");
+                }
+                if (plan.getEndDate() != null && a.getEndDate() != null && a.getEndDate().isAfter(plan.getEndDate())) {
+                    throw new BusinessException("活动结束日期不能晚于计划结束日期（" + plan.getEndDate() + "）");
+                }
+            }
+        }
         if (a.getId() == null) {
             a.setTaskNo(generateTaskNo());
             a.setCreatedBy(opBy);
@@ -524,20 +565,41 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
     }
 
     public Page<EmsQcActivity> pageActivities(Long planId, String qcType, String keyword,
-                                              String operatorId, String taskStatus, int page, int size) {
+                                              String operatorId, String taskStatus,
+                                              String startDateFrom, String startDateTo, int page, int size) {
         LambdaQueryWrapper<EmsQcActivity> q = new LambdaQueryWrapper<>();
         if (planId != null) q.eq(EmsQcActivity::getPlanId, planId);
         if (StringUtils.hasText(qcType)) q.eq(EmsQcActivity::getQcType, qcType);
         if (StringUtils.hasText(operatorId)) q.eq(EmsQcActivity::getOperatorId, operatorId);
         if (StringUtils.hasText(taskStatus)) q.eq(EmsQcActivity::getTaskStatus, taskStatus);
         if (StringUtils.hasText(keyword)) {
-            q.and(w -> w.like(EmsQcActivity::getQcType, keyword)
+            q.and(w -> w.like(EmsQcActivity::getTaskNo, keyword)
+                    .or().like(EmsQcActivity::getQcType, keyword)
                     .or().like(EmsQcActivity::getItem, keyword)
+                    .or().like(EmsQcActivity::getOperatorName, keyword)
                     .or().like(EmsQcActivity::getOperatorId, keyword)
                     .or().like(EmsQcActivity::getTaskStatus, keyword));
         }
+        // 时间范围：按活动开始日期过滤
+        if (StringUtils.hasText(startDateFrom)) q.ge(EmsQcActivity::getStartDate, LocalDate.parse(startDateFrom));
+        if (StringUtils.hasText(startDateTo)) q.le(EmsQcActivity::getStartDate, LocalDate.parse(startDateTo));
         q.orderByDesc(EmsQcActivity::getId);
-        return activityMapper.selectPage(new Page<>(page, size), q);
+        Page<EmsQcActivity> result = activityMapper.selectPage(new Page<>(page, size), q);
+        fillPlanTitle(result.getRecords());
+        return result;
+    }
+
+    /** 批量回填活动所属计划名称（供任务视图/待办展示） */
+    private void fillPlanTitle(List<EmsQcActivity> list) {
+        if (list == null || list.isEmpty()) return;
+        Set<Long> planIds = list.stream().map(EmsQcActivity::getPlanId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        if (planIds.isEmpty()) return;
+        Map<Long, String> titleMap = new HashMap<>();
+        for (EmsQcPlan p : baseMapper.selectBatchIds(planIds)) {
+            titleMap.put(p.getId(), p.getTitle());
+        }
+        list.forEach(a -> a.setPlanTitle(titleMap.get(a.getPlanId())));
     }
 
     /**
@@ -552,17 +614,7 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
                 .or().notIn(EmsQcActivity::getTaskStatus, "已完成", "已取消"));
         q.orderByDesc(EmsQcActivity::getId);
         List<EmsQcActivity> list = activityMapper.selectList(q);
-        if (!list.isEmpty()) {
-            Set<Long> planIds = list.stream().map(EmsQcActivity::getPlanId)
-                    .filter(Objects::nonNull).collect(Collectors.toSet());
-            if (!planIds.isEmpty()) {
-                Map<Long, String> titleMap = new HashMap<>();
-                for (EmsQcPlan p : baseMapper.selectBatchIds(planIds)) {
-                    titleMap.put(p.getId(), p.getTitle());
-                }
-                list.forEach(a -> a.setPlanTitle(titleMap.get(a.getPlanId())));
-            }
-        }
+        fillPlanTitle(list);
         return list;
     }
     public Page<EmsProficiencyTest> pageProficiency(Long planId, int page, int size) {

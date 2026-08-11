@@ -16,12 +16,20 @@
         <a-descriptions-item label="年度">{{ plan.year || '-' }}</a-descriptions-item>
         <a-descriptions-item label="季度">{{ plan.quarter || '-' }}</a-descriptions-item>
         <a-descriptions-item label="类型">{{ plan.type || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="责任人">{{ plan.responsibleId || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="责任人">{{ plan.responsibleName || plan.responsibleId || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="开始日期">{{ plan.startDate || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="结束日期">{{ plan.endDate || '-' }}</a-descriptions-item>
         <a-descriptions-item label="任务进度">{{ plan.taskDone ?? 0 }}/{{ plan.taskTotal ?? 0 }}</a-descriptions-item>
-        <a-descriptions-item label="审批人">{{ plan.approvedBy || '-' }}</a-descriptions-item>
+        <!-- 审批人 span=2：使前面字段总数凑满整行，保证「计划描述」落在行首独占一行
+             （antdv 会把行尾最后一项超出剩余列数的 span 压缩为剩余列数） -->
+        <a-descriptions-item label="审批人" :span="2">{{ plan.approvedBy || '-' }}</a-descriptions-item>
         <a-descriptions-item label="创建人">{{ plan.createdName || plan.createdBy || '-' }}</a-descriptions-item>
         <a-descriptions-item label="创建时间">{{ plan.createTime || '-' }}</a-descriptions-item>
         <a-descriptions-item label="更新时间">{{ plan.updateTime || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="计划描述" :span="3">
+          <div v-if="plan.description" class="rich-content" v-html="plan.description"></div>
+          <span v-else>-</span>
+        </a-descriptions-item>
       </a-descriptions>
     </a-card>
 
@@ -157,6 +165,14 @@ onMounted(async () => {
 .h-content {
   margin-top: 4px;
   color: rgba(0, 0, 0, 0.85);
+}
+/* 计划描述富文本渲染 */
+.rich-content {
+  line-height: 1.8;
+  word-break: break-all;
+}
+.rich-content :deep(img) {
+  max-width: 100%;
 }
 </style>
 

@@ -2,6 +2,7 @@ package com.flow.engine.controller;
 
 import com.flow.engine.annotation.OpLog;
 import com.flow.engine.common.Result;
+import com.flow.engine.common.utils.JsonUtils;
 import com.flow.engine.dto.*;
 import com.flow.engine.service.FormPermissionService;
 import com.flow.engine.service.TaskService;
@@ -86,11 +87,17 @@ public class TaskController {
     @PostMapping("/{id}/complete")
     @OpLog(module = "任务管理", operation = "完成任务")
     public Result<TaskResponse> complete(@PathVariable Long id,
-                                         @RequestBody(required = false) Map<String, Object> body) {
+                                         @RequestBody(required = false) String rawBody) {
+        Map<String, Object> body = JsonUtils.parseBodyMapLoose(rawBody);
         String userId = body != null ? (String) body.get("userId") : null;
-        @SuppressWarnings("unchecked")
-        Map<String, Object> variables = body != null ? (Map<String, Object>) body.get("variables") : null;
+        Map<String, Object> variables = body != null && body.get("variables") instanceof Map
+                ? castVariables(body.get("variables")) : null;
         return Result.ok(taskService.complete(id, userId, variables));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> castVariables(Object raw) {
+        return (Map<String, Object>) raw;
     }
 
     /**

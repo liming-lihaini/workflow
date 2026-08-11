@@ -80,6 +80,9 @@ public class DatabaseMigration implements CommandLineRunner {
         addColumnIfAbsent("t_qc_activity", "created_name", "VARCHAR(64)");
         addColumnIfAbsent("t_qc_plan", "created_by", "VARCHAR(64)");
         addColumnIfAbsent("t_qc_plan", "created_name", "VARCHAR(64)");
+        addColumnIfAbsent("t_qc_plan", "start_date", "DATETIME(6)");
+        addColumnIfAbsent("t_qc_plan", "end_date", "DATETIME(6)");
+        addColumnIfAbsent("t_qc_plan", "description", "TEXT");
         backfillActivityTaskNo();
 
         // 仪器设备全生命周期字段（TRD 5.5）

@@ -3,6 +3,7 @@ package com.flow.engine.controllers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.flow.engine.common.ErrorCode;
 import com.flow.engine.common.Result;
+import com.flow.engine.common.utils.JsonUtils;
 import com.flow.engine.dto.ReceiveReq;
 import com.flow.engine.dto.SampleCollectReq;
 import com.flow.engine.dto.SampleDisposeReq;
@@ -300,7 +301,8 @@ public class EmsSamplingController {
     @PostMapping("/retains/{id}/dispose")
     public Result<Map<String, Object>> applyDispose(@PathVariable Long id,
                                                      @RequestParam String startUser,
-                                                     @RequestBody(required = false) Map<String, Object> formData) {
+                                                     @RequestBody(required = false) String rawBody) {
+        Map<String, Object> formData = JsonUtils.parseBodyMapLoose(rawBody);
         return Result.ok(samplingService.applyDispose(id, startUser, formData));
     }
 
