@@ -177,6 +177,14 @@ public class DictDataInitializer implements CommandLineRunner {
         createDictTypeIfNotExists("质控检测结果", "moni_qc_result", 2, "监控活动检测结果枚举：合格/不合格/异常/需复测");
         // 33. 质控活动任务状态（质控计划-监控活动任务状态，t_qc_activity.task_status）
         createDictTypeIfNotExists("质控活动任务状态", "moni_qc_task_status", 2, "监控活动任务状态枚举：未开始/进行中/已完成/已取消");
+
+        // ===== 合同管理台账（PRD-02）业务字典 =====
+        // 34. 合同类型（t_contract.contract_type）
+        createDictTypeIfNotExists("合同类型", "contract_type", 2, "合同台账类型：收入合同/支出合同");
+        // 35. 合同付款方式（t_contract.pay_mode）
+        createDictTypeIfNotExists("合同付款方式", "contract_pay_mode", 2, "合同付款方式：一次性/分期");
+        // 36. 收付款方式（t_contract_txn.pay_method）
+        createDictTypeIfNotExists("收付款方式", "pay_method", 2, "收款/支付登记结算方式：银行转账/支票/现金/其他");
     }
 
     private void initDictItems() {
@@ -545,6 +553,29 @@ public class DictDataInitializer implements CommandLineRunner {
             createDictItemIfNotExists(qcTaskStatus.getId(), "进行中", "in_progress", 2);
             createDictItemIfNotExists(qcTaskStatus.getId(), "已完成", "completed", 3);
             createDictItemIfNotExists(qcTaskStatus.getId(), "已取消", "cancelled", 4);
+        }
+
+        // 合同类型（PRD-02 t_contract.contract_type）
+        DictType contractType = getDictTypeByCode("contract_type");
+        if (contractType != null) {
+            createDictItemIfNotExists(contractType.getId(), "收入合同", "income", 1);
+            createDictItemIfNotExists(contractType.getId(), "支出合同", "expense", 2);
+        }
+
+        // 合同付款方式（PRD-02 t_contract.pay_mode）
+        DictType contractPayMode = getDictTypeByCode("contract_pay_mode");
+        if (contractPayMode != null) {
+            createDictItemIfNotExists(contractPayMode.getId(), "一次性", "lump_sum", 1);
+            createDictItemIfNotExists(contractPayMode.getId(), "分期", "installment", 2);
+        }
+
+        // 收付款方式（PRD-02 t_contract_txn.pay_method）
+        DictType payMethod = getDictTypeByCode("pay_method");
+        if (payMethod != null) {
+            createDictItemIfNotExists(payMethod.getId(), "银行转账", "bank_transfer", 1);
+            createDictItemIfNotExists(payMethod.getId(), "支票", "check", 2);
+            createDictItemIfNotExists(payMethod.getId(), "现金", "cash", 3);
+            createDictItemIfNotExists(payMethod.getId(), "其他", "other", 4);
         }
     }
 

@@ -195,6 +195,18 @@ const routes = [
         meta: { title: '检测委托', permKey: 'ems:entrust' }
       },
       {
+        path: 'ems/contract',
+        name: 'EmsContract',
+        component: () => import('../views/ems/contract/Contract.vue'),
+        meta: { title: '合同台账', permKey: 'ems:contract' }
+      },
+      {
+        path: 'ems/contract/:id',
+        name: 'EmsContractDetail',
+        component: () => import('../views/ems/contract/ContractDetail.vue'),
+        meta: { title: '合同详情', permKey: 'ems:contract', hideInMenu: true }
+      },
+      {
         path: 'ems/base/vehicle',
         name: 'EmsVehicle',
         component: () => import('../views/ems/base/Vehicle.vue'),

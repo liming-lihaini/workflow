@@ -238,6 +238,32 @@ export const getDashboardOverview = () =>
 export const getEntrustCards = (params) =>
   request.get('/ems/dashboard/entrust-cards', { params })
 
+// ===== 合同管理台账（PRD-02，路径 /api/v1/ems/contract/*）=====
+// 台账列表（编号/名称/类型/状态/相对方/负责人/签订日期区间筛选）
+export const getContracts = (params) => request.get('/ems/contract', { params })
+// 台账统计卡片（应收应付/已收已付/逾期节点数）
+export const getContractStatistics = () => request.get('/ems/contract/statistics')
+// 新建/编辑合同：data = { contract, nodes, entrustIds }
+export const saveContract = (data) => request.post('/ems/contract', data)
+// 合同详情（节点核销进度 + 流水 + 关联委托 + 操作历史）
+export const getContract = (id) => request.get(`/ems/contract/${id}`)
+// 删除草稿合同
+export const deleteContract = (id) => request.delete(`/ems/contract/${id}`)
+// 状态流转
+export const submitContract = (id) => request.post(`/ems/contract/${id}/submit`)
+export const suspendContract = (id, reason) =>
+  request.post(`/ems/contract/${id}/suspend`, null, { params: { reason } })
+export const resumeContract = (id) => request.post(`/ems/contract/${id}/resume`)
+export const cancelContract = (id) => request.post(`/ems/contract/${id}/cancel`)
+// 收付款节点整体替换
+export const saveContractNodes = (id, nodes) => request.post(`/ems/contract/${id}/nodes`, nodes)
+// 收款/支付登记：data = { txnDate, amount, payMethod, txnNo, remark, allocations: [{nodeId, amount}] }
+export const addContractTxn = (id, data) => request.post(`/ems/contract/${id}/txn`, data)
+// 撤销收付款登记
+export const deleteContractTxn = (txnId) => request.delete(`/ems/contract/txn/${txnId}`)
+// 合同操作历史
+export const getContractHistory = (id) => request.get(`/ems/contract/${id}/history`)
+
 // ===== 基础设施底座（ISSUE-029，路径 /api/v1/*）=====
 // 状态机：驱动迁移
 export const fireState = (data) => request.post('/statemachine/fire', data)

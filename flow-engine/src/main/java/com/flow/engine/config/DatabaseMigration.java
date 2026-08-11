@@ -51,6 +51,81 @@ public class DatabaseMigration implements CommandLineRunner {
                 + "operator_name VARCHAR(64), "
                 + "create_time DATETIME(6)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+        // 合同管理台账（PRD-02）：合同主表
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_contract ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "contract_no VARCHAR(64), "
+                + "contract_name VARCHAR(200), "
+                + "contract_type VARCHAR(32), "
+                + "counterparty_id BIGINT, "
+                + "counterparty_name VARCHAR(200), "
+                + "amount DECIMAL(14,2), "
+                + "sign_date VARCHAR(16), "
+                + "effect_date VARCHAR(16), "
+                + "expire_date VARCHAR(16), "
+                + "pay_mode VARCHAR(32), "
+                + "lead_id BIGINT, "
+                + "lead_name VARCHAR(64), "
+                + "status VARCHAR(32), "
+                + "description LONGTEXT, "
+                + "remark VARCHAR(500), "
+                + "create_by VARCHAR(64), "
+                + "create_name VARCHAR(64), "
+                + "update_by VARCHAR(64), "
+                + "update_name VARCHAR(64), "
+                + "create_time DATETIME(6), "
+                + "update_time DATETIME(6)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // 合同收付款节点（应收/应付计划）
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_contract_node ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "contract_id BIGINT, "
+                + "seq INT, "
+                + "node_name VARCHAR(100), "
+                + "plan_amount DECIMAL(14,2), "
+                + "plan_date VARCHAR(16), "
+                + "node_desc VARCHAR(500), "
+                + "status VARCHAR(32), "
+                + "create_time DATETIME(6), "
+                + "update_time DATETIME(6)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // 合同收付款流水（实际收款/支付登记）
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_contract_txn ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "contract_id BIGINT, "
+                + "txn_type VARCHAR(16), "
+                + "txn_date VARCHAR(16), "
+                + "amount DECIMAL(14,2), "
+                + "pay_method VARCHAR(32), "
+                + "txn_no VARCHAR(100), "
+                + "operator_id VARCHAR(64), "
+                + "operator_name VARCHAR(64), "
+                + "remark VARCHAR(500), "
+                + "create_time DATETIME(6)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // 流水-节点核销分摊
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_contract_txn_node ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "txn_id BIGINT, "
+                + "node_id BIGINT, "
+                + "allocate_amount DECIMAL(14,2)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // 合同-检测委托关联
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_contract_entrust ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "contract_id BIGINT, "
+                + "entrust_id BIGINT) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // 合同操作历史
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_contract_history ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "contract_id BIGINT, "
+                + "action VARCHAR(32), "
+                + "content LONGTEXT, "
+                + "operator_id VARCHAR(64), "
+                + "operator_name VARCHAR(64), "
+                + "create_time DATETIME(6)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
         // 用户档案扩展字段（性别/出生年月/头像）
         addColumnIfAbsent("sys_user", "gender", "VARCHAR(16)");
         addColumnIfAbsent("sys_user", "birth_date", "VARCHAR(32)");

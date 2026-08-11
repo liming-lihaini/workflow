@@ -183,6 +183,7 @@ const menuConfig = [
     children: [
       { key: 'ems-customer', title: '客户管理', path: '/ems/base/customer', permKey: 'ems:customer' },
       { key: 'ems-entrust', title: '检测委托', path: '/ems/base/entrust', permKey: 'ems:entrust' },
+      { key: 'ems-contract', title: '合同台账', path: '/ems/contract', permKey: 'ems:contract' },
       { key: 'ems-dispatch', title: '采样任务', path: '/ems/base/dispatch', permKey: 'ems:dispatch' },
       { key: 'ems-sample', title: '样品管理', path: '/ems/base/sample', permKey: 'ems:sample' },
       { key: 'ems-retain', title: '留样库管理', path: '/ems/base/retain', permKey: 'ems:sample' },
