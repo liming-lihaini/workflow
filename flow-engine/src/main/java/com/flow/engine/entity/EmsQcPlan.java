@@ -1,6 +1,7 @@
 package com.flow.engine.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -23,6 +24,15 @@ public class EmsQcPlan {
     private String approvedBy;
     private LocalDate approvedAt;
     private String remark;
+    private String createdBy;    // 创建人账号
+    private String createdName;  // 创建人名称
     private LocalDate createTime;
     private LocalDate updateTime;
+
+    /** 任务进度（非表字段）：计划下监控活动总数 */
+    @TableField(exist = false)
+    private Integer taskTotal;
+    /** 任务进度（非表字段）：已完成（taskStatus=已完成）的监控活动数 */
+    @TableField(exist = false)
+    private Integer taskDone;
 }

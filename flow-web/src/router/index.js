@@ -263,6 +263,18 @@ const routes = [
         component: () => import('../views/ems/quality/QcPlan.vue'),
         meta: { title: '质控计划', permKey: 'ems:quality' }
       },
+      {
+        path: 'ems/quality/plan-detail/:id',
+        name: 'EmsQcPlanDetail',
+        component: () => import('../views/ems/quality/QcPlanDetail.vue'),
+        meta: { title: '质控计划详情', permKey: 'ems:quality' }
+      },
+      {
+        path: 'ems/quality/activity-detail/:id',
+        name: 'EmsQcActivityDetail',
+        component: () => import('../views/ems/quality/QcActivityDetail.vue'),
+        meta: { title: '质控活动详情', permKey: 'ems:quality' }
+      },
       // ===== 监测数据驾驶舱与统计（ISSUE-028）=====
       {
         path: 'ems/dashboard',

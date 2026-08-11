@@ -23,6 +23,7 @@
             <a-space>
               <a v-if="record.status==='在库'" @click="apply(record)">申请</a>
               <a v-if="record.status==='待审批'" @click="approve(record)">审批</a>
+              <a v-if="record.status==='在库'" style="color:#ff4d4f" @click="startScrapProcess(record)">报废</a>
               <a @click="openForm(record)">编辑</a>
             </a-space>
           </template>
@@ -70,8 +71,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { saveHazardous, getHazardous, applyHazardous, approveHazardous } from '../../../api/ems'
+
+const router = useRouter()
 
 const loading = ref(false)
 const kw = ref(''), status = ref('')
@@ -112,6 +116,15 @@ async function doApply() {
 async function doApprove() {
   await approveHazardous(cur.value.id, { approveBy: approveBy.value, approveOpinion: approveOpinion.value, approve: approveOk.value })
   message.success('审批完成'); approveVisible.value = false; load()
+}
+
+// 发起资产报废申请(ZCBFSQ)：跳转流程发起详情页，预填资产类型/资产ID/名称/CAS号；
+// 申请人需在表单中说明报废原因与处置方式，审批通过后由 Webhook 更新台账状态为已报废
+function startScrapProcess(record) {
+  const query = { processKey: 'ZCBFSQ', assetType: '危化品', assetId: record.id }
+  if (record.name) query.name = record.name
+  if (record.casNo) query.spec = record.casNo
+  router.push({ path: '/task/start-detail', query })
 }
 
 async function load() {

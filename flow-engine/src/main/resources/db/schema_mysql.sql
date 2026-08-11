@@ -545,11 +545,30 @@ CREATE TABLE IF NOT EXISTS `t_qc_activity` (
     `result` LONGTEXT,
     `pass_flag` VARCHAR(512),
     `operator_id` VARCHAR(512),
+    `operator_name` VARCHAR(64),
+    `task_no` VARCHAR(32),
     `act_date` DATETIME(6),
+    `start_date` DATETIME(6),
+    `end_date` DATETIME(6),
+    `description` LONGTEXT,
+    `task_status` VARCHAR(64),
     `remark` LONGTEXT,
+    `created_by` VARCHAR(64),
+    `created_name` VARCHAR(64),
     `create_time` DATETIME(6),
     `update_time` DATETIME(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='t_qc_activity';
+
+CREATE TABLE IF NOT EXISTS `t_qc_history` (
+    `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `biz_type` VARCHAR(32),
+    `biz_id` BIGINT,
+    `action` VARCHAR(32),
+    `content` LONGTEXT,
+    `operator_id` VARCHAR(64),
+    `operator_name` VARCHAR(64),
+    `create_time` DATETIME(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='t_qc_history';
 
 CREATE TABLE IF NOT EXISTS `t_qc_plan` (
     `id` BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -563,6 +582,8 @@ CREATE TABLE IF NOT EXISTS `t_qc_plan` (
     `approved_by` VARCHAR(512),
     `approved_at` DATETIME(6),
     `remark` LONGTEXT,
+    `created_by` VARCHAR(64),
+    `created_name` VARCHAR(64),
     `create_time` DATETIME(6),
     `update_time` DATETIME(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='t_qc_plan';

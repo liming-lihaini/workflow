@@ -249,6 +249,12 @@
                       <DeleteOutlined />
                     </a-button>
                   </div>
+                  <!-- 列宽设置（px），不设置则自动分配 -->
+                  <div class="subtable-col-width-config">
+                    <span class="config-label">列宽(px)</span>
+                    <a-input-number v-model:value="col.width" :min="40" :max="2000" size="small"
+                      placeholder="自动" style="flex: 1" />
+                  </div>
                   <!-- 下拉列选项配置 -->
                   <div v-if="col.type === 'select'" class="subtable-col-select-config">
                     <div class="config-row">
@@ -441,6 +447,9 @@
                       @update-value="(val) => { if (field.bindToForm) previewData[field.field] = val }"
                     />
                   </div>
+                  <!-- 子表预览：按设计列宽渲染 -->
+                  <SubTableRenderer v-else-if="field.type==='subTable'"
+                    :field="field" v-model:value="previewData[field.field]" mode="editable" />
                   <a-input v-else v-model:value="previewData[field.field]" />
                 </a-form-item>
               </a-col>
@@ -470,6 +479,7 @@ import { getDataModelList } from '../../../api/model'
 import { getDictTypes, getDictItemsByCode } from '../../../api/dict'
 import { getUsersPage, getDeptTree } from '../../../api/system'
 import DataRefRenderer from '../../../components/DataRefRenderer.vue'
+import SubTableRenderer from '../../../components/SubTableRenderer.vue'
 import RichTextEditor from '../../../components/RichTextEditor.vue'
 import { useApiOptions, collectApiFields } from '../../../composables/useApiOptions'
 
@@ -571,6 +581,10 @@ function onPreviewOpen() {
         if (f.selectMode === 'multiple' && !Array.isArray(previewData[f.field])) {
           previewData[f.field] = previewData[f.field] ? [previewData[f.field]] : []
         }
+      }
+      // 子表字段初始化为空数组，供 SubTableRenderer 渲染
+      if (f.type === 'subTable' && !Array.isArray(previewData[f.field])) {
+        previewData[f.field] = []
       }
     }))))
   }
@@ -969,6 +983,8 @@ onMounted(() => { loadModelList(); loadDictTypes(); loadForm() })
 .subtable-col-select-config { margin: 6px 0 2px 8px; padding: 8px; background: #f8fafc; border: 1px dashed #dbe4ee; border-radius: 4px; display: flex; flex-direction: column; gap: 6px; }
 .subtable-col-select-config .config-row { display: flex; align-items: center; gap: 6px; }
 .subtable-col-select-config .config-label { font-size: 12px; color: #666; white-space: nowrap; min-width: 52px; }
+.subtable-col-width-config { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.subtable-col-width-config .config-label { font-size: 12px; color: #666; white-space: nowrap; min-width: 52px; }
 .dataref-preview { display: flex; align-items: center; font-size: 12px; color: #13c2c2; padding: 6px 8px; background: #e6fffb; border: 1px dashed #87e8de; border-radius: 4px; }
 .dataref-render-area { padding: 4px 0; }
 </style>

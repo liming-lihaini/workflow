@@ -55,6 +55,8 @@
                   <a-divider type="vertical" />
                   <span class="action-link" @click="showCalibrate(record)">校准登记</span>
                   <a-divider type="vertical" />
+                  <span v-if="record.status !== '报废'" class="action-link danger" @click="startScrapProcess('设备', record, 'code')">报废</span>
+                  <template v-if="record.status !== '报废'"><a-divider type="vertical" /></template>
                   <a-popconfirm title="删除该设备？" @confirm="handleInstDelete(record)">
                     <span class="action-link danger">删除</span>
                   </a-popconfirm>
@@ -127,6 +129,8 @@
         <a-card :bordered="false">
           <a-space style="margin-bottom:16px">
             <a-button type="primary" @click="openMaterial()">+ 新增标物</a-button>
+            <a-button type="primary" @click="startMaterialProcess('WZRKSQ', '标准物质')">入库申请</a-button>
+            <a-button type="primary" @click="startMaterialProcess('WZSYSQ', '标准物质')">使用申请</a-button>
             <a-input-search v-model:value="mk" placeholder="名称搜索" style="width:200px" @search="loadMaterials" allow-clear />
             <a-select v-model:value="mStatus" style="width:140px" @change="loadMaterials">
               <a-select-option value="">全部状态</a-select-option>
@@ -146,10 +150,15 @@
                 <span class="cell-link" @click="openMaterialDetail(record)">{{ record.name }}</span>
               </template>
               <template v-if="column.key === 'status'">
-                <a-tag :color="record.status==='过期'?'red':(record.status==='临期'?'orange':'green')">{{ record.status }}</a-tag>
+                <a-tag :color="record.status==='已报废'||record.status==='过期'?'red':(record.status==='临期'?'orange':'green')">{{ record.status }}</a-tag>
               </template>
               <template v-else-if="column.key === 'action'">
-                <a @click="openMaterial(record)">编辑</a>
+                <a-space>
+                  <a @click="startMaterialProcess('WZRKSQ', '标准物质', record)">入库</a>
+                  <a @click="startMaterialProcess('WZSYSQ', '标准物质', record)">使用</a>
+                  <a v-if="record.status !== '已报废'" class="danger-link" @click="startScrapProcess('标准物质', record, 'spec')">报废</a>
+                  <a @click="openMaterial(record)">编辑</a>
+                </a-space>
               </template>
             </template>
           </a-table>
@@ -162,6 +171,8 @@
         <a-card :bordered="false">
           <a-space style="margin-bottom:16px">
             <a-button type="primary" @click="openConsumable()">+ 新增耗材</a-button>
+            <a-button type="primary" @click="startMaterialProcess('WZRKSQ', '耗材')">入库申请</a-button>
+            <a-button type="primary" @click="startMaterialProcess('WZSYSQ', '耗材')">使用申请</a-button>
             <a-input-search v-model:value="ck" placeholder="名称搜索" style="width:200px" @search="loadConsumables" allow-clear />
             <a-select v-model:value="cStatus" style="width:140px" @change="loadConsumables">
               <a-select-option value="">全部状态</a-select-option>
@@ -180,10 +191,15 @@
                 <span class="cell-link" @click="openConsumableDetail(record)">{{ record.name }}</span>
               </template>
               <template v-if="column.key === 'status'">
-                <a-tag :color="record.status==='过期'?'red':(record.status==='临期'?'orange':'green')">{{ record.status }}</a-tag>
+                <a-tag :color="record.status==='已报废'||record.status==='过期'?'red':(record.status==='临期'?'orange':'green')">{{ record.status }}</a-tag>
               </template>
               <template v-else-if="column.key === 'action'">
-                <a @click="openConsumable(record)">编辑</a>
+                <a-space>
+                  <a @click="startMaterialProcess('WZRKSQ', '耗材', record)">入库</a>
+                  <a @click="startMaterialProcess('WZSYSQ', '耗材', record)">使用</a>
+                  <a v-if="record.status !== '已报废'" class="danger-link" @click="startScrapProcess('耗材', record, 'spec')">报废</a>
+                  <a @click="openConsumable(record)">编辑</a>
+                </a-space>
               </template>
             </template>
           </a-table>
@@ -214,8 +230,10 @@
               </template>
               <template v-else-if="column.key === 'action'">
                 <a-space>
+                  <a @click="openHazDetail(record)">详情</a>
                   <a v-if="record.status==='在库'" @click="applyHaz(record)">申请</a>
                   <a v-if="record.status==='待审批'" @click="approveHaz(record)">审批</a>
+                  <a v-if="record.status==='在库'" class="danger-link" @click="startScrapProcess('危化品', record, 'casNo')">报废</a>
                   <a @click="openHaz(record)">编辑</a>
                 </a-space>
               </template>
@@ -328,11 +346,32 @@
         <a-descriptions-item label="效期">{{ mDetail.expireDate }}</a-descriptions-item>
         <a-descriptions-item label="库存">{{ mDetail.stock }}</a-descriptions-item>
         <a-descriptions-item label="状态">
-          <a-tag :color="mDetail.status==='过期'?'red':(mDetail.status==='临期'?'orange':'green')">{{ mDetail.status }}</a-tag>
+          <a-tag :color="mDetail.status==='已报废'||mDetail.status==='过期'?'red':(mDetail.status==='临期'?'orange':'green')">{{ mDetail.status }}</a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="证书编号">{{ mDetail.certNo }}</a-descriptions-item>
         <a-descriptions-item label="创建时间">{{ mDetail.createTime }}</a-descriptions-item>
       </a-descriptions>
+      <a-divider orientation="left">关联流程</a-divider>
+      <a-table
+        v-if="mDetail && mDetail.relatedProcesses && mDetail.relatedProcesses.length"
+        :dataSource="mDetail.relatedProcesses"
+        :columns="materialProcessCols"
+        rowKey="processInstanceId"
+        size="small"
+        :pagination="false"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'statusText'">
+            <a-tag :color="materialProcessStatusColor(record.statusText)">{{ record.statusText }}</a-tag>
+          </template>
+          <template v-else-if="column.key === 'bizType'">
+            <a-tag v-if="record.bizType" :color="record.bizType === '入库' ? 'green' : (record.bizType === '报废' ? 'red' : 'orange')">{{ record.bizType }}</a-tag>
+            <span v-else style="color:#999">审批中</span>
+          </template>
+          <template v-else-if="column.key === 'startTime'">{{ formatFlowTime(record.startTime) }}</template>
+        </template>
+      </a-table>
+      <a-empty v-else description="暂无关联流程" />
     </a-drawer>
 
     <!-- 耗材新增/编辑抽屉 -->
@@ -359,13 +398,71 @@
         <a-descriptions-item label="编号">{{ cDetail.id ? 'HC' + String(cDetail.id).padStart(4, '0') : '' }}</a-descriptions-item>
         <a-descriptions-item label="名称">{{ cDetail.name }}</a-descriptions-item>
         <a-descriptions-item label="规格">{{ cDetail.spec }}</a-descriptions-item>
-        <a-descriptions-item label="数量">{{ cDetail.qty }}</a-descriptions-item>
+        <a-descriptions-item label="数量">{{ cDetail.stock }}</a-descriptions-item>
         <a-descriptions-item label="效期">{{ cDetail.expireDate }}</a-descriptions-item>
         <a-descriptions-item label="状态">
-          <a-tag :color="cDetail.status==='过期'?'red':(cDetail.status==='临期'?'orange':'green')">{{ cDetail.status }}</a-tag>
+          <a-tag :color="cDetail.status==='已报废'||cDetail.status==='过期'?'red':(cDetail.status==='临期'?'orange':'green')">{{ cDetail.status }}</a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="创建时间">{{ cDetail.createTime }}</a-descriptions-item>
       </a-descriptions>
+      <a-divider orientation="left">关联流程</a-divider>
+      <a-table
+        v-if="cDetail && cDetail.relatedProcesses && cDetail.relatedProcesses.length"
+        :dataSource="cDetail.relatedProcesses"
+        :columns="materialProcessCols"
+        rowKey="processInstanceId"
+        size="small"
+        :pagination="false"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'statusText'">
+            <a-tag :color="materialProcessStatusColor(record.statusText)">{{ record.statusText }}</a-tag>
+          </template>
+          <template v-else-if="column.key === 'bizType'">
+            <a-tag v-if="record.bizType" :color="record.bizType === '入库' ? 'green' : (record.bizType === '报废' ? 'red' : 'orange')">{{ record.bizType }}</a-tag>
+            <span v-else style="color:#999">审批中</span>
+          </template>
+          <template v-else-if="column.key === 'startTime'">{{ formatFlowTime(record.startTime) }}</template>
+        </template>
+      </a-table>
+      <a-empty v-else description="暂无关联流程" />
+    </a-drawer>
+
+    <!-- 危化品详情抽屉 -->
+    <a-drawer v-model:open="hzDetailVisible" title="危化品详情" width="1000" @close="hzDetailVisible = false">
+      <a-descriptions :column="2" bordered size="middle" v-if="hzDetail">
+        <a-descriptions-item label="名称">{{ hzDetail.name }}</a-descriptions-item>
+        <a-descriptions-item label="CAS号">{{ hzDetail.casNo }}</a-descriptions-item>
+        <a-descriptions-item label="类别">{{ hzDetail.category }}</a-descriptions-item>
+        <a-descriptions-item label="数量">{{ hzDetail.qty }} {{ hzDetail.unit }}</a-descriptions-item>
+        <a-descriptions-item label="状态">
+          <a-tag :color="hzDetail.status==='已报废'?'red':(hzDetail.status==='待审批'?'orange':(hzDetail.status==='已领用'?'blue':'green'))">{{ hzDetail.status }}</a-tag>
+        </a-descriptions-item>
+        <a-descriptions-item label="申请人">{{ hzDetail.applyBy || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="申请原因" :span="2">{{ hzDetail.applyReason || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="创建时间">{{ hzDetail.createTime }}</a-descriptions-item>
+      </a-descriptions>
+      <a-divider orientation="left">关联流程</a-divider>
+      <a-table
+        v-if="hzDetail && hzDetail.relatedProcesses && hzDetail.relatedProcesses.length"
+        :dataSource="hzDetail.relatedProcesses"
+        :columns="materialProcessCols"
+        rowKey="processInstanceId"
+        size="small"
+        :pagination="false"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'statusText'">
+            <a-tag :color="materialProcessStatusColor(record.statusText)">{{ record.statusText }}</a-tag>
+          </template>
+          <template v-else-if="column.key === 'bizType'">
+            <a-tag v-if="record.bizType" color="red">{{ record.bizType }}</a-tag>
+            <span v-else style="color:#999">审批中</span>
+          </template>
+          <template v-else-if="column.key === 'startTime'">{{ formatFlowTime(record.startTime) }}</template>
+        </template>
+      </a-table>
+      <a-empty v-else description="暂无关联流程" />
     </a-drawer>
   </div>
 </template>
@@ -384,8 +481,8 @@ dayjs.extend(isSameOrAfter)
 import {
   listInstruments, createInstrument, updateInstrument, deleteInstrument,
   calibrateInstrument, expiringInstruments, getDictItems, getInstrumentUsage,
-  saveMaterial, getMaterials, saveConsumable, getConsumables, checkMaterialGate,
-  saveHazardous, getHazardous, applyHazardous, approveHazardous
+  saveMaterial, getMaterials, getMaterialDetail, saveConsumable, getConsumables, getConsumableDetail, checkMaterialGate,
+  saveHazardous, getHazardous, getHazardousDetail, applyHazardous, approveHazardous
 } from '../../../api/ems'
 import InstrumentDetail from './InstrumentDetail.vue'
 
@@ -443,7 +540,7 @@ const instColumns = [
   { title: '状态', key: 'status', dataIndex: 'status', width: 90 },
   { title: '校准到期', key: 'calibDue', dataIndex: 'calibDue', width: 120 },
   { title: '证书号', dataIndex: 'certNo', key: 'certNo', width: 160 },
-  { title: '操作', key: 'action', width: 240, fixed: 'right' }
+  { title: '操作', key: 'action', width: 280, fixed: 'right' }
 ]
 
 const instForm = reactive({ id: undefined, code: '', name: '', model: '', manufacturer: '', purchaseDate: null, calibDue: null, status: '在用', certNo: '', remark: '' })
@@ -545,6 +642,46 @@ function handleInstTableChange(pag) {
 // 发起入库流程：跳转到流程发起详情页（单品 SBTKRKSQ / 批量 SBTKRKSQ_PL）
 function startInboundProcess(processKey) {
   router.push({ path: '/task/start-detail', query: { processKey } })
+}
+
+// 发起物资入库(WZRKSQ)/使用(WZSYSQ)申请：跳转流程发起详情页，预填物资类型；
+// 行内发起时额外预填名称/规格/批号，审批通过后由 Webhook 更新库存或新建物资
+function startMaterialProcess(processKey, materialType, record) {
+  const query = { processKey, materialType }
+  if (record) {
+    if (record.name) query.name = record.name
+    if (record.spec) query.spec = record.spec
+    if (record.lotNo) query.lotNo = record.lotNo
+  }
+  router.push({ path: '/task/start-detail', query })
+}
+
+// 发起资产报废申请(ZCBFSQ)：跳转流程发起详情页，预填资产类型/资产ID/名称/规格(编号)；
+// 申请人需在表单中说明报废原因与处置方式，审批通过后由 Webhook 更新台账状态为报废
+function startScrapProcess(assetType, record, specKey) {
+  const query = { processKey: 'ZCBFSQ', assetType, assetId: record.id }
+  if (record.name) query.name = record.name
+  const spec = specKey ? record[specKey] : record.spec
+  if (spec) query.spec = spec
+  router.push({ path: '/task/start-detail', query })
+}
+
+/* ============ 物资关联流程（详情抽屉内展示） ============ */
+const materialProcessCols = [
+  { title: '实例编号', dataIndex: 'instanceNo', key: 'instanceNo', width: 170 },
+  { title: '流程名称', dataIndex: 'processName', key: 'processName' },
+  { title: '类型', key: 'bizType', width: 80 },
+  { title: '数量', dataIndex: 'qty', key: 'qty', width: 70 },
+  { title: '状态', key: 'statusText', width: 90 },
+  { title: '发起人', dataIndex: 'startUser', key: 'startUser', width: 100 },
+  { title: '发起时间', key: 'startTime', width: 160 }
+]
+function materialProcessStatusColor(s) {
+  return { '运行中': 'blue', '已完成': 'green', '已暂停': 'orange', '已终止': 'red' }[s] || 'default'
+}
+function formatFlowTime(t) {
+  if (!t) return '-'
+  return dayjs(String(t).replace(' ', 'T')).format('YYYY-MM-DD HH:mm')
 }
 
 /* ============ 设备使用日历（参考车辆使用日历：行×日网格，占用区间取采样订单派单 planStart~planEnd） ============ */
@@ -692,7 +829,7 @@ const materialCols = [
   { title: '库存', dataIndex: 'stock', key: 'stock' },
   { title: '状态', key: 'status' },
   { title: '证书号', dataIndex: 'certNo', key: 'certNo' },
-  { title: '操作', key: 'action', width: 80, fixed: 'right' }
+  { title: '操作', key: 'action', width: 220, fixed: 'right' }
 ]
 const mVisible = ref(false)
 const mSubmitting = ref(false)
@@ -710,6 +847,11 @@ function openMaterial(r) {
 function openMaterialDetail(r) {
   mDetail.value = r
   mDetailVisible.value = true
+  // 加载详情（含关联流程：入库申请/使用申请）
+  getMaterialDetail(r.id).then((res) => {
+    const vo = res.data || res
+    if (vo && vo.id) mDetail.value = vo
+  }).catch(() => {})
 }
 async function submitMaterial() {
   if (!mForm.name) { message.warning('请填写名称'); return }
@@ -738,7 +880,7 @@ const consumableCols = [
   { title: '数量', dataIndex: 'qty', key: 'qty' },
   { title: '效期', dataIndex: 'expireDate', key: 'expireDate' },
   { title: '状态', key: 'status' },
-  { title: '操作', key: 'action', width: 80, fixed: 'right' }
+  { title: '操作', key: 'action', width: 220, fixed: 'right' }
 ]
 const cVisible = ref(false)
 const cSubmitting = ref(false)
@@ -753,8 +895,13 @@ function openConsumable(r) {
   cVisible.value = true
 }
 function openConsumableDetail(r) {
-  cDetail.value = r
+  cDetail.value = { ...r, stock: r.qty }
   cDetailVisible.value = true
+  // 加载详情（含关联流程：入库申请/使用申请）
+  getConsumableDetail(r.id).then((res) => {
+    const vo = res.data || res
+    if (vo && vo.id) cDetail.value = vo
+  }).catch(() => {})
 }
 async function submitConsumable() {
   if (!cForm.name) { message.warning('请填写名称'); return }
@@ -837,6 +984,18 @@ function openHaz(r) {
   else Object.keys(hzForm).forEach(k => hzForm[k] = null)
   hzVisible.value = true
 }
+
+// 危化品详情（含关联流程：报废申请 ZCBFSQ）
+const hzDetailVisible = ref(false)
+const hzDetail = ref(null)
+function openHazDetail(r) {
+  hzDetail.value = r
+  hzDetailVisible.value = true
+  getHazardousDetail(r.id).then((res) => {
+    const vo = res.data || res
+    if (vo && vo.id) hzDetail.value = vo
+  }).catch(() => {})
+}
 async function saveHaz() {
   await saveHazardous({ ...hzForm }); message.success('已保存'); hzVisible.value = false; loadHaz()
 }
@@ -868,6 +1027,7 @@ async function loadHaz() {
 <style scoped>
 .action-link { color: #1677ff; cursor: pointer; }
 .action-link.danger { color: #ff4d4f; }
+.danger-link { color: #ff4d4f; }
 .code-link { color: #2563EB; cursor: pointer; font-weight: 600; }
 .code-link:hover { text-decoration: underline; }
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }

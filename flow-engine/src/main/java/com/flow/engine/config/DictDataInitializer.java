@@ -173,6 +173,10 @@ public class DictDataInitializer implements CommandLineRunner {
         createDictTypeIfNotExists("异常处置方式", "moni_disposal_method", 2, "样品异常处置方式枚举：重采/留样复测/报废/退样等");
         // 31. 异常处置类型（样品异常处置弹窗下拉）
         createDictTypeIfNotExists("异常处置类型", "moni_disposal_type", 2, "样品异常处置类型枚举：数据异常/样品异常/仪器异常等");
+        // 32. 质控检测结果（质控计划-监控活动检测结果，t_qc_activity.result）
+        createDictTypeIfNotExists("质控检测结果", "moni_qc_result", 2, "监控活动检测结果枚举：合格/不合格/异常/需复测");
+        // 33. 质控活动任务状态（质控计划-监控活动任务状态，t_qc_activity.task_status）
+        createDictTypeIfNotExists("质控活动任务状态", "moni_qc_task_status", 2, "监控活动任务状态枚举：未开始/进行中/已完成/已取消");
     }
 
     private void initDictItems() {
@@ -523,6 +527,24 @@ public class DictDataInitializer implements CommandLineRunner {
             createDictItemIfNotExists(receiveCheck.getId(), "冷藏/保温状态正常", "cold_chain_ok", 8);
             createDictItemIfNotExists(receiveCheck.getId(), "固定剂添加正确", "preservative_ok", 9);
             createDictItemIfNotExists(receiveCheck.getId(), "封口/密封完好", "seal_ok", 10);
+        }
+
+        // 质控检测结果（质控计划-监控活动检测结果）
+        DictType qcResult = getDictTypeByCode("moni_qc_result");
+        if (qcResult != null) {
+            createDictItemIfNotExists(qcResult.getId(), "合格", "pass", 1);
+            createDictItemIfNotExists(qcResult.getId(), "不合格", "fail", 2);
+            createDictItemIfNotExists(qcResult.getId(), "异常", "abnormal", 3);
+            createDictItemIfNotExists(qcResult.getId(), "需复测", "retest_required", 4);
+        }
+
+        // 质控活动任务状态（质控计划-监控活动任务状态）
+        DictType qcTaskStatus = getDictTypeByCode("moni_qc_task_status");
+        if (qcTaskStatus != null) {
+            createDictItemIfNotExists(qcTaskStatus.getId(), "未开始", "not_started", 1);
+            createDictItemIfNotExists(qcTaskStatus.getId(), "进行中", "in_progress", 2);
+            createDictItemIfNotExists(qcTaskStatus.getId(), "已完成", "completed", 3);
+            createDictItemIfNotExists(qcTaskStatus.getId(), "已取消", "cancelled", 4);
         }
     }
 

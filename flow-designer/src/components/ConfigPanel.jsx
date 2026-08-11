@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { NODE_TYPES_CONFIG, EDGE_SCHEMA } from '../nodeTypes'
-import { getFormAll, getForm, getUsersPage, getRoles, getWebhooks, createWebhook, updateWebhook, deleteWebhook, testWebhook } from '../api'
+import { getFormAll, getForm, getUsers, getUsersPage, getRoles, getWebhooks, createWebhook, updateWebhook, deleteWebhook, testWebhook } from '../api'
 
 function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, onNodeConfigChange, onEdgeConfigChange }) {
   const [formList, setFormList] = useState([])
@@ -8,6 +8,7 @@ function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, o
   const [activeSection, setActiveSection] = useState('basic')
   const [userOptions, setUserOptions] = useState([])
   const [userSearchLoading, setUserSearchLoading] = useState(false)
+  const [userNameMap, setUserNameMap] = useState({})
   const [processFormName, setProcessFormName] = useState('')
   const [roleList, setRoleList] = useState([])
   const [webhookList, setWebhookList] = useState([])
@@ -145,6 +146,13 @@ function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, o
       const d = res.data || res
       setRoleList(Array.isArray(d) ? d : (d.records || d.list || []))
     }).catch(() => {})
+    // 加载全量用户，构建 账号 -> 姓名 映射，用于已选处理人展示「姓名(账号)」
+    getUsers().then(res => {
+      const list = Array.isArray(res.data) ? res.data : (res || [])
+      const map = {}
+      list.forEach(u => { if (u.username) map[u.username] = u.realName || u.username })
+      setUserNameMap(prev => ({ ...prev, ...map }))
+    }).catch(() => {})
   }, [])
 
   // 当流程定义绑定了表单时，获取表单名称
@@ -252,9 +260,19 @@ function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, o
         const d = res.data || res
         const records = Array.isArray(d) ? d : (d.records || d.list || [])
         setUserOptions(records)
+        // 搜索结果同步并入 账号 -> 姓名 映射
+        const map = {}
+        records.forEach(u => { if (u.username) map[u.username] = u.realName || u.username })
+        setUserNameMap(prev => ({ ...prev, ...map }))
       } catch { setUserOptions([]) }
       finally { setUserSearchLoading(false) }
     }, 300)
+  }
+
+  // 已选处理人展示格式：姓名(账号)，无姓名时回退为账号
+  function formatAssigneeDisplay(username) {
+    const realName = userNameMap[username]
+    return realName && realName !== username ? `${realName}(${username})` : username
   }
 
   // Multi-select assignees (comma separated)
@@ -376,7 +394,7 @@ function ConfigPanel({ selectedNode, selectedEdge, processKey, processFormKey, o
                       <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                         {getAssigneeList().map(u => (
                           <span key={u} className="handler-tag">
-                            {u}
+                            {formatAssigneeDisplay(u)}
                             <span className="handler-tag-close" onClick={() => removeAssignee(u)}>×</span>
                           </span>
                         ))}

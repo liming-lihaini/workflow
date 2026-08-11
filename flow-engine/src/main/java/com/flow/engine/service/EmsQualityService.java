@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.flow.engine.common.BusinessException;
+import com.flow.engine.dto.EmsHazardousDetailVO;
+import com.flow.engine.dto.EmsResourceDetailVO;
 import com.flow.engine.entity.*;
 import com.flow.engine.mapper.*;
 import com.flow.engine.util.CodeGenerator;
@@ -26,12 +28,19 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
     @Autowired private EmsConsumableMapper consumableMapper;
     @Autowired private EmsHazardousLedgerMapper hazardousMapper;
     @Autowired private EmsQcActivityMapper activityMapper;
+    @Autowired private EmsQcHistoryMapper historyMapper;
     @Autowired private EmsProficiencyTestMapper proficiencyMapper;
     @Autowired private EmsInterlabCompareMapper interlabMapper;
     @Autowired private EmsRepeatTestMapper repeatMapper;
     @Autowired private EmsInstrumentMapper instrumentMapper;
+    @Autowired private EmsMaterialFlowMapper materialFlowMapper;
+    @Autowired private ProcessInstanceMapper processInstanceMapper;
+    @Autowired private VariableMapper variableMapper;
 
     private static final int EXPIRE_WARN_DAYS = 30; // 临期阈值
+
+    /** 物资相关流程：入库申请 WZRKSQ / 使用申请 WZSYSQ / 报废申请 ZCBFSQ */
+    private static final List<String> MATERIAL_PROCESS_KEYS = List.of("WZRKSQ", "WZSYSQ", "ZCBFSQ");
 
     // ===================== 标准物质 =====================
     public EmsStandardMaterial saveMaterial(EmsStandardMaterial m) {
@@ -63,6 +72,133 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
         if (StringUtils.hasText(status)) q.eq(EmsConsumable::getStatus, status);
         q.orderByDesc(EmsConsumable::getCreateTime);
         return consumableMapper.selectPage(new Page<>(page, size), q);
+    }
+
+    // ===================== 物资详情（含关联流程） =====================
+    /** 标准物质详情：基本信息 + 关联流程（入库申请 WZRKSQ / 使用申请 WZSYSQ） */
+    public EmsResourceDetailVO materialDetail(Long id) {
+        EmsStandardMaterial m = materialMapper.selectById(id);
+        if (m == null) return null;
+        EmsResourceDetailVO vo = new EmsResourceDetailVO();
+        vo.setId(m.getId());
+        vo.setType("标准物质");
+        vo.setName(m.getName());
+        vo.setSpec(m.getSpec());
+        vo.setLotNo(m.getLotNo());
+        vo.setCertNo(m.getCertNo());
+        vo.setExpireDate(m.getExpireDate() == null ? null : m.getExpireDate().toString());
+        vo.setStock(m.getStock());
+        vo.setStatus(m.getStatus());
+        vo.setRemark(m.getRemark());
+        vo.setCreateBy(m.getCreateBy());
+        vo.setCreateTime(m.getCreateTime() == null ? null : m.getCreateTime().toString());
+        vo.setRelatedProcesses(listMaterialRelatedProcesses("标准物质", id, m.getName()));
+        return vo;
+    }
+
+    /** 耗材详情：基本信息 + 关联流程（入库申请 WZRKSQ / 使用申请 WZSYSQ） */
+    public EmsResourceDetailVO consumableDetail(Long id) {
+        EmsConsumable c = consumableMapper.selectById(id);
+        if (c == null) return null;
+        EmsResourceDetailVO vo = new EmsResourceDetailVO();
+        vo.setId(c.getId());
+        vo.setType("耗材");
+        vo.setName(c.getName());
+        vo.setSpec(c.getSpec());
+        vo.setExpireDate(c.getExpireDate() == null ? null : c.getExpireDate().toString());
+        vo.setStock(c.getQty());
+        vo.setStatus(c.getStatus());
+        vo.setRemark(c.getRemark());
+        vo.setCreateBy(c.getCreateBy());
+        vo.setCreateTime(c.getCreateTime() == null ? null : c.getCreateTime().toString());
+        vo.setRelatedProcesses(listMaterialRelatedProcesses("耗材", id, c.getName()));
+        return vo;
+    }
+
+    /**
+     * 查询与物资相关的流程实例：
+     * 1) 已审批完成：流水表（t_material_flow）中 material_id 关联的 process_instance_id，携带入库/出库类型与数量；
+     * 2) 进行中：流程变量 name 与物资同名的 WZRKSQ/WZSYSQ 实例（审批中，尚未产生流水）；
+     * 3) 报废申请（ZCBFSQ）：流程变量 assetType=物资类型 且 assetId=物资ID。
+     */
+    private List<EmsResourceDetailVO.RelatedProcess> listMaterialRelatedProcesses(String materialType, Long materialId, String name) {
+        // 流水记录：processInstanceId -> (bizType, qty)
+        Map<Long, EmsMaterialFlow> flowMap = new LinkedHashMap<>();
+        List<EmsMaterialFlow> flows = materialFlowMapper.selectList(new LambdaQueryWrapper<EmsMaterialFlow>()
+                .eq(EmsMaterialFlow::getMaterialId, materialId)
+                .eq(EmsMaterialFlow::getMaterialType, materialType));
+        for (EmsMaterialFlow f : flows) {
+            if (f.getProcessInstanceId() != null) flowMap.put(f.getProcessInstanceId(), f);
+        }
+
+        List<ProcessInstance> instances = processInstanceMapper.selectList(
+                new LambdaQueryWrapper<ProcessInstance>()
+                        .in(ProcessInstance::getProcessKey, MATERIAL_PROCESS_KEYS)
+                        .orderByDesc(ProcessInstance::getStartTime));
+        if (instances.isEmpty()) return new ArrayList<>();
+
+        // 变量匹配：入库/使用按 name 同名；报废按 assetType+assetId
+        List<Long> instanceIds = instances.stream().map(ProcessInstance::getId).toList();
+        Set<Long> matchedIds = new HashSet<>(flowMap.keySet());
+        List<Variable> matched = variableMapper.selectList(new LambdaQueryWrapper<Variable>()
+                .in(Variable::getProcessInstanceId, instanceIds)
+                .isNull(Variable::getTaskId)
+                .in(Variable::getVariableKey, "name", "assetType", "assetId"));
+        Map<Long, String> nameByInst = new HashMap<>();
+        Map<Long, String> typeByInst = new HashMap<>();
+        Map<Long, String> idByInst = new HashMap<>();
+        for (Variable v : matched) {
+            switch (v.getVariableKey()) {
+                case "name" -> nameByInst.put(v.getProcessInstanceId(), v.getVariableValue());
+                case "assetType" -> typeByInst.put(v.getProcessInstanceId(), v.getVariableValue());
+                case "assetId" -> idByInst.put(v.getProcessInstanceId(), v.getVariableValue());
+                default -> { }
+            }
+        }
+        for (ProcessInstance inst : instances) {
+            if ("ZCBFSQ".equals(inst.getProcessKey())) {
+                if (materialType.equals(typeByInst.get(inst.getId()))
+                        && String.valueOf(materialId).equals(idByInst.get(inst.getId()))) {
+                    matchedIds.add(inst.getId());
+                }
+            } else if (StringUtils.hasText(name) && name.equals(nameByInst.get(inst.getId()))) {
+                matchedIds.add(inst.getId());
+            }
+        }
+
+        List<EmsResourceDetailVO.RelatedProcess> result = new ArrayList<>();
+        for (ProcessInstance inst : instances) {
+            if (!matchedIds.contains(inst.getId())) continue;
+            EmsResourceDetailVO.RelatedProcess rp = new EmsResourceDetailVO.RelatedProcess();
+            rp.setProcessInstanceId(inst.getId());
+            rp.setInstanceNo(inst.getInstanceNo());
+            rp.setProcessKey(inst.getProcessKey());
+            rp.setProcessName(inst.getProcessName());
+            rp.setStatusText(materialProcessStatusText(inst.getStatus()));
+            rp.setStartUser(inst.getStartUser());
+            rp.setStartTime(inst.getStartTime() == null ? null : inst.getStartTime().toString());
+            EmsMaterialFlow flow = flowMap.get(inst.getId());
+            if (flow != null) {
+                rp.setBizType(flow.getBizType());
+                rp.setQty(flow.getQty());
+            } else if ("ZCBFSQ".equals(inst.getProcessKey())) {
+                rp.setBizType("报废");
+            }
+            result.add(rp);
+        }
+        return result;
+    }
+
+    /** 流程实例状态码 → 文案 */
+    private String materialProcessStatusText(Integer status) {
+        if (status == null) return "未知";
+        return switch (status) {
+            case 0 -> "运行中";
+            case 1 -> "已完成";
+            case 2 -> "已暂停";
+            case 3 -> "已终止";
+            default -> "未知";
+        };
     }
 
     // ===================== 危化品台账（审批状态机） =====================
@@ -109,29 +245,99 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
         return hazardousMapper.selectPage(new Page<>(page, size), q);
     }
 
+    /** 危化品详情：基本信息 + 关联流程（报废申请 ZCBFSQ，按 assetType+assetId 变量匹配） */
+    public EmsHazardousDetailVO hazardousDetail(Long id) {
+        EmsHazardousLedger h = hazardousMapper.selectById(id);
+        if (h == null) return null;
+        EmsHazardousDetailVO vo = new EmsHazardousDetailVO();
+        vo.setId(h.getId());
+        vo.setName(h.getName());
+        vo.setCasNo(h.getCasNo());
+        vo.setCategory(h.getCategory());
+        vo.setQty(h.getQty());
+        vo.setUnit(h.getUnit());
+        vo.setStatus(h.getStatus());
+        vo.setApplyBy(h.getApplyBy());
+        vo.setApplyReason(h.getApplyReason());
+        vo.setApplyTime(h.getApplyTime() == null ? null : h.getApplyTime().toString());
+        vo.setRemark(h.getRemark());
+        vo.setCreateTime(h.getCreateTime() == null ? null : h.getCreateTime().toString());
+
+        List<ProcessInstance> instances = processInstanceMapper.selectList(
+                new LambdaQueryWrapper<ProcessInstance>()
+                        .eq(ProcessInstance::getProcessKey, "ZCBFSQ")
+                        .orderByDesc(ProcessInstance::getStartTime));
+        List<EmsResourceDetailVO.RelatedProcess> result = new ArrayList<>();
+        if (!instances.isEmpty()) {
+            List<Long> instanceIds = instances.stream().map(ProcessInstance::getId).toList();
+            List<Variable> vars = variableMapper.selectList(new LambdaQueryWrapper<Variable>()
+                    .in(Variable::getProcessInstanceId, instanceIds)
+                    .isNull(Variable::getTaskId)
+                    .in(Variable::getVariableKey, "assetType", "assetId"));
+            Map<Long, String> typeByInst = new HashMap<>();
+            Map<Long, String> idByInst = new HashMap<>();
+            for (Variable v : vars) {
+                if ("assetType".equals(v.getVariableKey())) typeByInst.put(v.getProcessInstanceId(), v.getVariableValue());
+                else idByInst.put(v.getProcessInstanceId(), v.getVariableValue());
+            }
+            for (ProcessInstance inst : instances) {
+                if (!"危化品".equals(typeByInst.get(inst.getId()))
+                        || !String.valueOf(id).equals(idByInst.get(inst.getId()))) continue;
+                EmsResourceDetailVO.RelatedProcess rp = new EmsResourceDetailVO.RelatedProcess();
+                rp.setProcessInstanceId(inst.getId());
+                rp.setInstanceNo(inst.getInstanceNo());
+                rp.setProcessKey(inst.getProcessKey());
+                rp.setProcessName(inst.getProcessName());
+                rp.setStatusText(materialProcessStatusText(inst.getStatus()));
+                rp.setStartUser(inst.getStartUser());
+                rp.setStartTime(inst.getStartTime() == null ? null : inst.getStartTime().toString());
+                rp.setBizType("报废");
+                result.add(rp);
+            }
+        }
+        vo.setRelatedProcesses(result);
+        return vo;
+    }
+
     // ===================== 质控计划（状态机） =====================
-    public EmsQcPlan savePlan(EmsQcPlan p) {
+    public EmsQcPlan savePlan(EmsQcPlan p, String opBy, String opName) {
         if (p.getId() == null) {
             p.setPlanNo(CodeGenerator.generate("QC", (int) (this.count() + 1)));
             p.setStatus("草稿");
+            p.setCreatedBy(opBy);
+            p.setCreatedName(opName);
             p.setCreateTime(LocalDate.now());
+            p.setUpdateTime(LocalDate.now());
+            baseMapper.insert(p);
+            recordHistory("plan", p.getId(), "新建", "创建质控计划【" + p.getTitle() + "】", opBy, opName);
         } else {
             EmsQcPlan old = getPlan(p.getId());
             if (!"草稿".equals(old.getStatus())) throw new BusinessException("仅【草稿】可编辑，当前：" + old.getStatus());
+            List<String> changes = new ArrayList<>();
+            diff(changes, "计划名称", old.getTitle(), p.getTitle());
+            diff(changes, "年度", old.getYear(), p.getYear());
+            diff(changes, "季度", old.getQuarter(), p.getQuarter());
+            diff(changes, "类型", old.getType(), p.getType());
+            diff(changes, "责任人", old.getResponsibleId(), p.getResponsibleId());
+            // 请求未携带的创建人字段保留库中原值，避免被覆盖为 null
+            if (p.getCreatedBy() == null) p.setCreatedBy(old.getCreatedBy());
+            if (p.getCreatedName() == null) p.setCreatedName(old.getCreatedName());
+            p.setUpdateTime(LocalDate.now());
+            baseMapper.updateById(p);
+            if (!changes.isEmpty()) recordHistory("plan", p.getId(), "编辑", String.join("；", changes), opBy, opName);
         }
-        p.setUpdateTime(LocalDate.now());
-        if (p.getId() == null) baseMapper.insert(p); else baseMapper.updateById(p);
         return p;
     }
-    public EmsQcPlan submitPlan(Long id, String approver) {
+    public EmsQcPlan submitPlan(Long id, String approver, String opBy, String opName) {
         EmsQcPlan p = getPlan(id);
         if (!"草稿".equals(p.getStatus())) throw new BusinessException("仅【草稿】可提交审批，当前：" + p.getStatus());
         p.setStatus("审批中");
         p.setUpdateTime(LocalDate.now());
         baseMapper.updateById(p);
+        recordHistory("plan", id, "状态变更", "状态: 草稿 → 审批中（提交审批）", opBy, opName);
         return p;
     }
-    public EmsQcPlan approvePlan(Long id, String approver) {
+    public EmsQcPlan approvePlan(Long id, String approver, String opBy, String opName) {
         EmsQcPlan p = getPlan(id);
         if (!"审批中".equals(p.getStatus())) throw new BusinessException("仅【审批中】可审批，当前：" + p.getStatus());
         p.setStatus("执行中");
@@ -139,22 +345,60 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
         p.setApprovedAt(LocalDate.now());
         p.setUpdateTime(LocalDate.now());
         baseMapper.updateById(p);
+        recordHistory("plan", id, "状态变更", "状态: 审批中 → 执行中（审批通过）", opBy, opName);
         return p;
     }
-    public EmsQcPlan completePlan(Long id) {
+    public EmsQcPlan completePlan(Long id, String opBy, String opName) {
         EmsQcPlan p = getPlan(id);
         if (!"执行中".equals(p.getStatus())) throw new BusinessException("仅【执行中】可完成，当前：" + p.getStatus());
         p.setStatus("已完成");
         p.setUpdateTime(LocalDate.now());
         baseMapper.updateById(p);
+        recordHistory("plan", id, "状态变更", "状态: 执行中 → 已完成", opBy, opName);
         return p;
     }
-    public Page<EmsQcPlan> pagePlans(String year, String status, int page, int size) {
+    /** 删除计划（仅草稿可删），级联删除其下监控活动，并记录处置历史 */
+    public void deletePlan(Long id, String opBy, String opName) {
+        EmsQcPlan p = getPlan(id);
+        if (!"草稿".equals(p.getStatus())) throw new BusinessException("仅【草稿】可删除，当前：" + p.getStatus());
+        LambdaQueryWrapper<EmsQcActivity> aq = new LambdaQueryWrapper<>();
+        aq.eq(EmsQcActivity::getPlanId, id);
+        activityMapper.delete(aq);
+        baseMapper.deleteById(id);
+        recordHistory("plan", id, "删除", "删除质控计划【" + p.getTitle() + "】及其监控活动", opBy, opName);
+    }
+    public Page<EmsQcPlan> pagePlans(String keyword, String year, String status, int page, int size) {
         LambdaQueryWrapper<EmsQcPlan> q = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(keyword)) {
+            q.and(w -> w.like(EmsQcPlan::getTitle, keyword).or().like(EmsQcPlan::getPlanNo, keyword));
+        }
         if (StringUtils.hasText(year)) q.eq(EmsQcPlan::getYear, Integer.parseInt(year));
         if (StringUtils.hasText(status)) q.eq(EmsQcPlan::getStatus, status);
         q.orderByDesc(EmsQcPlan::getCreateTime);
-        return this.page(new Page<>(page, size), q);
+        Page<EmsQcPlan> result = this.page(new Page<>(page, size), q);
+        fillTaskProgress(result.getRecords());
+        return result;
+    }
+
+    /** 聚合计划任务进度：taskTotal=监控活动总数，taskDone=任务状态为「已完成」的数量 */
+    private void fillTaskProgress(java.util.List<EmsQcPlan> planList) {
+        if (planList == null || planList.isEmpty()) return;
+        java.util.List<Long> planIds = planList.stream().map(EmsQcPlan::getId).collect(java.util.stream.Collectors.toList());
+        LambdaQueryWrapper<EmsQcActivity> q = new LambdaQueryWrapper<>();
+        q.in(EmsQcActivity::getPlanId, planIds);
+        q.select(EmsQcActivity::getPlanId, EmsQcActivity::getTaskStatus);
+        java.util.List<EmsQcActivity> acts = activityMapper.selectList(q);
+        java.util.Map<Long, int[]> stat = new java.util.HashMap<>();
+        for (EmsQcActivity a : acts) {
+            int[] c = stat.computeIfAbsent(a.getPlanId(), k -> new int[2]);
+            c[0]++;
+            if ("已完成".equals(a.getTaskStatus())) c[1]++;
+        }
+        for (EmsQcPlan p : planList) {
+            int[] c = stat.getOrDefault(p.getId(), new int[2]);
+            p.setTaskTotal(c[0]);
+            p.setTaskDone(c[1]);
+        }
     }
     public EmsQcPlan planDetail(Long id) {
         EmsQcPlan p = getPlan(id);
@@ -162,11 +406,103 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
     }
 
     // ===================== 监控活动 / 能力验证 / 比对 / 重复 =====================
-    public EmsQcActivity saveActivity(EmsQcActivity a) {
-        if (a.getId() == null) a.setCreateTime(LocalDate.now());
-        a.setUpdateTime(LocalDate.now());
-        if (a.getId() == null) activityMapper.insert(a); else activityMapper.updateById(a);
+    public EmsQcActivity saveActivity(EmsQcActivity a, String opBy, String opName) {
+        if (a.getId() == null) {
+            a.setTaskNo(generateTaskNo());
+            a.setCreatedBy(opBy);
+            a.setCreatedName(opName);
+            a.setCreateTime(LocalDate.now());
+            a.setUpdateTime(LocalDate.now());
+            activityMapper.insert(a);
+            recordHistory("activity", a.getId(), "新建",
+                    "添加监控活动【" + nvl(a.getQcType()) + "-" + nvl(a.getItem()) + "】，任务编号 " + a.getTaskNo(), opBy, opName);
+        } else {
+            EmsQcActivity old = getActivity(a.getId());
+            // 已完成的任务不允许再修改任务状态
+            if ("已完成".equals(old.getTaskStatus()) && a.getTaskStatus() != null
+                    && !"已完成".equals(a.getTaskStatus())) {
+                throw new BusinessException("已完成的任务不允许修改任务状态");
+            }
+            // 请求未携带的系统字段保留库中原值，避免被覆盖为 null
+            if (a.getTaskNo() == null) a.setTaskNo(old.getTaskNo());
+            if (a.getCreatedBy() == null) a.setCreatedBy(old.getCreatedBy());
+            if (a.getCreatedName() == null) a.setCreatedName(old.getCreatedName());
+            if (a.getCreateTime() == null) a.setCreateTime(old.getCreateTime());
+            if (a.getActDate() == null) a.setActDate(old.getActDate());
+            List<String> changes = new ArrayList<>();
+            diff(changes, "活动类型", old.getQcType(), a.getQcType());
+            diff(changes, "检测项目", old.getItem(), a.getItem());
+            diff(changes, "活动执行人", old.getOperatorName() != null ? old.getOperatorName() : old.getOperatorId(),
+                    a.getOperatorName() != null ? a.getOperatorName() : a.getOperatorId());
+            diff(changes, "任务状态", old.getTaskStatus(), a.getTaskStatus());
+            diff(changes, "开始日期", old.getStartDate(), a.getStartDate());
+            diff(changes, "结束日期", old.getEndDate(), a.getEndDate());
+            diff(changes, "活动描述", old.getDescription(), a.getDescription());
+            a.setUpdateTime(LocalDate.now());
+            activityMapper.updateById(a);
+            if (!changes.isEmpty()) {
+                // 仅任务状态变化时记为状态变更，其余记为编辑
+                String action = changes.size() == 1 && changes.get(0).startsWith("任务状态") ? "状态变更" : "编辑";
+                recordHistory("activity", a.getId(), action, String.join("；", changes), opBy, opName);
+            }
+        }
         return a;
+    }
+    /** 删除监控活动并记录处置历史 */
+    public void deleteActivity(Long id, String opBy, String opName) {
+        EmsQcActivity a = getActivity(id);
+        activityMapper.deleteById(id);
+        recordHistory("activity", id, "删除",
+                "删除监控活动【" + nvl(a.getQcType()) + "-" + nvl(a.getItem()) + "】", opBy, opName);
+    }
+    public EmsQcActivity activityDetail(Long id) {
+        return getActivity(id);
+    }
+
+    // ===================== 处置历史 =====================
+    public List<EmsQcHistory> listHistory(String bizType, Long bizId) {
+        LambdaQueryWrapper<EmsQcHistory> q = new LambdaQueryWrapper<>();
+        q.eq(EmsQcHistory::getBizType, bizType).eq(EmsQcHistory::getBizId, bizId);
+        q.orderByDesc(EmsQcHistory::getId);
+        return historyMapper.selectList(q);
+    }
+    private void recordHistory(String bizType, Long bizId, String action, String content, String opBy, String opName) {
+        EmsQcHistory h = new EmsQcHistory();
+        h.setBizType(bizType);
+        h.setBizId(bizId);
+        h.setAction(action);
+        h.setContent(content);
+        h.setOperatorId(opBy);
+        h.setOperatorName(opName);
+        h.setCreateTime(LocalDate.now());
+        historyMapper.insert(h);
+    }
+    private static String nvl(Object v) { return v == null ? "" : String.valueOf(v); }
+    private static void diff(List<String> changes, String label, Object oldV, Object newV) {
+        String o = oldV == null ? "" : String.valueOf(oldV);
+        String n = newV == null ? "" : String.valueOf(newV);
+        if (!Objects.equals(o, n)) {
+            changes.add(label + ": " + (o.isEmpty() ? "(空)" : o) + " → " + (n.isEmpty() ? "(空)" : n));
+        }
+    }
+    private EmsQcActivity getActivity(Long id) {
+        EmsQcActivity a = activityMapper.selectById(id);
+        if (a == null) throw new BusinessException("监控活动不存在：" + id);
+        return a;
+    }
+    /** 任务编号生成：T+yyyyMMdd+4位当日递增序号，如 T202608080001 */
+    private String generateTaskNo() {
+        String prefix = "T" + LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+        LambdaQueryWrapper<EmsQcActivity> q = new LambdaQueryWrapper<>();
+        q.likeRight(EmsQcActivity::getTaskNo, prefix);
+        q.orderByDesc(EmsQcActivity::getTaskNo);
+        q.last("LIMIT 1");
+        EmsQcActivity top = activityMapper.selectOne(q);
+        int seq = 1;
+        if (top != null && top.getTaskNo() != null && top.getTaskNo().length() > prefix.length()) {
+            try { seq = Integer.parseInt(top.getTaskNo().substring(prefix.length())) + 1; } catch (Exception ignored) { }
+        }
+        return prefix + String.format("%04d", seq);
     }
     public EmsProficiencyTest saveProficiency(EmsProficiencyTest t) {
         if (t.getId() == null) t.setCreateTime(LocalDate.now());
@@ -187,12 +523,47 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
         return r;
     }
 
-    public Page<EmsQcActivity> pageActivities(Long planId, String qcType, int page, int size) {
+    public Page<EmsQcActivity> pageActivities(Long planId, String qcType, String keyword,
+                                              String operatorId, String taskStatus, int page, int size) {
         LambdaQueryWrapper<EmsQcActivity> q = new LambdaQueryWrapper<>();
         if (planId != null) q.eq(EmsQcActivity::getPlanId, planId);
         if (StringUtils.hasText(qcType)) q.eq(EmsQcActivity::getQcType, qcType);
-        q.orderByDesc(EmsQcActivity::getActDate);
+        if (StringUtils.hasText(operatorId)) q.eq(EmsQcActivity::getOperatorId, operatorId);
+        if (StringUtils.hasText(taskStatus)) q.eq(EmsQcActivity::getTaskStatus, taskStatus);
+        if (StringUtils.hasText(keyword)) {
+            q.and(w -> w.like(EmsQcActivity::getQcType, keyword)
+                    .or().like(EmsQcActivity::getItem, keyword)
+                    .or().like(EmsQcActivity::getOperatorId, keyword)
+                    .or().like(EmsQcActivity::getTaskStatus, keyword));
+        }
+        q.orderByDesc(EmsQcActivity::getId);
         return activityMapper.selectPage(new Page<>(page, size), q);
+    }
+
+    /**
+     * 质控活动待办：指定活动执行人名下、任务状态非「已完成/已取消」的活动（状态为空的旧数据一并视为待办），
+     * 供工作台待办任务展示；附带所属计划名称
+     */
+    public List<EmsQcActivity> listTodoActivities(String operatorId) {
+        if (!StringUtils.hasText(operatorId)) return new ArrayList<>();
+        LambdaQueryWrapper<EmsQcActivity> q = new LambdaQueryWrapper<>();
+        q.eq(EmsQcActivity::getOperatorId, operatorId);
+        q.and(w -> w.isNull(EmsQcActivity::getTaskStatus)
+                .or().notIn(EmsQcActivity::getTaskStatus, "已完成", "已取消"));
+        q.orderByDesc(EmsQcActivity::getId);
+        List<EmsQcActivity> list = activityMapper.selectList(q);
+        if (!list.isEmpty()) {
+            Set<Long> planIds = list.stream().map(EmsQcActivity::getPlanId)
+                    .filter(Objects::nonNull).collect(Collectors.toSet());
+            if (!planIds.isEmpty()) {
+                Map<Long, String> titleMap = new HashMap<>();
+                for (EmsQcPlan p : baseMapper.selectBatchIds(planIds)) {
+                    titleMap.put(p.getId(), p.getTitle());
+                }
+                list.forEach(a -> a.setPlanTitle(titleMap.get(a.getPlanId())));
+            }
+        }
+        return list;
     }
     public Page<EmsProficiencyTest> pageProficiency(Long planId, int page, int size) {
         LambdaQueryWrapper<EmsProficiencyTest> q = new LambdaQueryWrapper<>();

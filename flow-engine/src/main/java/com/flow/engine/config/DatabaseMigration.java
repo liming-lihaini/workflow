@@ -30,6 +30,17 @@ public class DatabaseMigration implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // 质控处置历史表（计划/监控活动的新建、编辑、状态变更、删除轨迹）
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_qc_history ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "biz_type VARCHAR(32), "
+                + "biz_id BIGINT, "
+                + "action VARCHAR(32), "
+                + "content LONGTEXT, "
+                + "operator_id VARCHAR(64), "
+                + "operator_name VARCHAR(64), "
+                + "create_time DATETIME(6)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
         // 用户档案扩展字段（性别/出生年月/头像）
         addColumnIfAbsent("sys_user", "gender", "VARCHAR(16)");
         addColumnIfAbsent("sys_user", "birth_date", "VARCHAR(32)");
@@ -57,6 +68,19 @@ public class DatabaseMigration implements CommandLineRunner {
 
         // 车辆台账补充字段
         addColumnIfAbsent("t_vehicle", "remark", "TEXT");
+
+        // 监控活动扩展字段（开始/结束日期、活动描述富文本、任务状态）
+        addColumnIfAbsent("t_qc_activity", "start_date", "DATE");
+        addColumnIfAbsent("t_qc_activity", "end_date", "DATE");
+        addColumnIfAbsent("t_qc_activity", "description", "TEXT");
+        addColumnIfAbsent("t_qc_activity", "task_status", "VARCHAR(64)");
+        addColumnIfAbsent("t_qc_activity", "operator_name", "VARCHAR(64)");
+        addColumnIfAbsent("t_qc_activity", "task_no", "VARCHAR(32)");
+        addColumnIfAbsent("t_qc_activity", "created_by", "VARCHAR(64)");
+        addColumnIfAbsent("t_qc_activity", "created_name", "VARCHAR(64)");
+        addColumnIfAbsent("t_qc_plan", "created_by", "VARCHAR(64)");
+        addColumnIfAbsent("t_qc_plan", "created_name", "VARCHAR(64)");
+        backfillActivityTaskNo();
 
         // 仪器设备全生命周期字段（TRD 5.5）
         addColumnIfAbsent("t_instrument", "code", "TEXT");
@@ -215,6 +239,31 @@ public class DatabaseMigration implements CommandLineRunner {
         // 注册「检测委托申请」流程（技术部审批）及审批节点 Webhook（审批通过后创建委托单）
         initEntrustApplyProcess();
 
+        // ===== 资源管理：标准物质/耗材 入库与使用申请流程 =====
+        // 物资入库/使用流水表（Webhook 幂等键 + 详情关联流程数据来源）
+        createTableIfAbsent("t_material_flow",
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, biz_type TEXT, material_type TEXT, "
+                + "material_id INTEGER, name TEXT, spec TEXT, lot_no TEXT, qty INTEGER, "
+                + "applicant TEXT, process_instance_id INTEGER, remark TEXT, create_time TEXT");
+        addColumnIfAbsent("t_standard_material", "create_by", "VARCHAR(512)");
+        addColumnIfAbsent("t_consumable", "create_by", "VARCHAR(512)");
+        // 将标准物质/耗材台账表注册为数据模型记录（可在数据模型模块查看）
+        initMaterialDataModels();
+        // 基于数据模型生成「物资入库申请/使用申请」表单定义
+        initMaterialForms();
+        // 注册 WZRKSQ/WZSYSQ 流程及审批节点 Webhook（审批通过后更新库存/新建物资）
+        initMaterialProcesses();
+
+        // ===== 资产报废：设备/标准物质/耗材/危化品统一报废申请流程（ZCBFSQ） =====
+        // 报废流水表（Webhook 幂等键：process_instance_id）
+        createTableIfAbsent("t_asset_scrap",
+                "id BIGINT PRIMARY KEY AUTO_INCREMENT, asset_type TEXT, asset_id INTEGER, "
+                + "name TEXT, spec TEXT, scrap_reason TEXT, dispose_method TEXT, "
+                + "applicant TEXT, process_instance_id INTEGER, create_time TEXT");
+        // 生成「资产报废申请」表单定义并注册流程与审批节点 Webhook（审批通过后更新台账状态为报废）
+        initAssetScrapForm();
+        initAssetScrapProcess();
+
         // ===== 收样工作台-样品采集（手动收集样品扩展字段） =====
         // 样品关联采样派单/委托单/点位，并存储检测类别、检测项目、采样参数值、
         // 固定剂、现场质控方式、留样标记、现场照片。
@@ -339,7 +388,7 @@ public class DatabaseMigration implements CommandLineRunner {
                 + "]},"
                 + "{\"id\":\"row_3\",\"columns\":2,\"cells\":["
                 + "{\"id\":\"cell_5\",\"span\":12,\"fields\":[{\"field\":\"purchaseDate\",\"label\":\"购置日期\",\"type\":\"date\",\"required\":true}]},"
-                + "{\"id\":\"cell_6\",\"span\":12,\"fields\":[{\"field\":\"status\",\"label\":\"状态\",\"type\":\"select\",\"required\":true,\"optionsSource\":\"custom\",\"optionsText\":\"" + statusOptions + "\"}]}"
+                + "{\"id\":\"cell_6\",\"span\":12,\"fields\":[{\"field\":\"status\",\"label\":\"状态\",\"type\":\"select\",\"required\":true,\"optionsSource\":\"manual\",\"optionsText\":\"" + statusOptions + "\"}]}"
                 + "]}"
                 + "]},{"
                 + "\"id\":\"section_2\",\"title\":\"校准信息\","
@@ -833,6 +882,328 @@ public class DatabaseMigration implements CommandLineRunner {
         }
     }
 
+    /**
+     * 将标准物质（t_standard_material）与耗材（t_consumable）台账表注册为数据模型记录，
+     * 可在「数据模型」模块查看/绑定物资业务表单。幂等：已存在则热更结构。
+     */
+    private void initMaterialDataModels() {
+        String materialModelJson = "{\"modelKey\":\"standard_material\",\"modelName\":\"标准物质\",\"mainTable\":{"
+                + "\"tableName\":\"t_standard_material\",\"label\":\"标准物质台账\",\"fields\":["
+                + "{\"fieldKey\":\"id\",\"label\":\"ID\",\"type\":\"number\",\"hidden\":true},"
+                + "{\"fieldKey\":\"name\",\"label\":\"名称\",\"type\":\"text\",\"required\":true,\"writable\":true,\"columnWidth\":160},"
+                + "{\"fieldKey\":\"lotNo\",\"label\":\"批号\",\"type\":\"text\",\"writable\":true,\"columnWidth\":140},"
+                + "{\"fieldKey\":\"spec\",\"label\":\"规格\",\"type\":\"text\",\"writable\":true,\"columnWidth\":140},"
+                + "{\"fieldKey\":\"expireDate\",\"label\":\"效期\",\"type\":\"date\",\"writable\":true,\"columnWidth\":120},"
+                + "{\"fieldKey\":\"stock\",\"label\":\"库存\",\"type\":\"number\",\"writable\":true,\"columnWidth\":100},"
+                + "{\"fieldKey\":\"status\",\"label\":\"状态\",\"type\":\"text\",\"writable\":true,\"columnWidth\":100},"
+                + "{\"fieldKey\":\"certNo\",\"label\":\"证书编号\",\"type\":\"text\",\"writable\":true,\"columnWidth\":150},"
+                + "{\"fieldKey\":\"remark\",\"label\":\"备注\",\"type\":\"textarea\",\"writable\":true,\"columnWidth\":200},"
+                + "{\"fieldKey\":\"createBy\",\"label\":\"创建人\",\"type\":\"text\",\"hidden\":true},"
+                + "{\"fieldKey\":\"createTime\",\"label\":\"创建时间\",\"type\":\"datetime\",\"hidden\":true},"
+                + "{\"fieldKey\":\"updateTime\",\"label\":\"更新时间\",\"type\":\"datetime\",\"hidden\":true}"
+                + "]}}";
+        String consumableModelJson = "{\"modelKey\":\"consumable\",\"modelName\":\"耗材\",\"mainTable\":{"
+                + "\"tableName\":\"t_consumable\",\"label\":\"耗材台账\",\"fields\":["
+                + "{\"fieldKey\":\"id\",\"label\":\"ID\",\"type\":\"number\",\"hidden\":true},"
+                + "{\"fieldKey\":\"name\",\"label\":\"名称\",\"type\":\"text\",\"required\":true,\"writable\":true,\"columnWidth\":160},"
+                + "{\"fieldKey\":\"spec\",\"label\":\"规格\",\"type\":\"text\",\"writable\":true,\"columnWidth\":140},"
+                + "{\"fieldKey\":\"qty\",\"label\":\"数量\",\"type\":\"number\",\"writable\":true,\"columnWidth\":100},"
+                + "{\"fieldKey\":\"expireDate\",\"label\":\"效期\",\"type\":\"date\",\"writable\":true,\"columnWidth\":120},"
+                + "{\"fieldKey\":\"status\",\"label\":\"状态\",\"type\":\"text\",\"writable\":true,\"columnWidth\":100},"
+                + "{\"fieldKey\":\"remark\",\"label\":\"备注\",\"type\":\"textarea\",\"writable\":true,\"columnWidth\":200},"
+                + "{\"fieldKey\":\"createBy\",\"label\":\"创建人\",\"type\":\"text\",\"hidden\":true},"
+                + "{\"fieldKey\":\"createTime\",\"label\":\"创建时间\",\"type\":\"datetime\",\"hidden\":true},"
+                + "{\"fieldKey\":\"updateTime\",\"label\":\"更新时间\",\"type\":\"datetime\",\"hidden\":true}"
+                + "]}}";
+        upsertDataModel("standard_material", "标准物质", materialModelJson);
+        upsertDataModel("consumable", "耗材", consumableModelJson);
+    }
+
+    /** 幂等写入/热更数据模型定义（model_key 已存在则更新结构）。 */
+    private void upsertDataModel(String modelKey, String modelName, String modelJson) {
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM wf_data_model WHERE model_key='" + modelKey + "'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) {
+                st.executeUpdate("UPDATE wf_data_model SET model_json='" + modelJson
+                        + "', model_name='" + modelName + "', version=1, status=1, source='builtin' WHERE model_key='" + modelKey + "'");
+            } else {
+                st.executeUpdate("INSERT INTO wf_data_model (model_key, model_name, model_json, version, status, source) "
+                        + "VALUES ('" + modelKey + "', '" + modelName + "', '" + modelJson + "', 1, 1, 'builtin')");
+            }
+        } catch (Exception ignored) {
+            // 幂等保护；若表/字段不存在则跳过，不影响主流程
+        }
+    }
+
+    /**
+     * 基于标准物质/耗材数据模型生成「物资入库申请」「物资使用申请」表单定义。
+     * 入库表单：物资类型/名称/规格/批号/入库数量/效期/证书编号/申请人/备注；
+     * 使用表单：物资类型/名称/规格/使用数量/用途/申请人/备注。
+     * 幂等：form_key 已存在则用最新结构更新（可热更）。
+     */
+    private void initMaterialForms() {
+        String typeOptions = "标准物质:标准物质\\\\n耗材:耗材";
+        String inboundFormJson = "{"
+                + "\"sections\":[{"
+                + "\"id\":\"section_1\",\"title\":\"入库信息\","
+                + "\"children\":["
+                + "{\"id\":\"row_1\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_1\",\"span\":12,\"fields\":[{\"field\":\"materialType\",\"label\":\"物资类型\",\"type\":\"select\",\"required\":true,\"optionsSource\":\"manual\",\"optionsText\":\"" + typeOptions + "\",\"defaultValue\":\"标准物质\"}]},"
+                + "{\"id\":\"cell_2\",\"span\":12,\"fields\":[{\"field\":\"name\",\"label\":\"名称\",\"type\":\"text\",\"required\":true}]}"
+                + "]},"
+                + "{\"id\":\"row_2\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_3\",\"span\":12,\"fields\":[{\"field\":\"spec\",\"label\":\"规格\",\"type\":\"text\"}]},"
+                + "{\"id\":\"cell_4\",\"span\":12,\"fields\":[{\"field\":\"lotNo\",\"label\":\"批号\",\"type\":\"text\"}]}"
+                + "]},"
+                + "{\"id\":\"row_3\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_5\",\"span\":12,\"fields\":[{\"field\":\"qty\",\"label\":\"入库数量\",\"type\":\"number\",\"required\":true}]},"
+                + "{\"id\":\"cell_6\",\"span\":12,\"fields\":[{\"field\":\"expireDate\",\"label\":\"效期\",\"type\":\"date\"}]}"
+                + "]},"
+                + "{\"id\":\"row_4\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_7\",\"span\":12,\"fields\":[{\"field\":\"certNo\",\"label\":\"证书编号\",\"type\":\"text\"}]},"
+                + "{\"id\":\"cell_8\",\"span\":12,\"fields\":[{\"field\":\"applicant\",\"label\":\"申请人\",\"type\":\"user\",\"required\":true}]}"
+                + "]},"
+                + "{\"id\":\"row_5\",\"columns\":1,\"cells\":["
+                + "{\"id\":\"cell_9\",\"span\":24,\"fields\":[{\"field\":\"remark\",\"label\":\"备注\",\"type\":\"textarea\"}]}"
+                + "]}"
+                + "]}]}";
+        String usageFormJson = "{"
+                + "\"sections\":[{"
+                + "\"id\":\"section_1\",\"title\":\"使用信息\","
+                + "\"children\":["
+                + "{\"id\":\"row_1\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_1\",\"span\":12,\"fields\":[{\"field\":\"materialType\",\"label\":\"物资类型\",\"type\":\"select\",\"required\":true,\"optionsSource\":\"manual\",\"optionsText\":\"" + typeOptions + "\",\"defaultValue\":\"标准物质\"}]},"
+                + "{\"id\":\"cell_2\",\"span\":12,\"fields\":[{\"field\":\"name\",\"label\":\"名称\",\"type\":\"text\",\"required\":true}]}"
+                + "]},"
+                + "{\"id\":\"row_2\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_3\",\"span\":12,\"fields\":[{\"field\":\"spec\",\"label\":\"规格\",\"type\":\"text\"}]},"
+                + "{\"id\":\"cell_4\",\"span\":12,\"fields\":[{\"field\":\"qty\",\"label\":\"使用数量\",\"type\":\"number\",\"required\":true}]}"
+                + "]},"
+                + "{\"id\":\"row_3\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_5\",\"span\":12,\"fields\":[{\"field\":\"applicant\",\"label\":\"申请人\",\"type\":\"user\",\"required\":true}]},"
+                + "{\"id\":\"cell_6\",\"span\":12,\"fields\":[{\"field\":\"purpose\",\"label\":\"用途\",\"type\":\"text\"}]}"
+                + "]},"
+                + "{\"id\":\"row_4\",\"columns\":1,\"cells\":["
+                + "{\"id\":\"cell_7\",\"span\":24,\"fields\":[{\"field\":\"remark\",\"label\":\"备注\",\"type\":\"textarea\"}]}"
+                + "]}"
+                + "]}]}";
+        upsertFormDefinition("material_inbound", "物资入库申请", inboundFormJson, "resource", "standard_material");
+        upsertFormDefinition("material_usage", "物资使用申请", usageFormJson, "resource", "standard_material");
+    }
+
+    /**
+     * 注册「物资入库申请」（WZRKSQ）/「物资使用申请」（WZSYSQ）流程及审批节点 Webhook（幂等热更）。
+     * <p>
+     * 流程结构：开始 -> 物资管理员审批(userTask_approve) -> 结束；
+     * 申请人在发起流程时填写表单（入库 material_inbound / 使用 material_usage）。
+     * 审批节点通过（NODE_COMPLETED）时由 Webhook 回调：
+     * - 入库：/api/webhook/material/inbound，名称+规格已存在则累加库存，否则新建物资；
+     * - 使用：/api/webhook/material/usage，存在则扣减库存，否则新建物资并记录出库流水。
+     */
+    private void initMaterialProcesses() {
+        try {
+            upsertMaterialProcess("WZRKSQ", "物资入库申请", "material_inbound",
+                    "物资入库：发起申请(标准物质/耗材) -> 物资管理员审批 -> 审批通过自动累加库存或新建物资");
+            upsertMaterialProcess("WZSYSQ", "物资使用申请", "material_usage",
+                    "物资使用：发起申请(标准物质/耗材) -> 物资管理员审批 -> 审批通过自动扣减库存");
+            upsertMaterialWebhook("material_inbound_hook", "物资入库-库存更新", "WZRKSQ",
+                    "http://localhost:8080/api/webhook/material/inbound");
+            upsertMaterialWebhook("material_usage_hook", "物资使用-库存扣减", "WZSYSQ",
+                    "http://localhost:8080/api/webhook/material/usage");
+        } catch (Exception ignored) {
+            // 幂等保护；若相关表不存在则跳过，不影响主流程
+        }
+    }
+
+    private void upsertMaterialProcess(String processKey, String processName, String formKey, String description) throws Exception {
+        Map<String, Object> def = new LinkedHashMap<>();
+        def.put("processKey", processKey);
+        def.put("processName", processName);
+        def.put("formKey", formKey);
+
+        List<Map<String, Object>> nodes = new ArrayList<>();
+        nodes.add(buildProcessNode("start_1", "start", "开始", null, null, null, 300, 50, new LinkedHashMap<>()));
+
+        Map<String, Object> approveProps = new LinkedHashMap<>();
+        approveProps.put("formKey", formKey);
+        // 审批节点上申请人字段只读隐藏（发起时已自动带入）
+        Map<String, Object> permFields = new LinkedHashMap<>();
+        permFields.put("applicant", "hidden");
+        Map<String, Object> formPermissions = new LinkedHashMap<>();
+        formPermissions.put("fields", permFields);
+        approveProps.put("formPermissions", formPermissions);
+        nodes.add(buildProcessNode("userTask_approve", "userTask", "物资管理员审批",
+                "sys_admin", "sys_admin", "user", 300, 200, approveProps));
+
+        nodes.add(buildProcessNode("end_1", "end", "结束", null, null, null, 300, 350, new LinkedHashMap<>()));
+        def.put("nodes", nodes);
+
+        List<Map<String, Object>> edges = new ArrayList<>();
+        edges.add(buildProcessEdge("edge_1", "start_1", "userTask_approve"));
+        edges.add(buildProcessEdge("edge_2", "userTask_approve", "end_1"));
+        def.put("edges", edges);
+
+        String processJson = JsonUtils.toJson(def).replace("'", "''");
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM wf_process_definition WHERE process_key='" + processKey + "'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) {
+                st.executeUpdate("UPDATE wf_process_definition SET process_name='" + processName
+                        + "', process_json='" + processJson + "', description='" + description
+                        + "', update_time=CURRENT_TIMESTAMP WHERE process_key='" + processKey + "'");
+            } else {
+                st.executeUpdate("INSERT INTO wf_process_definition (process_key, process_name, version, "
+                        + "process_json, category, process_type, description, status, deployment_id, create_time, update_time) "
+                        + "VALUES ('" + processKey + "', '" + processName + "', 1, '" + processJson
+                        + "', '资源管理', 'approval', '" + description + "', 1, "
+                        + "'seed-" + processKey.toLowerCase() + "', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+            }
+        }
+    }
+
+    /**
+     * 注册物资流程 Webhook：绑定审批节点(userTask_approve)，NODE_COMPLETED 触发。
+     * payload_template 留空 -> 发送完整 payload（含 formData 与 processInstanceId 幂等键）。
+     */
+    private void upsertMaterialWebhook(String webhookKey, String name, String processKey, String url) {
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM wf_webhook WHERE webhook_key='" + webhookKey + "'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) {
+                st.executeUpdate("UPDATE wf_webhook SET name='" + name + "', url='" + url + "', method='POST', "
+                        + "payload_template=NULL, trigger_events='[\"NODE_COMPLETED\"]', process_key='" + processKey
+                        + "', node_id='userTask_approve', status=1, update_time=CURRENT_TIMESTAMP WHERE webhook_key='" + webhookKey + "'");
+            } else {
+                st.executeUpdate("INSERT INTO wf_webhook (webhook_key, name, url, method, payload_template, "
+                        + "timeout, retry_count, trigger_events, process_key, node_id, status, create_time, update_time) "
+                        + "VALUES ('" + webhookKey + "', '" + name + "', '" + url + "', 'POST', NULL, 5000, 3, "
+                        + "'[\"NODE_COMPLETED\"]', '" + processKey + "', 'userTask_approve', 1, "
+                        + "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+            }
+        } catch (Exception ignored) {
+            // 幂等保护
+        }
+    }
+
+    /**
+     * 生成「资产报废申请」表单定义（asset_scrap）。
+     * 适用设备/标准物质/耗材/危化品四类资产的报废申请：
+     * 资产类型/资产ID/名称/规格编号/处置方式/申请人/报废原因/备注。
+     * 幂等：form_key 已存在则用最新结构更新（可热更）。
+     */
+    private void initAssetScrapForm() {
+        String assetTypeOptions = "设备:设备\\\\n标准物质:标准物质\\\\n耗材:耗材\\\\n危化品:危化品";
+        String disposeOptions = "退回厂家:退回厂家\\\\n资质单位处置:资质单位处置\\\\n自行无害化处理:自行无害化处理\\\\n变卖:变卖\\\\n其他:其他";
+        String scrapFormJson = "{"
+                + "\"sections\":[{"
+                + "\"id\":\"section_1\",\"title\":\"报废信息\","
+                + "\"children\":["
+                + "{\"id\":\"row_1\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_1\",\"span\":12,\"fields\":[{\"field\":\"assetType\",\"label\":\"资产类型\",\"type\":\"select\",\"required\":true,\"optionsSource\":\"manual\",\"optionsText\":\"" + assetTypeOptions + "\",\"defaultValue\":\"设备\"}]},"
+                + "{\"id\":\"cell_2\",\"span\":12,\"fields\":[{\"field\":\"name\",\"label\":\"名称\",\"type\":\"text\",\"required\":true}]}"
+                + "]},"
+                + "{\"id\":\"row_2\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_3\",\"span\":12,\"fields\":[{\"field\":\"assetId\",\"label\":\"资产ID\",\"type\":\"number\",\"required\":true}]},"
+                + "{\"id\":\"cell_4\",\"span\":12,\"fields\":[{\"field\":\"spec\",\"label\":\"规格/编号\",\"type\":\"text\"}]}"
+                + "]},"
+                + "{\"id\":\"row_3\",\"columns\":2,\"cells\":["
+                + "{\"id\":\"cell_5\",\"span\":12,\"fields\":[{\"field\":\"disposeMethod\",\"label\":\"处置方式\",\"type\":\"select\",\"required\":true,\"optionsSource\":\"manual\",\"optionsText\":\"" + disposeOptions + "\",\"defaultValue\":\"退回厂家\"}]},"
+                + "{\"id\":\"cell_6\",\"span\":12,\"fields\":[{\"field\":\"applicant\",\"label\":\"申请人\",\"type\":\"user\",\"required\":true}]}"
+                + "]},"
+                + "{\"id\":\"row_4\",\"columns\":1,\"cells\":["
+                + "{\"id\":\"cell_7\",\"span\":24,\"fields\":[{\"field\":\"scrapReason\",\"label\":\"报废原因\",\"type\":\"textarea\",\"required\":true}]}"
+                + "]},"
+                + "{\"id\":\"row_5\",\"columns\":1,\"cells\":["
+                + "{\"id\":\"cell_8\",\"span\":24,\"fields\":[{\"field\":\"remark\",\"label\":\"备注\",\"type\":\"textarea\"}]}"
+                + "]}"
+                + "]}]}";
+        upsertFormDefinition("asset_scrap", "资产报废申请", scrapFormJson, "resource", "standard_material");
+    }
+
+    /**
+     * 注册「资产报废申请」（ZCBFSQ）流程及审批节点 Webhook（幂等热更）。
+     * <p>
+     * 流程结构：开始 -> 资产管理审批(userTask_approve) -> 结束；
+     * 申请人在发起流程时填写表单（asset_scrap），说明报废原因和处置方式。
+     * 审批节点通过（NODE_COMPLETED）时由 Webhook 回调 /api/webhook/asset/scrap：
+     * 按资产类型+资产ID将对应台账（t_instrument/t_standard_material/t_consumable/t_hazardous_ledger）
+     * 状态更新为报废，并写入 t_asset_scrap 报废流水（process_instance_id 幂等）。
+     */
+    private void initAssetScrapProcess() {
+        try {
+            upsertAssetScrapProcessDef("ZCBFSQ", "资产报废申请", "asset_scrap",
+                    "资产报废：发起报废申请(设备/标准物质/耗材/危化品) -> 资产管理审批 -> 审批通过自动更新台账状态为报废");
+            upsertMaterialWebhook("asset_scrap_hook", "资产报废-台账状态更新", "ZCBFSQ",
+                    "http://localhost:8080/api/webhook/asset/scrap");
+        } catch (Exception ignored) {
+            // 幂等保护；若相关表不存在则跳过，不影响主流程
+        }
+    }
+
+    private void upsertAssetScrapProcessDef(String processKey, String processName, String formKey, String description) throws Exception {
+        Map<String, Object> def = new LinkedHashMap<>();
+        def.put("processKey", processKey);
+        def.put("processName", processName);
+        def.put("formKey", formKey);
+
+        List<Map<String, Object>> nodes = new ArrayList<>();
+        nodes.add(buildProcessNode("start_1", "start", "开始", null, null, null, 300, 50, new LinkedHashMap<>()));
+
+        Map<String, Object> approveProps = new LinkedHashMap<>();
+        approveProps.put("formKey", formKey);
+        // 审批节点上申请人/资产ID字段只读隐藏（发起时已自动带入，避免审批环节篡改）
+        Map<String, Object> permFields = new LinkedHashMap<>();
+        permFields.put("applicant", "hidden");
+        permFields.put("assetId", "hidden");
+        Map<String, Object> formPermissions = new LinkedHashMap<>();
+        formPermissions.put("fields", permFields);
+        approveProps.put("formPermissions", formPermissions);
+        nodes.add(buildProcessNode("userTask_approve", "userTask", "资产管理审批",
+                "sys_admin", "sys_admin", "user", 300, 200, approveProps));
+
+        nodes.add(buildProcessNode("end_1", "end", "结束", null, null, null, 300, 350, new LinkedHashMap<>()));
+        def.put("nodes", nodes);
+
+        List<Map<String, Object>> edges = new ArrayList<>();
+        edges.add(buildProcessEdge("edge_1", "start_1", "userTask_approve"));
+        edges.add(buildProcessEdge("edge_2", "userTask_approve", "end_1"));
+        def.put("edges", edges);
+
+        String processJson = JsonUtils.toJson(def).replace("'", "''");
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            int cnt = 0;
+            try (java.sql.ResultSet rs = st.executeQuery(
+                    "SELECT COUNT(*) FROM wf_process_definition WHERE process_key='" + processKey + "'")) {
+                if (rs.next()) cnt = rs.getInt(1);
+            }
+            if (cnt > 0) {
+                st.executeUpdate("UPDATE wf_process_definition SET process_name='" + processName
+                        + "', process_json='" + processJson + "', description='" + description
+                        + "', update_time=CURRENT_TIMESTAMP WHERE process_key='" + processKey + "'");
+            } else {
+                st.executeUpdate("INSERT INTO wf_process_definition (process_key, process_name, version, "
+                        + "process_json, category, process_type, description, status, deployment_id, create_time, update_time) "
+                        + "VALUES ('" + processKey + "', '" + processName + "', 1, '" + processJson
+                        + "', '资源管理', 'approval', '" + description + "', 1, "
+                        + "'seed-" + processKey.toLowerCase() + "', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+            }
+        }
+    }
+
     /** 内置通用校验状态机 + 示例业务状态机定义（幂等插入）。 */
     private void initStateMachineDefs() {
         try (Connection conn = dataSource.getConnection();
@@ -935,6 +1306,25 @@ public class DatabaseMigration implements CommandLineRunner {
         }
     }
 
+    private void createTableIfAbsent(String ddl) {
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            st.execute(ddl);
+        } catch (Exception ignored) {
+            // 建表失败（已存在等）忽略
+        }
+    }
+
+    /** 存量监控活动回填任务编号：T+yyyyMMdd+LPAD(id,4)，新编号生成按当日最大序号递增，避免冲突 */
+    private void backfillActivityTaskNo() {
+        try (Connection conn = dataSource.getConnection();
+             Statement st = conn.createStatement()) {
+            st.executeUpdate("UPDATE t_qc_activity SET task_no = CONCAT('T', DATE_FORMAT(COALESCE(create_time, NOW()), '%Y%m%d'), LPAD(id, 4, '0')) WHERE task_no IS NULL OR task_no = ''");
+        } catch (Exception ignored) {
+            // 表/字段不存在时跳过
+        }
+    }
+
     /**
      * 回填数据模型来源标识：存量记录默认用户自定义；
      * 系统内置模型（危化品/样品留样/仪器设备/检测委托）标记为 builtin，在数据模型模块只读。
@@ -944,7 +1334,7 @@ public class DatabaseMigration implements CommandLineRunner {
              Statement st = conn.createStatement()) {
             st.executeUpdate("UPDATE wf_data_model SET source = 'custom' WHERE source IS NULL OR source = ''");
             st.executeUpdate("UPDATE wf_data_model SET source = 'builtin' "
-                    + "WHERE model_key IN ('hazardous', 'retain', 'instrument', 'entrust')");
+                    + "WHERE model_key IN ('hazardous', 'retain', 'instrument', 'entrust', 'standard_material', 'consumable')");
         } catch (Exception ignored) {
             // 幂等保护；若表/字段不存在则跳过，不影响主流程
         }

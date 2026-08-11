@@ -21,6 +21,7 @@ public class EmsStandardMaterial {
     private String status;     // 在库/临期/过期
     private String certNo;
     private String remark;
+    private String createBy;
     private LocalDate createTime;
     private LocalDate updateTime;
 }

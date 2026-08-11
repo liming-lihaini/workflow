@@ -202,9 +202,10 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
 
     // ===================== 查询 =====================
 
-    public Page<EmsDetectionTask> pageTasks(String status, String keyword, int page, int size) {
+    public Page<EmsDetectionTask> pageTasks(String status, String keyword, String entryBy, int page, int size) {
         LambdaQueryWrapper<EmsDetectionTask> q = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(status)) q.eq(EmsDetectionTask::getStatus, status);
+        if (StringUtils.hasText(entryBy)) q.eq(EmsDetectionTask::getEntryBy, entryBy);
         if (StringUtils.hasText(keyword)) {
             q.like(EmsDetectionTask::getBarcode, keyword)
              .or().like(EmsDetectionTask::getSampleName, keyword)

@@ -43,13 +43,14 @@ public class EmsDetectionController {
         return Result.ok(detectionService.createTask(sampleId, monitorItems, entryBy, reviewBy));
     }
 
-    /** 检测任务分页（可按状态/关键字筛选） */
+    /** 检测任务分页（可按状态/关键字/录入员筛选） */
     @GetMapping("/tasks")
     public Result<?> pageTasks(@RequestParam(required = false) String status,
                                @RequestParam(required = false) String keyword,
+                               @RequestParam(required = false) String entryBy,
                                @RequestParam(defaultValue = "1") int page,
                                @RequestParam(defaultValue = "20") int size) {
-        Page<EmsDetectionTask> p = detectionService.pageTasks(status, keyword, page, size);
+        Page<EmsDetectionTask> p = detectionService.pageTasks(status, keyword, entryBy, page, size);
         return Result.ok(p);
     }
 

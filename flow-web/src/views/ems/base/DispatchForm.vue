@@ -52,11 +52,15 @@
           show-icon
           message="检车时间范围内没有可用车辆，请调整计划时间"
         />
-        <span v-else class="tip-text">已按 {{
-          dayjs(form.planStart).format('MM-DD HH:mm')
-        }} ~ {{
-          dayjs(form.planEnd).format('MM-DD HH:mm')
-        }} 过滤可用车辆（共 {{ vehicleOptions.length }} 辆）</span>
+        <a-alert v-else type="info" show-icon class="vehicle-filter-tip">
+          <template #message>
+            <span class="tip-label">已按时间过滤可用车辆</span>
+            <span class="tip-range">
+              {{ dayjs(form.planStart).format('MM-DD HH:mm') }} ~ {{ dayjs(form.planEnd).format('MM-DD HH:mm') }}
+            </span>
+            <a-tag color="blue" class="tip-count">{{ vehicleOptions.length }} 辆可用</a-tag>
+          </template>
+        </a-alert>
       </div>
     </a-form-item>
     <a-form-item label="设备（可多选）">
@@ -166,3 +170,26 @@ onMounted(() => {
   onSearchInstrument('')
 })
 </script>
+
+<style scoped>
+.vehicle-tip {
+  margin-top: 8px;
+}
+.vehicle-filter-tip :deep(.ant-alert-message) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tip-label {
+  color: rgba(0, 0, 0, 0.85);
+}
+.tip-range {
+  color: rgba(0, 0, 0, 0.65);
+  font-family: monospace;
+}
+.tip-count {
+  margin: 0;
+  margin-left: auto;
+}
+</style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrap">
+  <div class="page-wrap" :class="{ 'detail-open': detailId }">
     <!-- 委托列表 -->
     <div v-if="!detailId" class="card-wrap">
       <div class="page-header">
@@ -20,6 +20,7 @@
             allow-clear
             @change="loadData"
           />
+          <a-button type="primary" @click="startEntrustApply">发起检测委托申请</a-button>
           <a-button v-if="hasPerm('ems:entrust:create')" type="primary" @click="showDrawer()">新建委托</a-button>
           <a-button
             danger
@@ -252,7 +253,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, nextTick, h } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { UploadOutlined } from '@ant-design/icons-vue'
 import {
@@ -265,6 +266,14 @@ import { usePermission } from '../../../composables/usePermission'
 import { useResizableColumns } from '../../../composables/useResizableTable'
 
 const { hasPerm } = usePermission()
+const route = useRoute()
+const router = useRouter()
+
+// 发起检测委托申请流程（JCWTSQ）：跳转流程发起详情页，审批通过后由 Webhook 自动创建委托单
+function startEntrustApply() {
+  router.push({ path: '/task/start-detail', query: { processKey: 'JCWTSQ' } })
+}
+
 const loading = ref(false)
 const dataList = ref([])
 const drawerVisible = ref(false)
@@ -742,9 +751,8 @@ onMounted(() => {
   loadDicts()
   loadData()
   // 支持从采样调度等页面通过 query.detailId 直接跳转打开委托详情
-  const rq = useRoute()
-  if (rq.query && rq.query.detailId) {
-    detailId.value = Number(rq.query.detailId)
+  if (route.query && route.query.detailId) {
+    detailId.value = Number(route.query.detailId)
   }
   nextTick(() => {
     syncTableHeight()
@@ -791,6 +799,12 @@ onUnmounted(() => {
   overflow: hidden;
   padding: 16px;
   box-sizing: border-box;
+}
+/* 详情视图：解除固定高度与裁剪，内容随高度撑开，由外层内容区提供纵向滚动 */
+.page-wrap.detail-open {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
 }
 .card-wrap {
   flex: 1;

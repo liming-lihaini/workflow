@@ -107,6 +107,10 @@ export function getForm(formKey) {
 }
 
 // 用户 API
+export function getUsers(params) {
+  return request.get('/system/users', { params })
+}
+
 export function getUsersPage(params) {
   return request.get('/system/users/page', { params })
 }

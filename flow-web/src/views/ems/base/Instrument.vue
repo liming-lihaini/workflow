@@ -48,6 +48,10 @@
               <span class="action-link" @click="showDrawer(record)">编辑</span>
               <a-divider type="vertical" />
               <span class="action-link" @click="showCalibrate(record)">校准登记</span>
+              <template v-if="record.status !== '报废'">
+                <a-divider type="vertical" />
+                <span class="action-link danger" @click="startScrapProcess(record)">报废</span>
+              </template>
               <a-divider type="vertical" />
               <a-popconfirm title="删除该设备？" @confirm="handleDelete(record)">
                 <span class="action-link danger">删除</span>
@@ -136,10 +140,13 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, h, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { listInstruments, createInstrument, updateInstrument, deleteInstrument, calibrateInstrument, expiringInstruments, getDictItems, getInstrumentUsage } from '../../../api/ems'
 import InstrumentDetail from './InstrumentDetail.vue'
 import dayjs from 'dayjs'
+
+const router = useRouter()
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -231,7 +238,7 @@ const columns = [
   { title: '状态', key: 'status', dataIndex: 'status', width: 90 },
   { title: '校准到期', key: 'calibDue', dataIndex: 'calibDue', width: 120 },
   { title: '证书号', dataIndex: 'certNo', key: 'certNo' },
-  { title: '操作', key: 'action', width: 300 }
+  { title: '操作', key: 'action', width: 350 }
 ]
 
 const form = reactive({ id: undefined, code: '', name: '', model: '', manufacturer: '', purchaseDate: null, calibDue: null, status: '在用', certNo: '', remark: '' })
@@ -323,6 +330,15 @@ function submitCalibrate() {
 
 function handleDelete(record) {
   deleteInstrument(record.id).then(() => { message.success('已删除'); load() }).catch(() => {})
+}
+
+// 发起资产报废申请(ZCBFSQ)：跳转流程发起详情页，预填资产类型/资产ID/名称/编号；
+// 申请人需在表单中说明报废原因与处置方式，审批通过后由 Webhook 更新台账状态为报废
+function startScrapProcess(record) {
+  const query = { processKey: 'ZCBFSQ', assetType: '设备', assetId: record.id }
+  if (record.name) query.name = record.name
+  if (record.code) query.spec = record.code
+  router.push({ path: '/task/start-detail', query })
 }
 
 function handleTableChange(pag) {

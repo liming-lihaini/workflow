@@ -11,7 +11,7 @@
     >
       <div class="logo">
         <span v-if="!collapsed">自定义流程引擎</span>
-        <span v-else>FE</span>
+        <img v-else src="/logo.png" alt="logo" class="logo-img" />
       </div>
       <a-menu
         v-model:selectedKeys="selectedKeys"
@@ -369,6 +369,13 @@ function handleUserMenu({ key }) {
   font-size: 18px;
   font-weight: 700;
   background: rgba(255, 255, 255, 0.05);
+}
+
+.logo-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .header {

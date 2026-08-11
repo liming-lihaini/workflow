@@ -19,6 +19,7 @@ public class EmsConsumable {
     private LocalDate expireDate;
     private String status;     // 在库/临期/过期
     private String remark;
+    private String createBy;
     private LocalDate createTime;
     private LocalDate updateTime;
 }

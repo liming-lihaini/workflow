@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 环境监测 - 采样设备/仪器服务（TRD 5.5 仪器设备全生命周期台账）
@@ -91,7 +92,8 @@ public class EmsInstrumentService extends ServiceImpl<EmsInstrumentMapper, EmsIn
         EmsInstrument exist = getById(id);
         if (exist == null) throw new IllegalArgumentException("设备不存在: " + id);
         ins.setId(id);
-        ins.setStatus(recalcStatus(ins));
+        // 报废为终态：审批报废后不允许通过编辑改写状态
+        ins.setStatus("报废".equals(exist.getStatus()) ? "报废" : recalcStatus(ins));
         ins.setUpdateTime(LocalDateTime.now());
         this.updateById(ins);
         return ins;
@@ -104,7 +106,8 @@ public class EmsInstrumentService extends ServiceImpl<EmsInstrumentMapper, EmsIn
         exist.setLastCalibDate(calibDate == null ? LocalDate.now() : calibDate);
         if (calibDue != null) exist.setCalibDue(calibDue);
         if (StringUtils.hasText(certNo)) exist.setCertNo(certNo);
-        exist.setStatus(recalcStatus(exist)); // 登记后按新到期日重算
+        // 报废为终态：不随校准登记重算；否则按新到期日重算
+        if (!"报废".equals(exist.getStatus())) exist.setStatus(recalcStatus(exist));
         exist.setUpdateTime(LocalDateTime.now());
         this.updateById(exist);
         // 写入校准历史台账
@@ -153,39 +156,52 @@ public class EmsInstrumentService extends ServiceImpl<EmsInstrumentMapper, EmsIn
         }
         vo.setSamplingTasks(new ArrayList<>(taskMap.values()));
 
-        // 关联流程：入库申请（单台/批量）流程中携带本设备编号的实例
-        vo.setRelatedProcesses(listRelatedProcesses(exist.getCode()));
+        // 关联流程：入库申请（单台/批量）流程中携带本设备编号的实例 + 报废申请（ZCBFSQ）实例
+        vo.setRelatedProcesses(listRelatedProcesses(exist.getCode(), exist.getId()));
         return vo;
     }
 
     /**
-     * 查询与本设备相关的入库申请流程实例。
-     * 单台入库：表单变量 code = 仪器编号；批量入库：devices 子表 JSON 中包含该编号。
+     * 查询与本设备相关的流程实例。
+     * 1) 入库申请：单台入库表单变量 code = 仪器编号；批量入库 devices 子表 JSON 中包含该编号；
+     * 2) 报废申请（ZCBFSQ）：表单变量 assetType=设备 且 assetId=本设备ID。
      */
-    private List<EmsInstrumentDetailVO.RelatedProcess> listRelatedProcesses(String code) {
-        if (!StringUtils.hasText(code)) {
-            return new ArrayList<>();
-        }
+    private List<EmsInstrumentDetailVO.RelatedProcess> listRelatedProcesses(String code, Long instrumentId) {
         List<ProcessInstance> instances = processInstanceMapper.selectList(
                 new LambdaQueryWrapper<ProcessInstance>()
                         .in(ProcessInstance::getProcessKey, INBOUND_PROCESS_KEYS)
                         .orderByDesc(ProcessInstance::getStartTime));
-        if (instances.isEmpty()) {
-            return new ArrayList<>();
-        }
-        List<Long> instanceIds = instances.stream().map(ProcessInstance::getId).toList();
-        String codeJsonPart = "\"code\":\"" + code + "\"";
-        List<Variable> matched = variableMapper.selectList(
-                new LambdaQueryWrapper<Variable>()
-                        .in(Variable::getProcessInstanceId, instanceIds)
-                        .isNull(Variable::getTaskId)
-                        .and(w -> w
-                                .nested(n -> n.eq(Variable::getVariableKey, "code").eq(Variable::getVariableValue, code))
-                                .or(n -> n.eq(Variable::getVariableKey, "devices").like(Variable::getVariableValue, codeJsonPart))));
         java.util.Set<Long> matchedIds = new java.util.HashSet<>();
-        for (Variable v : matched) {
-            matchedIds.add(v.getProcessInstanceId());
+        if (StringUtils.hasText(code) && !instances.isEmpty()) {
+            List<Long> instanceIds = instances.stream().map(ProcessInstance::getId).toList();
+            String codeJsonPart = "\"code\":\"" + code + "\"";
+            List<Variable> matched = variableMapper.selectList(
+                    new LambdaQueryWrapper<Variable>()
+                            .in(Variable::getProcessInstanceId, instanceIds)
+                            .isNull(Variable::getTaskId)
+                            .and(w -> w
+                                    .nested(n -> n.eq(Variable::getVariableKey, "code").eq(Variable::getVariableValue, code))
+                                    .or(n -> n.eq(Variable::getVariableKey, "devices").like(Variable::getVariableValue, codeJsonPart))));
+            for (Variable v : matched) {
+                matchedIds.add(v.getProcessInstanceId());
+            }
         }
+        if (instrumentId != null) {
+            matchedIds.addAll(matchScrapInstanceIds("设备", instrumentId));
+        }
+        // 报废实例与入库实例合并后按开始时间倒序
+        List<ProcessInstance> scrapInstances = processInstanceMapper.selectList(
+                new LambdaQueryWrapper<ProcessInstance>()
+                        .eq(ProcessInstance::getProcessKey, "ZCBFSQ"));
+        for (ProcessInstance si : scrapInstances) {
+            if (matchedIds.contains(si.getId()) && instances.stream().noneMatch(i -> i.getId().equals(si.getId()))) {
+                instances.add(si);
+            }
+        }
+        instances.sort((a, b) -> {
+            if (a.getStartTime() == null || b.getStartTime() == null) return 0;
+            return b.getStartTime().compareTo(a.getStartTime());
+        });
         List<EmsInstrumentDetailVO.RelatedProcess> result = new ArrayList<>();
         for (ProcessInstance inst : instances) {
             if (!matchedIds.contains(inst.getId())) continue;
@@ -200,6 +216,34 @@ public class EmsInstrumentService extends ServiceImpl<EmsInstrumentMapper, EmsIn
             result.add(rp);
         }
         return result;
+    }
+
+    /**
+     * 匹配指定资产类型的报废申请（ZCBFSQ）实例ID：
+     * 流程变量 assetType=资产类型 且 assetId=资产ID 同时满足。
+     */
+    private Set<Long> matchScrapInstanceIds(String assetType, Long assetId) {
+        List<ProcessInstance> scrapInstances = processInstanceMapper.selectList(
+                new LambdaQueryWrapper<ProcessInstance>().eq(ProcessInstance::getProcessKey, "ZCBFSQ"));
+        if (scrapInstances.isEmpty()) return new java.util.HashSet<>();
+        List<Long> ids = scrapInstances.stream().map(ProcessInstance::getId).toList();
+        List<Variable> vars = variableMapper.selectList(new LambdaQueryWrapper<Variable>()
+                .in(Variable::getProcessInstanceId, ids)
+                .isNull(Variable::getTaskId)
+                .in(Variable::getVariableKey, "assetType", "assetId"));
+        Map<Long, String> typeByInst = new java.util.HashMap<>();
+        Map<Long, String> idByInst = new java.util.HashMap<>();
+        for (Variable v : vars) {
+            if ("assetType".equals(v.getVariableKey())) typeByInst.put(v.getProcessInstanceId(), v.getVariableValue());
+            else idByInst.put(v.getProcessInstanceId(), v.getVariableValue());
+        }
+        Set<Long> matched = new java.util.HashSet<>();
+        for (Long id : ids) {
+            if (assetType.equals(typeByInst.get(id)) && String.valueOf(assetId).equals(idByInst.get(id))) {
+                matched.add(id);
+            }
+        }
+        return matched;
     }
 
     /** 流程实例状态码 → 文案 */

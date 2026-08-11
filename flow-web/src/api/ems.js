@@ -179,24 +179,33 @@ export const rejectDetection = (id, data) => request.post(`/ems/base/detection/t
 // 标准物质
 export const saveMaterial = (data) => request.post('/ems/quality/materials', data)
 export const getMaterials = (params) => request.get('/ems/quality/materials', { params })
+export const getMaterialDetail = (id) => request.get(`/ems/quality/materials/${id}/detail`)
 // 耗材
 export const saveConsumable = (data) => request.post('/ems/quality/consumables', data)
 export const getConsumables = (params) => request.get('/ems/quality/consumables', { params })
+export const getConsumableDetail = (id) => request.get(`/ems/quality/consumables/${id}/detail`)
 // 危化品台账
 export const saveHazardous = (data) => request.post('/ems/quality/hazardous', data)
 export const getHazardous = (params) => request.get('/ems/quality/hazardous', { params })
+export const getHazardousDetail = (id) => request.get(`/ems/quality/hazardous/${id}/detail`)
 export const applyHazardous = (id, data) => request.post(`/ems/quality/hazardous/${id}/apply`, data)
 export const approveHazardous = (id, data) => request.post(`/ems/quality/hazardous/${id}/approve`, data)
 // 质控计划
-export const saveQcPlan = (data) => request.post('/ems/quality/plans', data)
+export const saveQcPlan = (data, params) => request.post('/ems/quality/plans', data, { params })
 export const getQcPlans = (params) => request.get('/ems/quality/plans', { params })
 export const getQcPlanDetail = (id) => request.get(`/ems/quality/plans/${id}`)
-export const submitQcPlan = (id, data) => request.post(`/ems/quality/plans/${id}/submit`, data)
-export const approveQcPlan = (id, data) => request.post(`/ems/quality/plans/${id}/approve`, data)
-export const completeQcPlan = (id) => request.post(`/ems/quality/plans/${id}/complete`)
+export const deleteQcPlan = (id, params) => request.delete(`/ems/quality/plans/${id}`, { params })
+export const submitQcPlan = (id, data, params) => request.post(`/ems/quality/plans/${id}/submit`, data, { params })
+export const approveQcPlan = (id, data, params) => request.post(`/ems/quality/plans/${id}/approve`, data, { params })
+export const completeQcPlan = (id, params) => request.post(`/ems/quality/plans/${id}/complete`, null, { params })
 // 监控活动
-export const saveQcActivity = (data) => request.post('/ems/quality/activities', data)
+export const saveQcActivity = (data, params) => request.post('/ems/quality/activities', data, { params })
 export const getQcActivities = (params) => request.get('/ems/quality/activities', { params })
+export const getQcActivityTodos = (params) => request.get('/ems/quality/activities/todos', { params })
+export const getQcActivityDetail = (id) => request.get(`/ems/quality/activities/${id}`)
+export const deleteQcActivity = (id, params) => request.delete(`/ems/quality/activities/${id}`, { params })
+// 质控处置历史（计划/监控活动）
+export const getQcHistory = (params) => request.get('/ems/quality/history', { params })
 // 闸门校验
 export const checkMaterialGate = () => request.get('/ems/quality/gate/material')
 export const checkInstrumentGate = () => request.get('/ems/quality/gate/instrument')

@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.flow.engine.common.Result;
 import com.flow.engine.entity.DictItem;
 import com.flow.engine.entity.EmsEntrust;
+import com.flow.engine.entity.EmsFileMeta;
 import com.flow.engine.entity.EmsMonitorPoint;
 import com.flow.engine.entity.EmsSampleParamConfig;
 import com.flow.engine.entity.ProcessInstance;
 import com.flow.engine.entity.User;
 import com.flow.engine.mapper.EmsEntrustMapper;
+import com.flow.engine.mapper.EmsFileMetaMapper;
 import com.flow.engine.mapper.EmsMonitorPointMapper;
 import com.flow.engine.mapper.EmsSampleParamConfigMapper;
 import com.flow.engine.mapper.ProcessInstanceMapper;
@@ -51,6 +53,7 @@ public class EntrustWebhookController {
     private final ProcessInstanceMapper processInstanceMapper;
     private final UserMapper userMapper;
     private final EmsSampleParamConfigMapper sampleParamConfigMapper;
+    private final EmsFileMetaMapper fileMetaMapper;
     private final DictService dictService;
 
     public EntrustWebhookController(EmsEntrustMapper entrustMapper,
@@ -58,12 +61,14 @@ public class EntrustWebhookController {
                                     ProcessInstanceMapper processInstanceMapper,
                                     UserMapper userMapper,
                                     EmsSampleParamConfigMapper sampleParamConfigMapper,
+                                    EmsFileMetaMapper fileMetaMapper,
                                     DictService dictService) {
         this.entrustMapper = entrustMapper;
         this.monitorPointMapper = monitorPointMapper;
         this.processInstanceMapper = processInstanceMapper;
         this.userMapper = userMapper;
         this.sampleParamConfigMapper = sampleParamConfigMapper;
+        this.fileMetaMapper = fileMetaMapper;
         this.dictService = dictService;
     }
 
@@ -108,7 +113,7 @@ public class EntrustWebhookController {
             EmsEntrust exist = entrustMapper.selectOne(dupQ);
             if (exist != null) {
                 log.info("[EntrustWebhook] 流程实例 {} 已创建委托 {}，跳过（幂等）", processInstanceId, exist.getEntrustNo());
-                return Result.ok(buildResp(exist, 0));
+                return Result.ok(buildResp(exist, 0, 0));
             }
         }
 
@@ -165,7 +170,10 @@ public class EntrustWebhookController {
         // 监测点位子表（formData.points）逐行写入 t_monitor_point
         int pointCount = insertPoints(formData.get("points"), entrust, approveTime);
 
-        return Result.ok(buildResp(entrust, pointCount));
+        // 流程附件（formData.attachments）归档到委托关联附件 t_file_meta（bizType=entrust）
+        int attachmentCount = archiveAttachments(formData.get("attachments"), entrust, createBy, approveTime);
+
+        return Result.ok(buildResp(entrust, pointCount, attachmentCount));
     }
 
     /** 写入监测点位子表行；返回写入条数 */
@@ -182,6 +190,9 @@ public class EntrustWebhookController {
             EmsMonitorPoint p = new EmsMonitorPoint();
             p.setEntrustId(entrust.getId());
             p.setCustId(entrust.getCustId());
+            // 点位编号：表单传入优先，否则按委托内顺序生成 P001/P002...（与 EmsEntrustService 同规则）
+            String pointNo = str(rowMap, "pointNo");
+            p.setPointNo(StringUtils.hasText(pointNo) ? pointNo : String.format("P%03d", count + 1));
             p.setPointName(pointName);
             p.setLng(toDouble(rowMap.get("lng")));
             p.setLat(toDouble(rowMap.get("lat")));
@@ -252,13 +263,52 @@ public class EntrustWebhookController {
         return standards.isEmpty() ? null : String.join(",", standards);
     }
 
-    private Map<String, Object> buildResp(EmsEntrust entrust, int pointCount) {
+    /**
+     * 归档流程附件到委托关联附件（t_file_meta, bizType=entrust）。
+     * 表单文件字段值为 [{name, path, size}]；按 filePath 幂等，避免重复归档。
+     * 返回归档条数
+     */
+    private int archiveAttachments(Object attachments, EmsEntrust entrust, String uploadBy, LocalDateTime time) {
+        if (!(attachments instanceof List)) return 0;
+        int count = 0;
+        for (Object item : (List<?>) attachments) {
+            if (!(item instanceof Map)) continue;
+            @SuppressWarnings("unchecked")
+            Map<String, Object> m = (Map<String, Object>) item;
+            String path = str(m, "path");
+            if (!StringUtils.hasText(path)) continue;
+            // 幂等：同一委托下相同路径不重复归档
+            LambdaQueryWrapper<EmsFileMeta> dupQ = new LambdaQueryWrapper<>();
+            dupQ.eq(EmsFileMeta::getBizType, "entrust")
+                .eq(EmsFileMeta::getBizId, entrust.getId())
+                .eq(EmsFileMeta::getFilePath, path);
+            if (fileMetaMapper.selectCount(dupQ) > 0) continue;
+            String name = str(m, "name");
+            EmsFileMeta f = new EmsFileMeta();
+            f.setBizType("entrust");
+            f.setBizId(entrust.getId());
+            f.setFileName(StringUtils.hasText(name) ? name : path);
+            f.setFilePath(path);
+            f.setSize(toLong(m.get("size")));
+            f.setUploadBy(uploadBy);
+            f.setCreateTime(time);
+            fileMetaMapper.insert(f);
+            count++;
+        }
+        if (count > 0) {
+            log.info("[EntrustWebhook] 委托 {} 归档附件 {} 个", entrust.getEntrustNo(), count);
+        }
+        return count;
+    }
+
+    private Map<String, Object> buildResp(EmsEntrust entrust, int pointCount, int attachmentCount) {
         Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("entrustId", entrust.getId());
         resp.put("entrustNo", entrust.getEntrustNo());
         resp.put("status", entrust.getStatus());
         resp.put("createBy", entrust.getCreateBy());
         resp.put("pointCount", pointCount);
+        resp.put("attachmentCount", attachmentCount);
         return resp;
     }
 

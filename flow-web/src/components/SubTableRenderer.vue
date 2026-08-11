@@ -7,6 +7,7 @@
       :bordered="true"
       size="small"
       :row-key="(_, idx) => idx"
+      :table-layout="hasCustomWidth ? 'fixed' : 'auto'"
     >
       <template #bodyCell="{ column, record, index }">
         <template v-if="column.key === '_action'">
@@ -65,6 +66,9 @@ const emit = defineEmits(['update:modelValue'])
 
 const readonly = computed(() => props.mode === 'readonly')
 
+// 任一列配置了设计宽度时，采用 fixed 布局确保按设计 px 展示
+const hasCustomWidth = computed(() => (props.field.columns || []).some(c => c.width))
+
 const tableColumns = computed(() => {
   const cols = (props.field.columns || []).map(col => ({
     title: col.label || col.fieldKey,
@@ -72,7 +76,7 @@ const tableColumns = computed(() => {
     key: col.fieldKey,
     fieldType: col.type || 'text',
     selectMode: col.selectMode || 'single',
-    width: col.width || undefined
+    width: col.width ? Number(col.width) : undefined
   }))
   if (!readonly.value) {
     cols.push({ title: '操作', key: '_action', width: 60, align: 'center' })
