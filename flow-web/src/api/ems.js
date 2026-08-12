@@ -61,10 +61,16 @@ export const getSamplingOrders = (params) => request.get('/ems/base/sampling-ord
 export const getDispatchBoardList = (params) => request.get('/ems/base/sampling-orders/dispatch-list', { params })
 // 删除采样任务（级联删除关联派单）
 export const deleteSamplingOrder = (id) => request.delete(`/ems/base/sampling-orders/${id}`)
+// 采样任务完成确认（负责人录入实际完成时间 + 完成描述富文本）
+export const completeSamplingOrder = (id, data) => request.post(`/ems/base/sampling-orders/${id}/complete`, data)
+// 采样任务操作历史（倒序）
+export const getSamplingOrderHistory = (id) => request.get(`/ems/base/sampling-orders/${id}/history`)
 // 批量派单：同一派单信息派发到多个订单（参数均为 query）
 export const batchDispatch = (params) => request.post('/ems/base/sampling-orders/batch-dispatch', null, { params })
 // 派单参数均为后端 @RequestParam（query），不含 body
 export const createDispatch = (params) => request.post('/ems/base/dispatch', null, { params })
+// 编辑派单信息（负责人/组员/车辆/设备/计划区间/备注），复用资质闸门与冲突校验，变更明细记入操作历史
+export const updateDispatch = (id, params) => request.put(`/ems/base/dispatch/${id}`, null, { params })
 export const checkDispatchConflict = (params) => request.get('/ems/base/dispatch/check', { params })
 export const getDispatchDetail = (orderId) => request.get('/ems/base/dispatch', { params: { orderId } })
 // 车辆使用日历（ISSUE-035）

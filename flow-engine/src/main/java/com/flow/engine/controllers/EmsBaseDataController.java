@@ -255,14 +255,14 @@ public class EmsBaseDataController {
         if (e == null) {
             return Result.fail(400, "委托不存在");
         }
-        return Result.ok(samplingOrderService.genFromEntrust(e));
+        return Result.ok(samplingOrderService.genFromEntrust(e, currentUser()));
     }
 
     /** 按采集频率再次派单：同一委托单生成下一张待派单订单（委托须已确认且已有订单） */
     @PostMapping("/sampling-order/redispatch")
     public Result<EmsSamplingOrder> redispatch(@RequestParam Long entrustId) {
         try {
-            return Result.ok(samplingOrderService.redispatch(entrustId));
+            return Result.ok(samplingOrderService.redispatch(entrustId, currentUser()));
         } catch (IllegalStateException ex) {
             return Result.fail(400, ex.getMessage());
         } catch (IllegalArgumentException ex) {
@@ -291,6 +291,28 @@ public class EmsBaseDataController {
     public Result<Void> deleteSamplingOrder(@PathVariable Long id) {
         samplingOrderService.deleteOrder(id);
         return Result.ok();
+    }
+
+    /**
+     * 采样任务完成确认：仅「已派单」可完成。负责人录入实际完成时间与完成描述（富文本），
+     * 状态流转为「已完成」并记录操作历史。
+     */
+    @PostMapping("/sampling-orders/{id}/complete")
+    public Result<com.flow.engine.entity.EmsSamplingOrder> completeSamplingOrder(
+            @PathVariable Long id, @RequestBody java.util.Map<String, Object> body) {
+        java.time.LocalDateTime actualFinishTime = null;
+        Object t = body.get("actualFinishTime");
+        if (t != null && !String.valueOf(t).isBlank()) {
+            actualFinishTime = parseLocalDateTime(String.valueOf(t));
+        }
+        String finishDesc = body.get("finishDesc") == null ? null : String.valueOf(body.get("finishDesc"));
+        return Result.ok(samplingOrderService.complete(id, actualFinishTime, finishDesc, currentUser()));
+    }
+
+    /** 采样任务操作历史（完成等处置轨迹，倒序） */
+    @GetMapping("/sampling-orders/{id}/history")
+    public Result<List<com.flow.engine.entity.EmsSamplingOrderHistory>> samplingOrderHistory(@PathVariable Long id) {
+        return Result.ok(samplingOrderService.listHistory(id));
     }
 
     /** 批量派单：同一组派单信息依次派发到多个订单（复用冲突/资质校验），返回成功与失败明细 */
@@ -344,6 +366,21 @@ public class EmsBaseDataController {
         java.time.LocalDateTime ps = planStart == null ? null : parseLocalDateTime(planStart);
         java.time.LocalDateTime pe = planEnd == null ? null : parseLocalDateTime(planEnd);
         return Result.ok(dispatchService.dispatch(orderId, vehicleId, leadId, empIds, instrumentIds, ps, pe, note));
+    }
+
+    /** 编辑派单信息：负责人/组员/车辆/设备/计划区间/备注（复用资质闸门与冲突校验），变更明细记入操作历史 */
+    @PutMapping("/dispatch/{id}")
+    public Result<EmsDispatch> updateDispatch(@PathVariable Long id,
+                                              @RequestParam(required = false) Long vehicleId,
+                                              @RequestParam(required = false) Long leadId,
+                                              @RequestParam(required = false) List<Long> empIds,
+                                              @RequestParam(required = false) List<Long> instrumentIds,
+                                              @RequestParam(required = false) String planStart,
+                                              @RequestParam(required = false) String planEnd,
+                                              @RequestParam(required = false) String note) {
+        java.time.LocalDateTime ps = planStart == null ? null : parseLocalDateTime(planStart);
+        java.time.LocalDateTime pe = planEnd == null ? null : parseLocalDateTime(planEnd);
+        return Result.ok(dispatchService.updateDispatch(id, vehicleId, leadId, empIds, instrumentIds, ps, pe, note, currentUser()));
     }
 
     @GetMapping("/dispatch/check")

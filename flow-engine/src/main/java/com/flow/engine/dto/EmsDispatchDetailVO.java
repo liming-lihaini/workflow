@@ -41,6 +41,8 @@ public class EmsDispatchDetailVO {
         private String realName;
         private String username;
         private String role; // LEAD-负责 / MEMBER-组员
+        /** 人员资质名称列表（sys_user_qualification） */
+        private List<String> qualNames;
     }
 
     @Data

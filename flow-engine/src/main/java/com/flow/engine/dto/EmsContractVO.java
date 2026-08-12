@@ -92,5 +92,13 @@ public class EmsContractVO {
         private String entrustNo;
         private String entrustName;
         private String status;
+        /** 以下字段与检测委托列表展示对齐 */
+        private String custName;
+        private String sourceName;
+        private Integer urgent;
+        private String startDate;
+        private String createName;
+        private String createBy;
+        private LocalDateTime createTime;
     }
 }

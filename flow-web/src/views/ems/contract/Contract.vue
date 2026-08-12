@@ -29,28 +29,34 @@
         </div>
       </div>
 
-      <!-- 查询条件 -->
+      <!-- 查询条件：快捷查询（编号/名称/状态）+ 点击「更多」展开其余条件 -->
       <a-form layout="inline" class="search-form">
         <a-form-item label="合同编号"><a-input v-model:value="query.contractNo" allow-clear placeholder="请输入" style="width: 140px" @press-enter="loadList" /></a-form-item>
         <a-form-item label="合同名称"><a-input v-model:value="query.contractName" allow-clear placeholder="请输入" style="width: 160px" @press-enter="loadList" /></a-form-item>
-        <a-form-item label="合同类型">
-          <a-select v-model:value="query.contractType" allow-clear placeholder="全部" style="width: 120px">
-            <a-select-option v-for="i in typeOptions" :key="i.itemText" :value="i.itemText">{{ i.itemText }}</a-select-option>
-          </a-select>
-        </a-form-item>
         <a-form-item label="状态">
           <a-select v-model:value="query.status" allow-clear placeholder="全部" style="width: 110px">
             <a-select-option v-for="s in STATUS_LIST" :key="s" :value="s">{{ s }}</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="相对方"><a-input v-model:value="query.counterparty" allow-clear placeholder="请输入" style="width: 140px" @press-enter="loadList" /></a-form-item>
-        <a-form-item label="签订日期">
-          <a-range-picker v-model:value="signRange" style="width: 230px" value-format="YYYY-MM-DD" />
-        </a-form-item>
-        <a-form-item>
+        <template v-if="showMore">
+          <a-form-item label="合同类型">
+            <a-select v-model:value="query.contractType" allow-clear placeholder="全部" style="width: 120px">
+              <a-select-option v-for="i in typeOptions" :key="i.itemText" :value="i.itemText">{{ i.itemText }}</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="相对方"><a-input v-model:value="query.counterparty" allow-clear placeholder="请输入" style="width: 140px" @press-enter="loadList" /></a-form-item>
+          <a-form-item label="签订日期">
+            <a-range-picker v-model:value="signRange" style="width: 230px" value-format="YYYY-MM-DD" />
+          </a-form-item>
+        </template>
+        <a-form-item :class="showMore ? 'btn-row-center' : ''">
           <a-space>
             <a-button type="primary" @click="loadList">查询</a-button>
             <a-button @click="resetQuery">重置</a-button>
+            <a class="more-link" @click="showMore = !showMore">
+              {{ showMore ? '收起' : '更多' }}
+              <component :is="showMore ? UpOutlined : DownOutlined" />
+            </a>
           </a-space>
         </a-form-item>
       </a-form>
@@ -220,12 +226,13 @@
           <a-col :span="24">
             <a-form-item label="合同附件" :label-col="{ style: { width: '100px' } }">
               <a-upload
+                multiple
+                list-type="text"
                 :file-list="attachments"
                 :custom-request="handleAttachmentUpload"
-                :before-upload="() => false"
                 @remove="onAttachmentRemove"
               >
-                <a-button size="small"><UploadOutlined /> 上传附件</a-button>
+                <a-button size="small"><UploadOutlined /> 上传附件（可多选）</a-button>
               </a-upload>
             </a-form-item>
           </a-col>
@@ -279,7 +286,7 @@
 import { ref, reactive, computed, onMounted, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { UploadOutlined } from '@ant-design/icons-vue'
+import { UploadOutlined, DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import {
   getContracts, getContractStatistics, saveContract, deleteContract,
@@ -310,6 +317,8 @@ const loading = ref(false)
 const stats = ref({})
 const query = reactive({ contractNo: '', contractName: '', contractType: undefined, status: undefined, counterparty: '' })
 const signRange = ref(null)
+// 查询面板展开状态：默认仅显示快捷条件（编号/名称/状态），点击「更多」展开其余条件
+const showMore = ref(false)
 
 const columns = [
   { title: '合同编号', dataIndex: 'contractNo', key: 'contractNo', width: 150, fixed: 'left' },
@@ -541,6 +550,7 @@ async function handleAttachmentUpload({ file, onSuccess, onError }) {
     onSuccess && onSuccess(res, file)
   } catch (e) {
     onError && onError(e)
+    message.error(`附件「${file.name}」上传失败`)
   }
 }
 function onAttachmentRemove(file) {
@@ -719,6 +729,24 @@ onMounted(() => {
 }
 .search-form {
   margin-bottom: 8px;
+}
+/* 更多条件展开/收起链接 */
+.more-link {
+  color: #2563EB;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.more-link:hover {
+  opacity: 0.8;
+}
+/* 展开更多后：按钮区独占一行并水平居中（折叠时自动恢复同行排列） */
+.search-form .btn-row-center {
+  width: 100%;
+  margin-top: 4px;
+}
+.search-form .btn-row-center :deep(.ant-form-item-control-input-content) {
+  display: flex;
+  justify-content: center;
 }
 .toolbar {
   display: flex;

@@ -70,6 +70,10 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
         if (!"待派单".equals(order.getStatus())) {
             throw new BusinessException("仅待派单状态可派单，当前：" + order.getStatus());
         }
+        // 计划时间校验：结束时间必须大于等于开始时间
+        if (planStart != null && planEnd != null && planEnd.isBefore(planStart)) {
+            throw new BusinessException("结束时间必须大于等于开始时间");
+        }
         // 派单以委托单为主体，点位在采样执行环节选择，故不再校验 pointId（原 BR-023-07 已移除）
         // BR-023-03 资质闸门：人员状态有效 + 设备校准有效期
         gateCheck(leadId, empIds, instrumentIds);
@@ -129,7 +133,168 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
         order.setStatus("已派单");
         order.setUpdateTime(LocalDateTime.now());
         samplingOrderService.updateById(order);
+        // 记录「派单」操作历史（操作人取当前请求上下文）
+        samplingOrderService.recordOrderHistory(orderId, "派单",
+                describeDispatch(order, leadId, empIds, vehicleId, instrumentIds, planStart, planEnd),
+                currentOperator());
         return d;
+    }
+
+    /**
+     * 编辑派单信息：负责人/组员/车辆/设备/计划区间/备注。
+     * 复用资质闸门、资源冲突（排除本订单自身派单）与维修保养校验；
+     * 成员与设备关联全量重建，并将字段变更明细记入采样任务操作历史。
+     */
+    @Transactional
+    public EmsDispatch updateDispatch(Long dispatchId, Long vehicleId, Long leadId, List<Long> empIds, List<Long> instrumentIds,
+                                      LocalDateTime planStart, LocalDateTime planEnd, String note, User operator) {
+        EmsDispatch d = this.getById(dispatchId);
+        if (d == null) {
+            throw new BusinessException("派单不存在: " + dispatchId);
+        }
+        EmsSamplingOrder order = samplingOrderService.getById(d.getOrderId());
+        if (order == null) {
+            throw new BusinessException("采样任务不存在");
+        }
+        // 计划时间校验：结束时间必须大于等于开始时间
+        if (planStart != null && planEnd != null && planEnd.isBefore(planStart)) {
+            throw new BusinessException("结束时间必须大于等于开始时间");
+        }
+        // BR-023-03 资质闸门 / BR-023-04 资源冲突（排除本订单自身派单）/ ISSUE-036 维修保养拦截
+        gateCheck(leadId, empIds, instrumentIds);
+        List<Long> resources = new java.util.ArrayList<>();
+        if (vehicleId != null) resources.add(-vehicleId);
+        if (leadId != null) resources.add(leadId);
+        if (empIds != null) resources.addAll(empIds);
+        if (instrumentIds != null) resources.addAll(instrumentIds);
+        java.util.Set<Long> excludeSelf = new java.util.HashSet<>();
+        excludeSelf.add(order.getId());
+        List<Map<String, Object>> conflicts = findConflicts(planStart, planEnd, resources, excludeSelf);
+        if (!conflicts.isEmpty()) {
+            throw new BusinessException(buildConflictMessage(conflicts));
+        }
+        if (vehicleId != null && vehicleService.isUnderMaintenance(vehicleId, planStart, planEnd)) {
+            throw new BusinessException("车辆在维修保养期间不可派单，请调整计划时间或选择其他车辆(ISSUE-036)");
+        }
+
+        // 变更明细（改前 vs 改后），无变化也记录一条编辑轨迹
+        String diff = buildEditDiff(d, leadId, empIds, vehicleId, instrumentIds, planStart, planEnd, note);
+
+        d.setVehicleId(vehicleId);
+        d.setPlanStart(planStart);
+        d.setPlanEnd(planEnd);
+        d.setNote(note);
+        d.setUpdateTime(LocalDateTime.now());
+        this.updateById(d);
+
+        // 成员全量重建：负责人 LEAD + 组员 MEMBER
+        dispatchMemberService.remove(new LambdaQueryWrapper<EmsDispatchMember>().eq(EmsDispatchMember::getDispatchId, dispatchId));
+        if (leadId != null) {
+            EmsDispatchMember lead = new EmsDispatchMember();
+            lead.setDispatchId(dispatchId);
+            lead.setEmpId(leadId);
+            lead.setRole("LEAD");
+            dispatchMemberService.save(lead);
+        }
+        if (empIds != null) {
+            for (Long empId : empIds) {
+                if (empId.equals(leadId)) continue;
+                EmsDispatchMember m = new EmsDispatchMember();
+                m.setDispatchId(dispatchId);
+                m.setEmpId(empId);
+                m.setRole("MEMBER");
+                dispatchMemberService.save(m);
+            }
+        }
+        // 设备关联全量重建
+        dispatchDeviceService.remove(new LambdaQueryWrapper<EmsDispatchDevice>().eq(EmsDispatchDevice::getDispatchId, dispatchId));
+        if (instrumentIds != null) {
+            for (Long insId : instrumentIds) {
+                EmsDispatchDevice dev = new EmsDispatchDevice();
+                dev.setDispatchId(dispatchId);
+                dev.setInstrumentId(insId);
+                dispatchDeviceService.save(dev);
+            }
+        }
+
+        samplingOrderService.recordOrderHistory(order.getId(), "编辑",
+                "采样任务【" + order.getOrderNo() + "】派单信息编辑：" + diff, operator);
+        return d;
+    }
+
+    /** 派单历史内容：负责人/组员/车辆/设备数量/计划区间 */
+    private String describeDispatch(EmsSamplingOrder order, Long leadId, List<Long> empIds, Long vehicleId,
+                                    List<Long> instrumentIds, LocalDateTime planStart, LocalDateTime planEnd) {
+        List<String> parts = new java.util.ArrayList<>();
+        if (leadId != null) parts.add("负责人：" + userName(leadId));
+        if (empIds != null) {
+            String members = empIds.stream().filter(id -> !id.equals(leadId)).map(this::userName)
+                    .collect(java.util.stream.Collectors.joining("、"));
+            if (!members.isEmpty()) parts.add("组员：" + members);
+        }
+        if (vehicleId != null) {
+            EmsVehicle v = vehicleService.getById(vehicleId);
+            parts.add("车辆：" + (v != null && v.getPlateNo() != null ? v.getPlateNo() : String.valueOf(vehicleId)));
+        }
+        if (instrumentIds != null && !instrumentIds.isEmpty()) parts.add("设备：" + instrumentIds.size() + " 台");
+        if (planStart != null && planEnd != null) {
+            parts.add("计划：" + planStart.toLocalDate() + " ~ " + planEnd.toLocalDate());
+        }
+        return "采样任务【" + order.getOrderNo() + "】已派单" + (parts.isEmpty() ? "" : "（" + String.join("；", parts) + "）");
+    }
+
+    /** 编辑变更明细：逐字段对比改前/改后，仅列出有变化的项 */
+    private String buildEditDiff(EmsDispatch old, Long leadId, List<Long> empIds, Long vehicleId,
+                                 List<Long> instrumentIds, LocalDateTime planStart, LocalDateTime planEnd, String note) {
+        List<EmsDispatchMember> oldMembers = dispatchMemberService.listByDispatch(old.getId());
+        Long oldLeadId = oldMembers.stream().filter(m -> "LEAD".equals(m.getRole()))
+                .map(EmsDispatchMember::getEmpId).findFirst().orElse(null);
+        String oldMemberNames = oldMembers.stream().filter(m -> "MEMBER".equals(m.getRole()))
+                .map(m -> userName(m.getEmpId())).sorted().collect(java.util.stream.Collectors.joining("、"));
+        List<Long> newMemberIds = empIds == null ? java.util.Collections.emptyList()
+                : empIds.stream().filter(id -> !id.equals(leadId)).collect(java.util.stream.Collectors.toList());
+        String newMemberNames = newMemberIds.stream().map(this::userName).sorted().collect(java.util.stream.Collectors.joining("、"));
+
+        String oldVehicle = vehicleName(old.getVehicleId());
+        String newVehicle = vehicleName(vehicleId);
+        List<EmsDispatchDevice> oldDevices = dispatchDeviceService.listByDispatch(old.getId());
+        String oldInsNames = oldDevices.stream().map(dev -> instrumentName(dev.getInstrumentId())).sorted()
+                .collect(java.util.stream.Collectors.joining("、"));
+        String newInsNames = (instrumentIds == null ? java.util.Collections.<Long>emptyList() : instrumentIds).stream()
+                .map(this::instrumentName).sorted().collect(java.util.stream.Collectors.joining("、"));
+        String oldRange = rangeText(old.getPlanStart(), old.getPlanEnd());
+        String newRange = rangeText(planStart, planEnd);
+        String oldNote = old.getNote() == null ? "" : old.getNote();
+        String newNote = note == null ? "" : note;
+
+        List<String> diffs = new java.util.ArrayList<>();
+        if (!java.util.Objects.equals(oldLeadId, leadId)) diffs.add("负责人：" + userName(oldLeadId) + " → " + userName(leadId));
+        if (!oldMemberNames.equals(newMemberNames)) diffs.add("组员：" + emptyDash(oldMemberNames) + " → " + emptyDash(newMemberNames));
+        if (!oldVehicle.equals(newVehicle)) diffs.add("车辆：" + emptyDash(oldVehicle) + " → " + emptyDash(newVehicle));
+        if (!oldInsNames.equals(newInsNames)) diffs.add("设备：" + emptyDash(oldInsNames) + " → " + emptyDash(newInsNames));
+        if (!oldRange.equals(newRange)) diffs.add("计划区间：" + oldRange + " → " + newRange);
+        if (!oldNote.equals(newNote)) diffs.add("备注：" + emptyDash(oldNote) + " → " + emptyDash(newNote));
+        return diffs.isEmpty() ? "无字段变化" : String.join("；", diffs);
+    }
+
+    private String rangeText(LocalDateTime start, LocalDateTime end) {
+        String s = start == null ? "—" : start.toLocalDate().toString();
+        String e = end == null ? "—" : end.toLocalDate().toString();
+        return s + " ~ " + e;
+    }
+
+    private String emptyDash(String s) {
+        return s == null || s.isEmpty() ? "—" : s;
+    }
+
+    /** 当前请求操作人（会话 Token / API Token），取不到时返回 null（历史展示为系统） */
+    private User currentOperator() {
+        try {
+            String userId = com.flow.engine.common.RequestContext.current().getUserId();
+            return userId == null ? null : userService.getUser(Long.valueOf(userId));
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** 冲突预检接口：返回是否存在冲突 */
@@ -301,6 +466,12 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
                 mi.setRealName(u.getRealName());
                 mi.setUsername(u.getUsername());
             }
+            // 人员资质名称列表（展示格式：姓名(账号)-[资质1、资质2]）
+            List<String> quals = userService.listQualifications(m.getEmpId()).stream()
+                    .map(com.flow.engine.entity.UserQualification::getQualName)
+                    .filter(q -> q != null && !q.isBlank())
+                    .collect(java.util.stream.Collectors.toList());
+            mi.setQualNames(quals);
             if ("LEAD".equals(m.getRole())) {
                 vo.setLead(mi);
             } else {

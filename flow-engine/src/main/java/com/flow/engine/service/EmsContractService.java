@@ -51,6 +51,8 @@ public class EmsContractService extends ServiceImpl<EmsContractMapper, EmsContra
     private EmsContractHistoryMapper historyMapper;
     @Autowired
     private EmsEntrustMapper entrustMapper;
+    @Autowired
+    private EmsCustomerService customerService;
 
     // ==================== 列表与统计 ====================
 
@@ -423,10 +425,11 @@ public class EmsContractService extends ServiceImpl<EmsContractMapper, EmsContra
         vo.setSettledAmount(settled);
         vo.setProgress(percent(settled, c.getAmount()));
 
-        // 关联委托（含委托编号/名称/状态，供穿透跳转）
+        // 关联委托（与检测委托列表展示对齐：编号/名称/客户/来源/状态/创建信息，供穿透跳转）
         List<EmsContractEntrust> links = entrustLinkMapper.selectList(
                 new LambdaQueryWrapper<EmsContractEntrust>().eq(EmsContractEntrust::getContractId, id));
         List<EmsContractVO.EntrustRefVO> entrustRefs = new ArrayList<>();
+        Map<Long, String> custNameCache = new HashMap<>();
         for (EmsContractEntrust link : links) {
             EmsEntrust e = entrustMapper.selectById(link.getEntrustId());
             if (e == null) continue;
@@ -435,6 +438,18 @@ public class EmsContractService extends ServiceImpl<EmsContractMapper, EmsContra
             ev.setEntrustNo(e.getEntrustNo());
             ev.setEntrustName(e.getEntrustName());
             ev.setStatus(e.getStatus());
+            ev.setUrgent(e.getUrgent());
+            ev.setStartDate(e.getStartDate());
+            ev.setSourceName(e.getSourceName());
+            ev.setCreateName(e.getCreateName());
+            ev.setCreateBy(e.getCreateBy());
+            ev.setCreateTime(e.getCreateTime());
+            if (e.getCustId() != null) {
+                ev.setCustName(custNameCache.computeIfAbsent(e.getCustId(), cid -> {
+                    EmsCustomer cust = customerService.getById(cid);
+                    return cust == null ? null : cust.getCustName();
+                }));
+            }
             entrustRefs.add(ev);
         }
         vo.setEntrusts(entrustRefs);

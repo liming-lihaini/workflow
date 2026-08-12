@@ -111,8 +111,8 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         e.setUpdateTime(LocalDateTime.now());
         this.updateById(e);
 
-        samplingOrderService.genFromEntrust(e);
         User op = lookupUserById(reviewerId);
+        samplingOrderService.genFromEntrust(e, op);
         recordHistory(id, "技术确认", "技术确认通过，委托编号 " + e.getEntrustNo()
                 + "，状态：待技术确认 → 已确认；意见：" + stripHtml(opinion),
                 op == null ? String.valueOf(reviewerId) : op.getUsername(),

@@ -2,7 +2,7 @@
   <div class="page-wrap">
     <div class="card-wrap">
       <div class="page-header">
-        <span class="page-title">采样调度</span>
+        <span class="page-title">采样任务</span>
         <a-space>
           <a-select
             v-model:value="groupBy"
@@ -55,19 +55,32 @@
           :key="s.status"
           class="stat-card"
           :class="{ active: !overdueOnly && filters.status === s.status }"
-          :style="(!overdueOnly && filters.status === s.status) ? { borderColor: antColorHex(s.color), color: antColorHex(s.color) } : {}"
+          :style="{
+            background: s.grad,
+            borderColor: (!overdueOnly && filters.status === s.status) ? s.hexColor : 'transparent'
+          }"
           @click="applyStatusFilter(s.status)"
         >
-          <div class="stat-num">{{ s.count }}</div>
-          <div class="stat-label">{{ s.status }}</div>
+          <div class="stat-icon" :style="{ color: s.hexColor, background: s.iconBg }">
+            <component :is="s.icon" />
+          </div>
+          <div class="stat-info">
+            <div class="stat-num" :style="{ color: s.hexColor }">{{ s.count }}</div>
+            <div class="stat-label">{{ s.status }}</div>
+          </div>
         </div>
         <div
           class="stat-card overdue"
           :class="{ active: overdueOnly }"
           @click="toggleOverdue"
         >
-          <div class="stat-num">{{ overdueCount }}</div>
-          <div class="stat-label">逾期订单</div>
+          <div class="stat-icon">
+            <WarningOutlined />
+          </div>
+          <div class="stat-info">
+            <div class="stat-num">{{ overdueCount }}</div>
+            <div class="stat-label">逾期订单</div>
+          </div>
         </div>
       </div>
 
@@ -99,6 +112,8 @@
             <template v-else-if="column.key === 'op'">
               <a-space>
                 <span v-if="record.status === '待派单' && hasPerm('ems:dispatch')" class="action-link" @click="openDispatch(record)">派单</span>
+                <span v-if="canEdit(record)" class="action-link" @click="openEdit(record)">编辑</span>
+                <span v-if="canComplete(record)" class="action-link" @click="openComplete(record)">完成</span>
                 <span class="action-link" @click="openDetail(record)">详情</span>
                 <a-popconfirm title="确认删除该采样任务？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
                   <span class="action-link danger" @click.stop>删除</span>
@@ -159,6 +174,8 @@
               <template v-else-if="column.key === 'op'">
                 <a-space>
                   <span v-if="record.status === '待派单' && hasPerm('ems:dispatch')" class="action-link" @click="openDispatch(record)">派单</span>
+                  <span v-if="canEdit(record)" class="action-link" @click="openEdit(record)">编辑</span>
+                  <span v-if="canComplete(record)" class="action-link" @click="openComplete(record)">完成</span>
                   <span class="action-link" @click="openDetail(record)">详情</span>
                   <a-popconfirm title="确认删除该采样任务？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
                     <span class="action-link danger" @click.stop>删除</span>
@@ -175,7 +192,7 @@
     <!-- 派单抽屉（单订单 / 批量共用） -->
     <a-drawer
       v-model:open="dispatchVisible"
-      title="调度派单"
+      :title="editingDispatchId ? '编辑派单' : '调度派单'"
       width="1000"
       :confirm-loading="dispatchLoading"
       @close="closeDispatch"
@@ -201,10 +218,40 @@
       <template #footer>
         <a-space>
           <a-button @click="closeDispatch">取消</a-button>
-          <a-button type="primary" :loading="dispatchLoading" @click="submitDispatch">派单</a-button>
+          <a-button type="primary" :loading="dispatchLoading" @click="submitDispatch">{{ editingDispatchId ? '保存' : '派单' }}</a-button>
         </a-space>
       </template>
     </a-drawer>
+
+    <!-- 完成确认弹窗：实际完成时间 + 完成描述（富文本） -->
+    <a-modal
+      v-model:open="completeVisible"
+      title="完成确认"
+      :width="800"
+      :confirm-loading="completeLoading"
+      ok-text="确定"
+      cancel-text="取消"
+      @ok="submitComplete"
+      @cancel="completeVisible = false"
+    >
+      <template v-if="currentOrder">
+        <a-alert :message="'订单：' + currentOrder.orderNo + (currentOrder.entrustName ? '（' + currentOrder.entrustName + '）' : '')" type="info" style="margin-bottom: 12px" />
+      </template>
+      <a-form :label-col="{ style: { width: '110px' } }">
+        <a-form-item label="实际完成时间" required>
+          <a-date-picker
+            v-model:value="completeForm.actualFinishTime"
+            show-time
+            format="YYYY-MM-DD HH:mm:ss"
+            style="width: 100%"
+            placeholder="请选择实际完成时间"
+          />
+        </a-form-item>
+        <a-form-item label="完成描述">
+          <RichTextEditor v-model:value="completeForm.finishDesc" placeholder="请输入完成描述" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -212,15 +259,22 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, h } from 'vue'
 import { message } from 'ant-design-vue'
 import { Empty } from 'ant-design-vue'
+import {
+  ClockCircleOutlined, CaretRightOutlined, CheckCircleOutlined, WarningOutlined
+} from '@ant-design/icons-vue'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import {
-  getDispatchBoardList, createDispatch, searchUsers, listVehicles, listInstruments, getAvailableVehicles, deleteSamplingOrder
+  getDispatchBoardList, createDispatch, updateDispatch, getDispatchDetail, searchUsers, listVehicles, listInstruments, getAvailableVehicles, deleteSamplingOrder,
+  completeSamplingOrder
 } from '../../../api/ems'
 import DispatchForm from './DispatchForm.vue'
+import RichTextEditor from '../../../components/RichTextEditor.vue'
 import { usePermission } from '../../../composables/usePermission'
+import { useUserStore } from '../../../stores/user'
 
 const { hasPerm } = usePermission()
+const userStore = useUserStore()
 const router = useRouter()
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
 
@@ -238,6 +292,7 @@ const dispatchVisible = ref(false)
 const dispatchLoading = ref(false)
 const dispatchBlock = ref('') // 批量派单阻断提示（订单号+原因），有值时保留表单不关闭
 const currentOrder = ref(null)
+const editingDispatchId = ref(null) // 编辑模式：正在编辑的派单记录 id（null = 新建派单）
 const employeeOptions = ref([])
 const vehicleOptions = ref([])
 const instrumentOptions = ref([])
@@ -262,27 +317,33 @@ function resetFilters() {
 const STATUS_COLOR = {
   '待派单': 'orange',
   '已派单': 'blue',
+  '已完成': 'green',
 }
 function statusColor(s) {
   return STATUS_COLOR[s] || 'default'
 }
-// Ant tag 颜色名转换为 hex，用于卡片边框/文字着色
-const ANT_HEX = {
-  orange: '#fa8c16', blue: '#1677ff', cyan: '#13c2c2', green: '#52c41a',
-  purple: '#722ed1', geekblue: '#2f54eb', red: '#ff4d4f', default: '#8c8c8c'
+// 统计卡片视觉规范（参考设计稿）：渐变底 + 圆形图标底 + 状态色数字
+const STATUS_STYLE = {
+  '待派单': { hexColor: '#FFB84C', grad: 'linear-gradient(90deg, #fffbeb, #fefce8)', iconBg: '#fef3c7' },
+  '已派单': { hexColor: '#69b1ff', grad: 'linear-gradient(90deg, #f0f9ff, #eff6ff)', iconBg: '#e0f2fe' },
+  '已完成': { hexColor: '#73d13d', grad: 'linear-gradient(90deg, #f0fdf4, #f7fee7)', iconBg: '#dcfce7' }
 }
-function antColorHex(c) {
-  return ANT_HEX[c] || c || '#8c8c8c'
+const DEFAULT_STATUS_STYLE = { hexColor: '#8c8c8c', grad: 'linear-gradient(90deg, #fafafa, #f5f5f5)', iconBg: '#f0f0f0' }
+// 状态图标映射（统计卡片展示）
+const STATUS_ICON = {
+  '待派单': ClockCircleOutlined,
+  '已派单': CaretRightOutlined,
+  '已完成': CheckCircleOutlined
 }
 
 // 采样任务状态全过程（用于筛选下拉）
 const ORDER_STATUS_CHAIN = [
-  '待派单', '已派单'
+  '待派单', '已派单', '已完成'
 ]
 
 // 表格列
 const orderCols = [
-  { title: '订单号', dataIndex: 'orderNo', key: 'orderNo', width: 160 },
+  { title: '任务单号', dataIndex: 'orderNo', key: 'orderNo', width: 160 },
   { title: '委托名称', dataIndex: 'entrustName', key: 'entrustName', width: 150 },
   { title: '委托单号', dataIndex: 'entrustNo', key: 'entrustNo', width: 120 },
   { title: '点位数', dataIndex: 'pointCount', key: 'pointCount', width: 80, align: 'center' },
@@ -366,7 +427,7 @@ const dispatchFormRef = ref(null)
 // 逾期判断：未归档完成且计划结束日期早于今天
 function isOverdue(o) {
   if (!o || !o.planEnd) return false
-  if (o.status === '归档完成') return false
+  if (o.status === '归档完成' || o.status === '已完成') return false
   return o.planEnd < dayjs().format('YYYY-MM-DD')
 }
 const overdueOnly = ref(false)
@@ -375,6 +436,8 @@ const statusStats = computed(() =>
   ORDER_STATUS_CHAIN.map((s) => ({
     status: s,
     color: statusColor(s),
+    icon: STATUS_ICON[s] || ClockCircleOutlined,
+    ...(STATUS_STYLE[s] || DEFAULT_STATUS_STYLE),
     count: allOrders.value.filter((o) => o.status === s).length
   }))
 )
@@ -433,6 +496,7 @@ function openDispatch(order) {
     return
   }
   currentOrder.value = order
+  editingDispatchId.value = null
   Object.assign(dispatchForm, { leadId: undefined, empIds: [], vehicleId: undefined, instrumentIds: [], planStart: null, planEnd: null, note: '' })
   dispatchVisible.value = true
 }
@@ -440,6 +504,8 @@ function openDispatch(order) {
 function closeDispatch() {
   dispatchVisible.value = false
   currentOrder.value = null
+  editingDispatchId.value = null
+  dispatchBlock.value = ''
 }
 
 function handleDeleteOrder(order) {
@@ -447,6 +513,76 @@ function handleDeleteOrder(order) {
     message.success('采样任务已删除')
     loadOrders()
   }).catch(() => {})
+}
+
+// ---------- 编辑派单（已有派单记录时可修改负责人/组员/车辆/设备/计划区间/备注） ----------
+function canEdit(record) {
+  return !!record.dispatchId && hasPerm('ems:dispatch')
+}
+
+// 选项去重补充：确保下拉中存在回填项（首次搜索列表可能未包含）
+function ensureOption(options, opt) {
+  if (opt.value == null) return
+  if (!options.some((o) => o.value === opt.value)) options.push(opt)
+}
+
+function openEdit(record) {
+  currentOrder.value = record
+  editingDispatchId.value = record.dispatchId
+  Object.assign(dispatchForm, { leadId: undefined, empIds: [], vehicleId: undefined, instrumentIds: [], planStart: null, planEnd: null, note: '' })
+  getDispatchDetail(record.id).then((res) => {
+    const d = res.data || res || {}
+    // 回填下拉选项，保证已选值能正常展示
+    if (d.lead) ensureOption(employeeOptions.value, { label: `${d.lead.realName || d.lead.username}（${d.lead.username}）`, value: d.lead.userId })
+    ;(d.members || []).forEach((m) => ensureOption(employeeOptions.value, { label: `${m.realName || m.username}（${m.username}）`, value: m.userId }))
+    if (d.vehicle) ensureOption(vehicleOptions.value, { label: `${d.vehicle.plateNo}${d.vehicle.model ? ' ' + d.vehicle.model : ''}`, value: d.vehicle.id })
+    ;(d.instruments || []).forEach((i) => ensureOption(instrumentOptions.value, { label: `${i.name}${i.model ? ' ' + i.model : ''}`, value: i.id }))
+    Object.assign(dispatchForm, {
+      leadId: d.lead ? d.lead.userId : undefined,
+      empIds: (d.members || []).map((m) => m.userId),
+      vehicleId: d.vehicle ? d.vehicle.id : undefined,
+      instrumentIds: (d.instruments || []).map((i) => i.id),
+      planStart: d.planStart ? dayjs(d.planStart) : null,
+      planEnd: d.planEnd ? dayjs(d.planEnd) : null,
+      note: d.note || ''
+    })
+    dispatchVisible.value = true
+  }).catch(() => { editingDispatchId.value = null })
+}
+
+// ---------- 完成确认（仅「已派单」且当前用户为负责人/管理员可操作） ----------
+const completeVisible = ref(false)
+const completeLoading = ref(false)
+const completeForm = reactive({ actualFinishTime: null, finishDesc: '' })
+
+function canComplete(record) {
+  if (record.status !== '已派单') return false
+  // 负责人本人或管理员可确认完成（看板 leadName 为负责人真实姓名）
+  return userStore.isAdmin || (userStore.realName && record.leadName === userStore.realName)
+}
+
+function openComplete(record) {
+  currentOrder.value = record
+  completeForm.actualFinishTime = dayjs()
+  completeForm.finishDesc = ''
+  completeVisible.value = true
+}
+
+function submitComplete() {
+  if (!completeForm.actualFinishTime) {
+    message.warning('请选择实际完成时间')
+    return
+  }
+  completeLoading.value = true
+  completeSamplingOrder(currentOrder.value.id, {
+    actualFinishTime: dayjs(completeForm.actualFinishTime).format('YYYY-MM-DD HH:mm:ss'),
+    finishDesc: completeForm.finishDesc
+  }).then(() => {
+    message.success('采样任务已完成')
+    completeVisible.value = false
+    currentOrder.value = null
+    loadOrders()
+  }).catch(() => {}).finally(() => { completeLoading.value = false })
 }
 
 async function submitDispatch() {
@@ -457,7 +593,8 @@ async function submitDispatch() {
     return
   }
   // 双保险：校验所选车辆是否在检车时间区间内可用（ISSUE-035）
-  if (dispatchForm.vehicleId && dispatchForm.planStart && dispatchForm.planEnd) {
+  // 编辑模式下车辆可能被本订单自身派单占用（可用列表未排除自身），交由后端冲突检测（排除本订单）兜底
+  if (!editingDispatchId.value && dispatchForm.vehicleId && dispatchForm.planStart && dispatchForm.planEnd) {
     const ps = dayjs(dispatchForm.planStart).format('YYYY-MM-DDTHH:mm:ss')
     const pe = dayjs(dispatchForm.planEnd).format('YYYY-MM-DDTHH:mm:ss')
     const availablePromise = getAvailableVehicles({ planStart: ps, planEnd: pe })
@@ -494,9 +631,14 @@ function buildDispatchParams() {
 
 function doSubmitDispatch() {
   const params = buildDispatchParams()
+  const isEdit = !!editingDispatchId.value
+  const editId = editingDispatchId.value
   dispatchLoading.value = true
-  createDispatch({ ...params, orderId: currentOrder.value.id }).then(() => {
-    message.success('派单成功（已通过资质闸门与冲突校验）')
+  const req = isEdit
+    ? updateDispatch(editId, params)
+    : createDispatch({ ...params, orderId: currentOrder.value.id })
+  req.then(() => {
+    message.success(isEdit ? '派单信息已更新（变更已记入操作历史）' : '派单成功（已通过资质闸门与冲突校验）')
     closeDispatch()
     loadOrders()
   }).catch(() => {
@@ -585,55 +727,66 @@ onUnmounted(() => {
 .vehicle-tip { margin-top: 6px; }
 .vehicle-tip .tip-text { color: #52c41a; font-size: 12px; }
 
-/* 表格视图：状态统计卡片 + 逾期卡片 */
+/* 表格视图：状态统计卡片 + 逾期卡片（渐变底 + 圆形图标，参考设计稿） */
 .stat-cards {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
   margin-bottom: 12px;
   flex-shrink: 0;
-  overflow-x: auto;
 }
 .stat-card {
-  flex: 1 1 0;
-  min-width: 92px;
-  padding: 10px 16px;
-  border: 1px solid #f0f0f0;
-  border-left: 3px solid #d9d9d9;
-  border-radius: 8px;
-  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid transparent;
+  border-radius: 12px;
   cursor: pointer;
-  text-align: center;
   transition: all 0.15s ease;
   user-select: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 .stat-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
-.stat-card.active {
-  background: #f5f8ff;
-  box-shadow: 0 0 0 1px currentColor inset;
+.stat-icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  font-size: 22px;
+}
+.stat-info {
+  min-width: 0;
 }
 .stat-num {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.1;
-  color: #262626;
 }
 .stat-label {
   margin-top: 2px;
-  font-size: 12px;
-  color: #8c8c8c;
+  font-size: 13px;
+  color: #4b5563;
 }
 .stat-card.overdue {
-  border-left-color: #ff4d4f;
+  background: linear-gradient(90deg, #fef2f2, #fff1f2);
+  border-color: #fecaca;
+}
+.stat-card.overdue .stat-icon {
+  color: #ff4d4f;
+  background: #fee2e2;
 }
 .stat-card.overdue .stat-num {
   color: #ff4d4f;
 }
 .stat-card.overdue.active {
-  background: #fff1f0;
-  box-shadow: 0 0 0 1px #ff4d4f inset;
+  border-color: #ff4d4f;
 }
 
 /* 状态全过程 A - B - C - D：当前蓝色、完成绿色、未到达灰色 */

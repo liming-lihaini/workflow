@@ -131,14 +131,22 @@
           :columns="entrustColumns"
           :data-source="vo.entrusts || []"
           :pagination="false"
+          :scroll="{ x: 900 }"
         >
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'entrustNo'">
+          <template #bodyCell="{ column, record, index }">
+            <template v-if="column.key === 'seq'">{{ index + 1 }}</template>
+            <template v-else-if="column.key === 'entrustNo'">
               <span class="link-text" @click="goEntrust(record)">{{ record.entrustNo || '-' }}</span>
             </template>
             <template v-else-if="column.key === 'entrustName'">
+              <a-tag v-if="record.urgent" color="red" style="margin-right: 4px">紧急</a-tag>
               <span class="link-text" @click="goEntrust(record)">{{ record.entrustName || '-' }}</span>
             </template>
+            <template v-else-if="column.key === 'status'">
+              <a-tag :color="entrustStatusColor(record.status)">{{ record.status || '-' }}</a-tag>
+            </template>
+            <template v-else-if="column.key === 'createName'">{{ record.createName || '-' }}</template>
+            <template v-else-if="column.key === 'createTime'">{{ renderDate(record.createTime) }}</template>
           </template>
         </a-table>
       </a-card>
@@ -320,6 +328,9 @@ function nodeStatusColor(s) {
   if (s === '部分收' || s === '部分付') return 'orange'
   return 'default'
 }
+function entrustStatusColor(s) {
+  return { '草稿': 'default', '待技术确认': 'orange', '已确认': 'green', '已退回': 'red' }[s] || 'default'
+}
 function nodePercent(n) {
   const plan = Number(n.planAmount || 0)
   if (!plan) return 0
@@ -362,9 +373,15 @@ const txnColumns = [
   { title: '操作', key: 'op', width: 60 }
 ]
 const entrustColumns = [
-  { title: '委托单号', key: 'entrustNo', width: 160 },
-  { title: '委托名称', key: 'entrustName' },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 100 }
+  { title: '序号', key: 'seq', width: 60 },
+  { title: '委托单号', key: 'entrustNo', width: 150 },
+  { title: '委托名称', key: 'entrustName', width: 240, ellipsis: true },
+  { title: '客户', dataIndex: 'custName', key: 'custName', width: 180, ellipsis: true },
+  { title: '来源', dataIndex: 'sourceName', key: 'sourceName', width: 100 },
+  { title: '开始日期', dataIndex: 'startDate', key: 'startDate', width: 100 },
+  { title: '状态', key: 'status', width: 110 },
+  { title: '创建人', key: 'createName', width: 90 },
+  { title: '创建时间', key: 'createTime', width: 130 }
 ]
 const canDeleteTxn = computed(() => hasPerm('ems:contract:finance') || hasPerm('ems:contract:delete'))
 

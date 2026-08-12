@@ -2,13 +2,16 @@ package com.flow.engine.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.flow.engine.common.BusinessException;
 import com.flow.engine.entity.EmsDispatch;
 import com.flow.engine.entity.EmsCustomer;
 import com.flow.engine.entity.EmsEntrust;
 import com.flow.engine.entity.EmsMonitorPoint;
 import com.flow.engine.entity.EmsSamplingOrder;
+import com.flow.engine.entity.EmsSamplingOrderHistory;
 import com.flow.engine.entity.User;
 import com.flow.engine.mapper.EmsDispatchMapper;
+import com.flow.engine.mapper.EmsSamplingOrderHistoryMapper;
 import com.flow.engine.mapper.EmsSamplingOrderMapper;
 import com.flow.engine.mapper.UserMapper;
 import com.flow.engine.util.CodeGenerator;
@@ -44,6 +47,8 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
     private EmsMonitorPointService monitorPointService;
     @Autowired
     private EmsCustomerService customerService;
+    @Autowired
+    private EmsSamplingOrderHistoryMapper orderHistoryMapper;
 
     /**
      * 采样调度看板聚合数据：每个订单补充点位名称、派单计划区间、派单负责人姓名。
@@ -90,12 +95,14 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
             String planStart = null;
             String planEnd = null;
             String leadNameVal = null;
+            Long dispatchId = null;
             if (o.getId() != null) {
                 EmsDispatch d = dispatchMapper.selectOne(new LambdaQueryWrapper<EmsDispatch>()
                         .eq(EmsDispatch::getOrderId, o.getId())
                         .orderByDesc(EmsDispatch::getId)
                         .last("LIMIT 1"));
                 if (d != null) {
+                    dispatchId = d.getId();
                     if (d.getPlanStart() != null) planStart = d.getPlanStart().toLocalDate().toString();
                     if (d.getPlanEnd() != null) planEnd = d.getPlanEnd().toLocalDate().toString();
                     // 负责人：派单成员表 role=LEAD 对应的后台人员姓名（sys_user）
@@ -105,6 +112,7 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
                     if (lead != null) leadNameVal = lead.getRealName() != null ? lead.getRealName() : lead.getUsername();
                 }
             }
+            m.put("dispatchId", dispatchId);
             m.put("planStart", planStart);
             m.put("planEnd", planEnd);
             m.put("planRange", (planStart != null ? planStart : "—") + " ~ " + (planEnd != null ? planEnd : "—"));
@@ -166,6 +174,12 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
     /** 委托确认后拆单：以委托单为主体生成一张待派单订单（不再按点位拆单，点位为采样环节基础信息） */
     @Transactional
     public int genFromEntrust(EmsEntrust entrust) {
+        return genFromEntrust(entrust, null);
+    }
+
+    /** 委托确认后拆单（带操作人）：生成订单并记录「新建」操作历史 */
+    @Transactional
+    public int genFromEntrust(EmsEntrust entrust, User operator) {
         // 同一委托已存在订单则不再重复生成（重复派单走 redispatch）
         long existing = this.count(new LambdaQueryWrapper<EmsSamplingOrder>().eq(EmsSamplingOrder::getEntrustId, entrust.getId()));
         if (existing > 0) {
@@ -180,12 +194,19 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
         o.setCreateTime(LocalDateTime.now());
         o.setUpdateTime(LocalDateTime.now());
         this.save(o);
+        recordOrderHistory(o.getId(), "新建", "采样任务【" + o.getOrderNo() + "】创建（委托确认后自动拆单生成）", operator);
         return 1;
     }
 
     /** 按采集频率再次派单：同一委托生成下一张待派单订单（委托已确认且已有订单） */
     @Transactional
     public EmsSamplingOrder redispatch(Long entrustId) {
+        return redispatch(entrustId, null);
+    }
+
+    /** 按采集频率再次派单（带操作人）：生成订单并记录「新建」操作历史 */
+    @Transactional
+    public EmsSamplingOrder redispatch(Long entrustId, User operator) {
         EmsEntrust entrust = entrustService.getById(entrustId);
         if (entrust == null) {
             throw new IllegalArgumentException("委托不存在");
@@ -202,6 +223,7 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
         o.setCreateTime(LocalDateTime.now());
         o.setUpdateTime(LocalDateTime.now());
         this.save(o);
+        recordOrderHistory(o.getId(), "新建", "采样任务【" + o.getOrderNo() + "】创建（按采集频率再次派单）", operator);
         return o;
     }
 
@@ -219,5 +241,48 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
     public void deleteOrder(Long id) {
         dispatchMapper.delete(new LambdaQueryWrapper<EmsDispatch>().eq(EmsDispatch::getOrderId, id));
         this.removeById(id);
+    }
+
+    // ==================== 完成确认与操作历史 ====================
+
+    /**
+     * 完成确认：仅「已派单」订单可完成。负责人录入实际完成时间与完成描述（富文本），
+     * 状态流转为「已完成」并记录操作历史。
+     */
+    @Transactional
+    public EmsSamplingOrder complete(Long orderId, LocalDateTime actualFinishTime, String finishDesc, User operator) {
+        EmsSamplingOrder order = this.getById(orderId);
+        if (order == null) {
+            throw new BusinessException("采样任务不存在");
+        }
+        if (!"已派单".equals(order.getStatus())) {
+            throw new BusinessException("仅「已派单」状态的任务可确认完成，当前：" + order.getStatus());
+        }
+        order.setStatus("已完成");
+        order.setActualFinishTime(actualFinishTime != null ? actualFinishTime : LocalDateTime.now());
+        order.setFinishDesc(finishDesc);
+        order.setUpdateTime(LocalDateTime.now());
+        this.updateById(order);
+        recordOrderHistory(orderId, "完成", "采样任务【" + order.getOrderNo() + "】确认完成", operator);
+        return order;
+    }
+
+    /** 采样任务操作历史列表（按时间倒序） */
+    public List<EmsSamplingOrderHistory> listHistory(Long orderId) {
+        return orderHistoryMapper.selectList(new LambdaQueryWrapper<EmsSamplingOrderHistory>()
+                .eq(EmsSamplingOrderHistory::getOrderId, orderId)
+                .orderByDesc(EmsSamplingOrderHistory::getId));
+    }
+
+    /** 记录采样任务操作历史（新建/派单/编辑/完成等），operator 为空时前端展示为「系统」 */
+    public void recordOrderHistory(Long orderId, String action, String content, User operator) {
+        EmsSamplingOrderHistory h = new EmsSamplingOrderHistory();
+        h.setOrderId(orderId);
+        h.setAction(action);
+        h.setContent(content);
+        h.setOperatorId(operator == null ? null : operator.getUsername());
+        h.setOperatorName(operator == null ? null : operator.getRealName());
+        h.setCreateTime(LocalDateTime.now());
+        orderHistoryMapper.insert(h);
     }
 }

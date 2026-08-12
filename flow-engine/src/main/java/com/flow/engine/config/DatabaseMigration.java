@@ -51,6 +51,20 @@ public class DatabaseMigration implements CommandLineRunner {
                 + "operator_name VARCHAR(64), "
                 + "create_time DATETIME(6)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+        // 采样任务操作历史表（完成等处置轨迹）
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_sampling_order_history ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "order_id BIGINT, "
+                + "action VARCHAR(32), "
+                + "content LONGTEXT, "
+                + "operator_id VARCHAR(64), "
+                + "operator_name VARCHAR(64), "
+                + "create_time DATETIME(6)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // 采样任务完成信息（负责人确认完成时录入：实际完成时间 + 完成描述富文本）
+        addColumnIfAbsent("t_sampling_order", "actual_finish_time", "DATETIME(6)");
+        addColumnIfAbsent("t_sampling_order", "finish_desc", "LONGTEXT");
+
         // 合同管理台账（PRD-02）：合同主表
         createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_contract ("
                 + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
@@ -1378,9 +1392,7 @@ public class DatabaseMigration implements CommandLineRunner {
         try (Connection conn = dataSource.getConnection();
              Statement st = conn.createStatement()) {
             // 仅当 status 存的是数字时转换为文本；SQLite 弱类型，直接 UPDATE 即可
-            st.execute("UPDATE t_instrument SET status = '在用' WHERE status = '1' OR status = 1");
-            st.execute("UPDATE t_instrument SET status = '停用' WHERE status = '0' OR status = 0");
-            st.execute("UPDATE t_instrument SET status = '在用' WHERE status IS NULL OR status = ''");
+            st.execute("UPDATE t_instrument SET status = '在用' WHERE status = '停用'");
         } catch (Exception ignored) {
         }
     }

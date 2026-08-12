@@ -1,6 +1,6 @@
 <template>
   <a-form ref="formRef" layout="vertical" :model="form" :rules="rules">
-    <a-form-item label="负责人（后台人员）" name="leadId">
+    <a-form-item label="负责人" name="leadId">
       <a-select
         v-model:value="form.leadId"
         show-search
@@ -11,7 +11,7 @@
         allow-clear
       />
     </a-form-item>
-    <a-form-item label="组员（后台人员，可多选）" name="empIds">
+    <a-form-item label="组员（可多选）" name="empIds">
       <a-select
         v-model:value="form.empIds"
         mode="multiple"
@@ -68,7 +68,7 @@
         v-model:value="form.instrumentIds"
         mode="multiple"
         show-search
-        placeholder="搜索并选择设备"
+        placeholder="搜索并选择设备（仅展示在用）"
         :options="instrumentOptions"
         :filter-option="false"
         @search="onSearchInstrument"
@@ -100,7 +100,18 @@ const rules = {
   leadId: [{ required: true, message: '请选择负责人' }],
   empIds: [{ required: true, type: 'array', message: '请至少选择一名组员' }],
   planStart: [{ required: true, message: '请选择计划开始日期' }],
-  planEnd: [{ required: true, message: '请选择计划结束日期' }]
+  planEnd: [
+    { required: true, message: '请选择计划结束日期' },
+    {
+      validator: (_, value) => {
+        if (value && props.form.planStart && dayjs(value).isBefore(dayjs(props.form.planStart), 'day')) {
+          return Promise.reject('结束时间必须大于等于开始时间')
+        }
+        return Promise.resolve()
+      },
+      trigger: 'change'
+    }
+  ]
 }
 
 function onSearchEmployee(keyword) {
@@ -149,15 +160,21 @@ function refreshAvailableVehicles(allOptions) {
 }
 
 function onPlanTimeChange() {
+  // 开始/结束任一变动的时，重新校验结束时间（>= 开始时间）
+  if (props.form.planStart && props.form.planEnd) {
+    formRef.value.validateFields(['planEnd']).catch(() => {})
+  }
   onSearchVehicle('')
 }
 
 function onSearchInstrument(keyword) {
-  listInstruments({ keyword: keyword || undefined, page: 1, size: 50 }).then((res) => {
+  // 仅查询在用设备（后端 status 为惰性重算，需再按校准到期日过滤掉实际已过期的）
+  listInstruments({ keyword: keyword || undefined, status: '在用', page: 1, size: 50 }).then((res) => {
     const data = res.data || res
     const list = Array.isArray(data) ? data : (data.list || data.records || [])
+    const usable = list.filter((i) => !i.calibDue || !dayjs(i.calibDue).isBefore(dayjs(), 'day'))
     props.instrumentOptions.length = 0
-    list.forEach((i) => props.instrumentOptions.push({ label: `${i.name}${i.model ? ' ' + i.model : ''}`, value: i.id }))
+    usable.forEach((i) => props.instrumentOptions.push({ label: `${i.name}${i.model ? ' ' + i.model : ''}`, value: i.id }))
   }).catch(() => {})
 }
 
