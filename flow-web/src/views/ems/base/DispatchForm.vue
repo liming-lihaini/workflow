@@ -68,12 +68,30 @@
         v-model:value="form.instrumentIds"
         mode="multiple"
         show-search
-        placeholder="搜索并选择设备（仅展示在用）"
+        placeholder="搜索并选择设备"
         :options="instrumentOptions"
         :filter-option="false"
         @search="onSearchInstrument"
         allow-clear
       />
+      <a-alert
+        v-if="instrumentConflicts.length"
+        type="warning"
+        show-icon
+        class="instrument-conflict-tip"
+        message="所选设备在计划时间区间内被占用"
+      >
+        <template #description>
+          <ul class="conflict-list">
+            <li v-for="c in instrumentConflicts" :key="c.id">
+              <span class="conflict-name">{{ c.label }}</span>
+              <template v-for="r in c.ranges" :key="r.key">
+                <a-tag color="orange" class="conflict-range">{{ r.type }}：{{ r.text }}</a-tag>
+              </template>
+            </li>
+          </ul>
+        </template>
+      </a-alert>
     </a-form-item>
 
     <a-form-item label="备注">
@@ -85,16 +103,21 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import dayjs from 'dayjs'
-import { searchUsers, listVehicles, listInstruments, getAvailableVehicles } from '../../../api/ems'
+import { message } from 'ant-design-vue'
+import { searchUsers, listVehicles, listInstruments, getAvailableVehicles, getInstrumentUsage } from '../../../api/ems'
 
 const props = defineProps({
   form: { type: Object, required: true },
   employeeOptions: { type: Array, default: () => [] },
   vehicleOptions: { type: Array, default: () => [] },
-  instrumentOptions: { type: Array, default: () => [] }
+  instrumentOptions: { type: Array, default: () => [] },
+  // 编辑模式：排除本派单自身的占用区间
+  excludeDispatchId: { type: Number, default: null }
 })
 
 const formRef = ref(null)
+// 已选设备在计划区间内的占用明细（ranges/maintenances 展开后）
+const instrumentConflicts = ref([])
 
 const rules = {
   leadId: [{ required: true, message: '请选择负责人' }],
@@ -151,10 +174,65 @@ function refreshAvailableVehicles(allOptions) {
   getAvailableVehicles({ planStart: ps, planEnd: pe }).then((res) => {
     const ids = res.data || res || []
     const base = allOptions || props.vehicleOptions
+    const isEdit = !!props.excludeDispatchId
     props.vehicleOptions.length = 0
     base.filter((o) => ids.includes(o.value)).forEach((o) => props.vehicleOptions.push(o))
+    if (isEdit) {
+      // 编辑模式：可用列表未排除本派单自身占用，保留已选车辆选项防止误判，冲突由后端（排除本订单）兜底
+      const selected = base.find((o) => o.value === props.form.vehicleId)
+      if (selected && !ids.includes(selected.value)) props.vehicleOptions.push(selected)
+      return
+    }
+    // 已选车辆在新时间区间内不可用：提示并清除选择
+    if (props.form.vehicleId && !ids.includes(props.form.vehicleId)) {
+      const selected = base.find((o) => o.value === props.form.vehicleId)
+      message.warning(`车辆「${selected ? selected.label : props.form.vehicleId}」在 ${dayjs(props.form.planStart).format('MM-DD HH:mm')} ~ ${dayjs(props.form.planEnd).format('MM-DD HH:mm')} 区间内已被占用或维修保养，请重新选择`)
+      props.form.vehicleId = undefined
+    }
     if (!ids.length) {
       if (props.form.vehicleId) props.form.vehicleId = undefined
+    }
+  }).catch(() => {})
+}
+
+// 时间区间变化后，检测已选设备的占用情况（派单占用 + 校准停用期），明细到被占用的具体区间
+function checkInstrumentConflicts() {
+  instrumentConflicts.value = []
+  if (!props.form.planStart || !props.form.planEnd) return
+  if (dayjs(props.form.planEnd).isBefore(dayjs(props.form.planStart), 'day')) return
+  const selected = props.form.instrumentIds || []
+  if (!selected.length) return
+  const ps = dayjs(props.form.planStart).format('YYYY-MM-DDTHH:mm:ss')
+  const pe = dayjs(props.form.planEnd).format('YYYY-MM-DDTHH:mm:ss')
+  getInstrumentUsage({ start: ps, end: pe }).then((res) => {
+    const list = res.data || res || []
+    const conflicts = []
+    list.filter((it) => selected.includes(it.instrumentId)).forEach((it) => {
+      const ranges = []
+      // 派单占用：编辑模式排除本派单自身
+      ;(it.ranges || []).forEach((r) => {
+        if (props.excludeDispatchId && r.dispatchId === props.excludeDispatchId) return
+        ranges.push({
+          key: 'd_' + r.dispatchId,
+          type: '派单占用',
+          text: `${dayjs(r.start).format('YYYY-MM-DD HH:mm')} ~ ${dayjs(r.end).format('YYYY-MM-DD HH:mm')}`
+        })
+      })
+      // 校准停用期
+      ;(it.maintenances || []).forEach((m) => {
+        ranges.push({
+          key: 'm_' + m.id,
+          type: '校准停用',
+          text: `${dayjs(m.start).format('YYYY-MM-DD')} ~ ${dayjs(m.end).format('YYYY-MM-DD')}`
+        })
+      })
+      if (ranges.length) {
+        conflicts.push({ id: it.instrumentId, label: `${it.name}${it.model ? ' ' + it.model : ''}`, ranges })
+      }
+    })
+    instrumentConflicts.value = conflicts
+    if (conflicts.length) {
+      message.warning(`${conflicts.length} 台所选设备在计划时间区间内被占用，详见设备下方提示`)
     }
   }).catch(() => {})
 }
@@ -164,7 +242,9 @@ function onPlanTimeChange() {
   if (props.form.planStart && props.form.planEnd) {
     formRef.value.validateFields(['planEnd']).catch(() => {})
   }
+  // 时间变化后重新检测所选车辆/设备在新区间内是否可用
   onSearchVehicle('')
+  checkInstrumentConflicts()
 }
 
 function onSearchInstrument(keyword) {
@@ -208,5 +288,28 @@ onMounted(() => {
 .tip-count {
   margin: 0;
   margin-left: auto;
+}
+.instrument-conflict-tip {
+  margin-top: 8px;
+}
+.conflict-list {
+  margin: 4px 0 0;
+  padding-left: 0;
+  list-style: none;
+}
+.conflict-list li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.conflict-name {
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 500;
+}
+.conflict-range {
+  margin: 0;
+  font-family: monospace;
 }
 </style>

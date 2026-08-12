@@ -206,6 +206,7 @@
         :employee-options="employeeOptions"
         :vehicle-options="vehicleOptions"
         :instrument-options="instrumentOptions"
+        :exclude-dispatch-id="editingDispatchId"
       />
       <a-alert
         v-if="dispatchBlock"
