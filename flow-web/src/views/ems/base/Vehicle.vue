@@ -240,7 +240,7 @@ const columns = [
   { title: '型号', dataIndex: 'model', key: 'model', width: 200 },
   { title: '状态', key: 'status', dataIndex: 'status', width: 100 },
   { title: '备注', dataIndex: 'remark', key: 'remark', ellipsis: true },
-  { title: '操作', key: 'action', width: 220 }
+  { title: '操作', key: 'action', width: 260 }
 ]
 
 const dispatchColumns = [

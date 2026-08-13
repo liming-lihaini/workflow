@@ -79,6 +79,15 @@ export const getVehicleUsage = (params) => request.get('/ems/base/dispatch/vehic
 export const getInstrumentUsage = (params) => request.get('/ems/base/dispatch/instrument-usage', { params })
 export const getAvailableVehicles = (params) => request.get('/ems/base/dispatch/available-vehicles', { params })
 
+// 通用到期提醒（多数据源：采样任务/仪器校准/标准物质/耗材/合同/收付款节点），含免打扰状态与 needPopup 弹窗判定
+export const getReminders = () => request.get('/ems/base/reminders')
+// 关闭提醒（该提醒项不再弹窗）
+export const dismissReminder = (id) => request.post(`/ems/base/reminders/${id}/dismiss`)
+// 今日不再提醒（当天不弹窗）
+export const snoozeReminderToday = (id) => request.post(`/ems/base/reminders/${id}/snooze-today`)
+// 记录一次弹窗时间（1 小时间隔控制）
+export const markReminderPopped = (id) => request.post(`/ems/base/reminders/${id}/popped`)
+
 // 派单人员：从后台用户管理远程检索（支持分页+关键字）
 export const searchUsers = (params) => request.get('/system/users/page', { params })
 

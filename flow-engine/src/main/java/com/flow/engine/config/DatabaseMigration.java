@@ -65,6 +65,47 @@ public class DatabaseMigration implements CommandLineRunner {
         addColumnIfAbsent("t_sampling_order", "actual_finish_time", "DATETIME(6)");
         addColumnIfAbsent("t_sampling_order", "finish_desc", "LONGTEXT");
 
+        // 采样任务延期提醒免打扰状态（用户 × 订单维度：关闭提醒/今日不再提醒/上次弹窗时间）
+        // 注：已被通用到期提醒体系（t_reminder + t_reminder_mute）取代，保留仅为兼容历史数据
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_overdue_mute ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "user_id BIGINT, "
+                + "order_id BIGINT, "
+                + "muted TINYINT DEFAULT 0, "
+                + "snooze_date DATE, "
+                + "last_popup_time DATETIME, "
+                + "create_time DATETIME, "
+                + "update_time DATETIME, "
+                + "UNIQUE KEY uk_user_order (user_id, order_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // 通用到期提醒项（多数据源 Provider 扫描生成：采样任务/仪器校准/标准物质/耗材/合同/收付款节点）
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_reminder ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "source_type VARCHAR(32), "
+                + "biz_id BIGINT, "
+                + "biz_key VARCHAR(64), "
+                + "title VARCHAR(255), "
+                + "detail VARCHAR(512), "
+                + "due_date DATE, "
+                + "owner_id BIGINT, "
+                + "owner_name VARCHAR(64), "
+                + "resolved TINYINT DEFAULT 0, "
+                + "create_time DATETIME, "
+                + "update_time DATETIME, "
+                + "UNIQUE KEY uk_biz (source_type, biz_key)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // 通用到期提醒免打扰状态（用户 × 提醒项维度：关闭提醒/今日不再提醒/上次弹窗时间）
+        createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_reminder_mute ("
+                + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
+                + "user_id BIGINT, "
+                + "reminder_id BIGINT, "
+                + "muted TINYINT DEFAULT 0, "
+                + "snooze_date DATE, "
+                + "last_popup_time DATETIME, "
+                + "create_time DATETIME, "
+                + "update_time DATETIME, "
+                + "UNIQUE KEY uk_user_reminder (user_id, reminder_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
         // 合同管理台账（PRD-02）：合同主表
         createTableIfAbsent("CREATE TABLE IF NOT EXISTS t_contract ("
                 + "id BIGINT PRIMARY KEY AUTO_INCREMENT, "
@@ -379,6 +420,8 @@ public class DatabaseMigration implements CommandLineRunner {
         addColumnIfAbsent("t_sample", "qc_types", "TEXT");
         addColumnIfAbsent("t_sample", "retain_sample", "INTEGER DEFAULT 0");
         addColumnIfAbsent("t_sample", "sample_photo", "TEXT");
+        addColumnIfAbsent("t_sample", "retain_amount", "TEXT");
+        addColumnIfAbsent("t_retain", "retain_amount", "TEXT");
     }
 
     /**

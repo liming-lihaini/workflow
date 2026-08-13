@@ -9,6 +9,7 @@ import com.flow.engine.common.utils.JsonUtils;
 import com.flow.engine.dto.ReceiveReq;
 import com.flow.engine.dto.SampleCollectReq;
 import com.flow.engine.dto.SampleDisposeReq;
+import com.flow.engine.entity.DictItem;
 import com.flow.engine.entity.EmsPhoto;
 import com.flow.engine.entity.EmsSample;
 import com.flow.engine.entity.EmsSampleLog;
@@ -56,6 +57,18 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
     @Autowired
     private com.flow.engine.engine.FlowEngine flowEngine;
+    @Autowired
+    private DictService dictService;
+
+    /** 按字典 code + itemValue 查字典名称；未命中返回原值 */
+    private String dictText(String dictCode, String itemValue) {
+        if (!StringUtils.hasText(dictCode) || !StringUtils.hasText(itemValue)) return itemValue;
+        List<DictItem> items = dictService.getDictItemsByCode(dictCode);
+        for (DictItem it : items) {
+            if (itemValue.equals(it.getItemValue())) return it.getItemText();
+        }
+        return itemValue;
+    }
 
     // ===================== 采样记录 =====================
 
@@ -231,9 +244,8 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
             sample.setRetainDays(retainDays);
             LocalDate until = LocalDate.parse(retainDate).plusDays(retainDays);
             sample.setRetainUntil(until.toString());
-            sample.setStatus("留样中");
             sampleMapper.updateById(sample);
-            retain(sample.getId(), retainDays, retainBy, retainDate, req.getRetainLocation(), "手动收集留样");
+            retain(sample.getId(), retainDays, null, retainBy, retainDate, req.getRetainLocation(), "手动收集留样");
             writeLog(sample.getId(), "留样", retainBy, "手动收集留样至 " + until + "（" + retainDays + "天）");
         }
         // 普通登记（不留样）保持上方设置的「待收样」状态；留样登记由上方更新为「留样中」
@@ -265,17 +277,19 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
             throw new BusinessException("仅「异常拒收」或「检测异常」的样品可提交异常处置");
         }
         LambdaUpdateWrapper<EmsSample> uw = new LambdaUpdateWrapper<>();
+        String disposalTypeText = dictText("moni_disposal_type", req.getDisposalType());
+        String disposalMethodText = dictText("moni_disposal_method", req.getDisposalMethod());
         uw.eq(EmsSample::getId, id)
                 .set(EmsSample::getStatus, "已处置")
-                .set(EmsSample::getDisposalType, req.getDisposalType())
-                .set(EmsSample::getDisposalMethod, req.getDisposalMethod())
+                .set(EmsSample::getDisposalType, disposalTypeText)
+                .set(EmsSample::getDisposalMethod, disposalMethodText)
                 .set(EmsSample::getDisposalDesc, req.getDisposalDesc())
                 .set(EmsSample::getDisposalBy, operator)
                 .set(EmsSample::getDisposalTime, LocalDateTime.now())
                 .set(EmsSample::getUpdateTime, LocalDateTime.now());
         sampleMapper.update(null, uw);
         writeLog(id, "异常处置", operator,
-                "处置类型: " + req.getDisposalType() + "，处置方式: " + req.getDisposalMethod());
+                "处置类型: " + disposalTypeText + "，处置方式: " + disposalMethodText);
         return sampleMapper.selectById(id);
     }
 
@@ -313,20 +327,25 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         Integer retainFlag = req.getRetainFlag() == null ? 0 : req.getRetainFlag();
         exist.setRetainFlag(retainFlag);
         if (retainFlag == 1) {
-            Integer retainDays = req.getRetainDays() == null ? 0 : req.getRetainDays();
+            // 打开留样开关后，留样属性均为必填
+            Integer retainDays = req.getRetainDays();
+            if (retainDays == null || retainDays <= 0) throw new BusinessException("请填写留样保存天数");
+            if (!StringUtils.hasText(req.getRetainAmount())) throw new BusinessException("请填写留样数量");
+            if (!StringUtils.hasText(req.getRetainBy())) throw new BusinessException("请选择留样人");
+            if (!StringUtils.hasText(req.getRetainLocation())) throw new BusinessException("请填写存放位置");
             String retainBy = req.getRetainBy();
             String retainDate = req.getRetainDate() == null ? LocalDate.now().toString() : req.getRetainDate();
-            if (StringUtils.hasText(req.getRetainLocation())) exist.setRetainLocation(req.getRetainLocation());
-            if (StringUtils.hasText(retainBy)) exist.setRetainBy(retainBy);
+            exist.setRetainLocation(req.getRetainLocation());
+            exist.setRetainBy(retainBy);
+            exist.setRetainAmount(req.getRetainAmount());
             exist.setRetainDate(retainDate);
             exist.setRetainDays(retainDays);
             LocalDate until = LocalDate.parse(retainDate).plusDays(retainDays);
             exist.setRetainUntil(until.toString());
-            exist.setStatus("留样中");
             exist.setUpdateTime(LocalDateTime.now());
             sampleMapper.updateById(exist);
             // 写入留样库
-            retain(id, retainDays, retainBy, retainDate, req.getRetainLocation(), "收样登记留样");
+            retain(id, retainDays, req.getRetainAmount(), retainBy, retainDate, req.getRetainLocation(), "收样登记留样");
             writeLog(id, "收样", req.getReceiveBy(), "收样时间: " + exist.getReceiveTime() + "，已登记留样");
         } else {
             exist.setUpdateTime(LocalDateTime.now());
@@ -425,7 +444,7 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
 
     /** 登记留样：样品 → 已收样/留样中，写入留样库 */
     @Transactional(rollbackFor = Exception.class)
-    public EmsRetain retain(Long sampleId, Integer retainDays, String retainBy, String retainTime, String retainLocation, String remark) {
+    public EmsRetain retain(Long sampleId, Integer retainDays, String retainAmount, String retainBy, String retainTime, String retainLocation, String remark) {
         EmsSample sample = sampleMapper.selectById(sampleId);
         if (sample == null) throw new BusinessException("样品不存在: " + sampleId);
         if (retainDays == null || retainDays <= 0) throw new BusinessException("留样天数必须大于0");
@@ -441,7 +460,8 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         retain.setRetainBy(retainBy);
         retain.setRetainTime(start.toString());
         retain.setRetainDays(retainDays);
-        retain.setRetainUntil(until.toString());
+        if (StringUtils.hasText(retainAmount)) retain.setRetainAmount(retainAmount);
+        retain.setRetainUntil(until.toString()); 
         retain.setStatus("留样中");
         retain.setRemark(remark);
         // 生成留样编号：LY + yyyyMMdd + 三位序号（当日已有留样数 + 1）
@@ -455,8 +475,8 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
 
         sample.setRetainFlag(1);
         sample.setRetainDays(retainDays);
+        if (StringUtils.hasText(retainAmount)) sample.setRetainAmount(retainAmount);
         sample.setRetainUntil(until.toString());
-        sample.setStatus("留样中");
         sample.setUpdateTime(LocalDateTime.now());
         sampleMapper.updateById(sample);
         writeLog(sampleId, "留样", retainBy, "留样至 " + until + "（" + retainDays + "天）");
@@ -523,7 +543,6 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         EmsRetain retain = retainService.getById(retainId);
         if (retain == null) throw new BusinessException("留样记录不存在: " + retainId);
         if (!"留样中".equals(retain.getStatus())) throw new BusinessException("仅留样中的样品可申请销毁");
-
         // 收集表单数据
         String disposeReason = formData != null ? (String) formData.get("disposeReason") : null;
         String disposeMethod = formData != null ? (String) formData.get("disposeMethod") : null;

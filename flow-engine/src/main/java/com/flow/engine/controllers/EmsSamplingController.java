@@ -1,6 +1,7 @@
 package com.flow.engine.controllers;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.flow.engine.common.BusinessException;
 import com.flow.engine.common.ErrorCode;
 import com.flow.engine.common.Result;
 import com.flow.engine.common.utils.JsonUtils;
@@ -277,11 +278,14 @@ public class EmsSamplingController {
     @PostMapping("/samples/{id}/retain")
     public Result<EmsRetain> retain(@PathVariable Long id,
                                     @RequestParam Integer retainDays,
+                                    @RequestParam(required = false) String retainAmount,
                                     @RequestParam(required = false) String retainBy,
                                     @RequestParam(required = false) String retainTime,
                                     @RequestParam(required = false) String retainLocation,
                                     @RequestParam(required = false) String remark) {
-        return Result.ok(samplingService.retain(id, retainDays, retainBy, retainTime, retainLocation, remark));
+        // 登记留样表单：留样数量必填
+        if (retainAmount == null || retainAmount.isBlank()) throw new BusinessException("请填写留样数量");
+        return Result.ok(samplingService.retain(id, retainDays, retainAmount, retainBy, retainTime, retainLocation, remark));
     }
 
     @GetMapping("/retains")

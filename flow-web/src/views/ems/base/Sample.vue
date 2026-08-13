@@ -112,10 +112,13 @@
           <a-switch v-model:checked="receiveRetainChecked" checked-children="留样" un-checked-children="不留样" />
         </a-form-item>
         <template v-if="receiveRetainChecked">
-          <a-form-item label="留样保存天数">
+          <a-form-item label="留样保存天数" required>
             <a-input-number v-model:value="receiveForm.retainDays" :min="1" :precision="0" style="width:100%" />
           </a-form-item>
-          <a-form-item label="留样人">
+          <a-form-item label="留样数量" required>
+            <a-input v-model:value="receiveForm.retainAmount" placeholder="请输入留样份数" style="width:100%" />
+          </a-form-item>
+          <a-form-item label="留样人" required>
             <a-select
               v-model:value="receiveForm.retainBy"
               show-search
@@ -125,10 +128,10 @@
               style="width:100%"
             />
           </a-form-item>
-          <a-form-item label="留样日期">
+          <a-form-item label="留样到期日期" required>
             <a-date-picker v-model:value="receiveRetainDate" value-format="YYYY-MM-DD" style="width:100%" />
           </a-form-item>
-          <a-form-item label="存放位置">
+          <a-form-item label="存放位置" required>
             <a-input v-model:value="receiveForm.retainLocation" placeholder="如 留样室A区3层货架2号" style="width:100%" />
           </a-form-item>
         </template>
@@ -385,10 +388,13 @@
         <a-form-item label="留样天数" required>
           <a-input-number v-model:value="retainForm.retainDays" :min="1" style="width:100%" />
         </a-form-item>
+        <a-form-item label="留样数量" required>
+          <a-input v-model:value="retainForm.retainAmount" placeholder="请输入留样份数" style="width:100%" />
+        </a-form-item>
         <a-form-item label="留样人" required>
           <a-input v-model:value="retainForm.retainBy" />
         </a-form-item>
-        <a-form-item label="留样日期">
+        <a-form-item label="留样到期日期">
           <a-date-picker v-model:value="retainDate" value-format="YYYY-MM-DD" style="width:100%" />
         </a-form-item>
         <a-form-item label="备注">
@@ -419,148 +425,16 @@
         </a-form-item>
       </a-form>
     </a-modal>
-
-    <!-- 详情 -->
-    <a-drawer v-model:open="detailOpen" title="样品详情" width="1000" @close="detailOpen = false">
-      <template v-if="detail">
-        <!-- 条形码图 -->
-        <a-card size="small" class="barcode-card" :bordered="true">
-          <div class="barcode-wrap">
-            <svg ref="barcodeRef" class="barcode-svg"></svg>
-          </div>
-          <div class="barcode-meta">
-            <span class="barcode-text">{{ detail.sample?.barcode }}</span>
-            <span class="barcode-name">{{ detail.sample?.name }}</span>
-          </div>
-        </a-card>
-
-        <!-- 采样信息 -->
-        <a-divider class="title-divider" orientation="left">采样信息</a-divider>
-        <a-descriptions bordered :column="2" size="small">
-          <a-descriptions-item label="样品条码">{{ detail.sample?.barcode }}</a-descriptions-item>
-          <a-descriptions-item label="样品名称">{{ detail.sample?.name }}</a-descriptions-item>
-          <a-descriptions-item label="样品类型">{{ dictText('sampleType', detail.sample?.type) }}</a-descriptions-item>
-          <a-descriptions-item label="来源">{{ detail.sample?.source }}</a-descriptions-item>
-          <a-descriptions-item label="容器">{{ detail.sample?.container }}</a-descriptions-item>
-          <a-descriptions-item label="数量/规格">{{ detail.sample?.amount }}</a-descriptions-item>
-          <a-descriptions-item label="检测类别">{{ detail.sample?.category }}</a-descriptions-item>
-          <a-descriptions-item label="检测项目">{{ detail.sample?.item }}</a-descriptions-item>
-          <a-descriptions-item label="保存条件">{{ detail.sample?.preserve }}</a-descriptions-item>
-          <a-descriptions-item label="固定剂">{{ dictListText('preservative', detail.sample?.preservatives) }}</a-descriptions-item>
-          <a-descriptions-item label="现场质控方式">{{ dictListText('qcType', detail.sample?.qcTypes) }}</a-descriptions-item>
-          <a-descriptions-item label="采样天气">{{ detail.record?.weather || detail.sample?.weather || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="采样人">{{ detail.sample?.sampler || detail.record?.sampler || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="采样时间">{{ detail.sample?.sampleTime || detail.record?.sampleTime || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="采样点位">{{ detail.pointName || detail.record?.pointName || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="状态">
-            <a-tag :color="statusColor(detail.sample?.status)">{{ detail.sample?.status }}</a-tag>
-          </a-descriptions-item>
-          <a-descriptions-item label="收样人">{{ detail.sample?.receiveBy }}</a-descriptions-item>
-          <a-descriptions-item label="收样时间">{{ detail.sample?.receiveTime }}</a-descriptions-item>
-        </a-descriptions>
-
-        <!-- 核验项：单独整行展示在表格最下方 -->
-        <a-descriptions :column="1" bordered size="small" class="check-items-row">
-          <a-descriptions-item label="核验项">{{ dictListText('receiveCheck', detail.sample?.checkItems) || '未核验' }}</a-descriptions-item>
-        </a-descriptions>
-
-        <!-- 采样参数 -->
-        <a-divider class="title-divider" orientation="left">采样参数（监测指标）</a-divider>
-        <template v-if="sampleParams.length">
-          <div v-for="grp in sampleParams" :key="grp.item" class="param-group">
-            <div class="param-group-title">{{ grp.item }}</div>
-            <a-table
-              :columns="paramColumns"
-              :data-source="grp.params"
-              size="small"
-              row-key="code"
-              :pagination="false"
-              bordered
-            />
-          </div>
-        </template>
-        <a-empty v-else description="无采样参数" />
-
-        <!-- 留样信息 -->
-        <a-divider class="title-divider" orientation="left">留样信息</a-divider>
-        <a-descriptions bordered :column="2" size="small">
-          <a-descriptions-item label="是否留样">
-            <a-tag :color="(detail.sample?.retainFlag === 1 || detail.sample?.retainFlag === '1') ? 'green' : 'default'">
-              {{ (detail.sample?.retainFlag === 1 || detail.sample?.retainFlag === '1') ? '留样' : '不留样' }}
-            </a-tag>
-          </a-descriptions-item>
-          <a-descriptions-item label="留样到期">{{ detail.sample?.retainUntil || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="留样天数">{{ detail.sample?.retainDays || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="留样人">{{ detail.sample?.retainBy || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="留样日期">{{ detail.sample?.retainDate || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="存放位置">{{ detail.sample?.retainLocation || '-' }}</a-descriptions-item>
-        </a-descriptions>
-
-        <a-divider class="title-divider" orientation="left">质控样</a-divider>
-      <a-table
-        v-if="detail.qcList && detail.qcList.length"
-        :columns="qcColumns"
-        :data-source="detail.qcList"
-        size="small"
-        row-key="id"
-        :pagination="false"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'action'">
-            <a-button type="link" danger @click="unbindQc(record)">解绑</a-button>
-          </template>
-        </template>
-      </a-table>
-      <a-empty v-else description="无质控样" />
-
-      <!-- 现场图片 -->
-      <a-divider class="title-divider" orientation="left">现场图片</a-divider>
-      <div class="photo-grid" v-if="photoList.length">
-        <a-image
-          v-for="(p, i) in photoList"
-          :key="i"
-          :src="p"
-          :width="120"
-          :height="120"
-          :preview="{ mask: '查看' }"
-          style="border-radius:6px;overflow:hidden;"
-        />
-      </div>
-      <a-empty v-else description="无现场图片" />
-
-      <!-- 异常处置信息（仅异常拒收/检测异常样品且有处置记录时展示） -->
-      <template v-if="detail.sample && detail.sample.disposalTime">
-        <a-divider class="title-divider" orientation="left">异常处置信息</a-divider>
-        <a-descriptions bordered :column="2" size="small">
-          <a-descriptions-item label="处置类型">{{ dictText('disposalType', detail.sample.disposalType) }}</a-descriptions-item>
-          <a-descriptions-item label="处置方式">{{ dictText('disposalMethod', detail.sample.disposalMethod) }}</a-descriptions-item>
-          <a-descriptions-item label="处置人">{{ detail.sample.disposalBy }}</a-descriptions-item>
-          <a-descriptions-item label="处置时间">{{ detail.sample.disposalTime }}</a-descriptions-item>
-          <a-descriptions-item label="处置说明" :span="2">
-            <div class="rich-content" v-html="detail.sample.disposalDesc"></div>
-          </a-descriptions-item>
-        </a-descriptions>
-      </template>
-
-      <a-divider class="title-divider" orientation="left">操作日志</a-divider>
-      <a-timeline v-if="detail.logs && detail.logs.length">
-        <a-timeline-item v-for="log in detail.logs" :key="log.id">
-          <b>{{ log.action }}</b> · {{ log.operator }} · {{ log.detail }}
-          <span style="color:#999;">（{{ log.createTime }}）</span>
-        </a-timeline-item>
-      </a-timeline>
-      <a-empty v-else description="暂无日志" />
-      </template>
-    </a-drawer>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { message } from 'ant-design-vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { Upload } from 'ant-design-vue'
 import JsBarcode from 'jsbarcode'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '../../../stores/user'
 import RichTextEditor from '../../../components/RichTextEditor.vue'
 import {
@@ -568,8 +442,6 @@ import {
   receiveSample,
   retainSample,
   bindSampleQc,
-  unbindSampleQc,
-  getSampleDetail,
   deleteSample,
   disposeSample,
   collectSample,
@@ -580,6 +452,8 @@ import {
   uploadSamplePhoto
 } from '../../../api/ems'
 import { getUsers } from '../../../api/system'
+
+const router = useRouter()
 
 const loading = ref(false)
 const list = ref([])
@@ -618,13 +492,6 @@ const filters = reactive({ status: undefined, keyword: '' })
 const statusOptions = ['待收样', '已收样', '异常拒收', '留样中', '实验室监测中', '检测数据复核中', '已完成', '检测异常', '已处置']
 const qcTypes = ['全程序空白', '现场空白', '平行样', '加标回收', '密码样']
 
-const qcColumns = [
-  { title: '样品编号', dataIndex: 'sampleNo', key: 'sampleNo' },
-  { title: '质控类型', dataIndex: 'qcType', key: 'qcType' },
-  { title: '备注', dataIndex: 'remark', key: 'remark' },
-  { title: '操作', key: 'action', width: 80 }
-]
-
 function statusColor(status) {
   return {
     '待收样': 'orange',
@@ -647,8 +514,8 @@ function formatList(val) {
   return '-'
 }
 
-// ===== 详情：数据字典 value → itemText 转换 =====
-// 字典编码 → { value: text } 映射，openDetail 时加载
+// ===== 字典：供异常处置弹窗下拉使用 =====
+// 字典编码 → { value: text } 映射，openDispose 时加载
 const DETAIL_DICT_CODES = {
   sampleType: 'moni_sample_type',
   preservative: 'sample_preservative',
@@ -679,20 +546,6 @@ async function loadDetailDicts() {
   })
 }
 
-// 单值字典字段转展示文本
-function dictText(key, val) {
-  if (val === null || val === undefined || val === '') return '-'
-  return dictMaps[key]?.[val] ?? val
-}
-
-// 逗号分隔的字典字段转展示文本
-function dictListText(key, val) {
-  if (!val) return '-'
-  const arr = Array.isArray(val) ? val : String(val).split(',').map(s => s.trim()).filter(Boolean)
-  if (!arr.length) return '-'
-  return arr.map(v => dictMaps[key]?.[v] ?? v).join('、')
-}
-
 // 字典映射转 a-select 的 options 数组
 function dictOptions(key) {
   const m = dictMaps[key] || {}
@@ -700,17 +553,15 @@ function dictOptions(key) {
 }
 
 const receiveOpen = ref(false)
-const receiveForm = reactive({ receiveBy: '', remark: '', checkItems: [], retainDays: 30, retainBy: undefined, retainLocation: '' })
+const receiveForm = reactive({ receiveBy: '', remark: '', checkItems: [], retainDays: 30, retainAmount: '', retainBy: undefined, retainLocation: '' })
 const receiveDate = ref(null)
 const receiveRetainChecked = ref(false)
 const receiveRetainDate = ref(null)
 const retainOpen = ref(false)
-const retainForm = reactive({ retainDays: 30, retainBy: '', remark: '' })
+const retainForm = reactive({ retainDays: 30, retainAmount: '', retainBy: '', remark: '' })
 const retainDate = ref(null)
 const qcOpen = ref(false)
 const qcForm = reactive({ sampleNo: '', qcType: '', remark: '' })
-const detailOpen = ref(false)
-const detail = ref(null)
 const current = ref(null)
 
 // 异常处置
@@ -742,7 +593,6 @@ async function submitDispose() {
     message.success('异常处置已提交')
     disposeOpen.value = false
     await loadData()
-    if (detailOpen.value) await openDetail(disposeTarget.value)
   } catch (e) {
     message.error(e?.response?.data?.message || e?.message || '提交失败')
   } finally {
@@ -750,94 +600,6 @@ async function submitDispose() {
   }
 }
 
-// ===== 详情：条形码 / 图片 / 参数 =====
-const barcodeRef = ref(null)
-const PHOTO_BASE = '/api/v1/ems/base/sampling/samples/photo/'
-
-const photoList = computed(() => {
-  const raw = detail.value?.sample?.samplePhoto
-  if (!raw || typeof raw !== 'string') return []
-  return raw.split(',').map(s => s.trim()).filter(Boolean).map(p => PHOTO_BASE + p)
-})
-
-const sampleParams = computed(() => {
-  const raw = detail.value?.sample?.sampleParams
-  if (!raw) return []
-  let parsed
-  try {
-    parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-  } catch (e) {
-    return []
-  }
-  const arr = Array.isArray(parsed) ? parsed : []
-  // 新数据：参数项自带 item 字段，直接信任使用
-  // 旧数据（无 item）：通过样品检测项目列表 + 参数配置反查所属项目
-  //   同一 code 可能出现在多个项目中（如 sample_time），按样品 item 字段的声明顺序
-  //   首次匹配优先，保证与收集表单展示顺序一致
-  const hasItem = arr.some(it => it.item)
-  if (hasItem) {
-    // 新数据模式：直接按 it.item 分组
-    const map = new Map()
-    arr.forEach(it => {
-      const key = it.item || '其他'
-      if (!map.has(key)) map.set(key, { item: key, params: [] })
-      map.get(key).params.push(it)
-    })
-    return Array.from(map.values())
-  }
-  // 旧数据兼容模式：构建 [项目名 → Set<code>] 映射，按样品 item 顺序匹配
-  const sampleItems = (detail.value?.sample?.item || '').split(',').map(s => s.trim()).filter(Boolean)
-  const itemCodes = new Map() // item → Set<code>
-  ;(sampleParamConfigs.value || []).forEach(c => {
-    if (!sampleItems.includes(c.item)) return
-    const codes = new Set()
-    ;(c.sampleParams || []).forEach(p => { if (p.code) codes.add(p.code) })
-    if (codes.size) itemCodes.set(c.item, codes)
-  })
-  const map = new Map()
-  arr.forEach(it => {
-    let key = '其他'
-    for (const itemName of sampleItems) {
-      const codes = itemCodes.get(itemName)
-      if (codes && codes.has(it.code)) { key = itemName; break }
-    }
-    if (!map.has(key)) map.set(key, { item: key, params: [] })
-    map.get(key).params.push(it)
-  })
-  return Array.from(map.values())
-})
-
-// 条形码渲染：detail.sample.barcode 变化时重绘
-// immediate + 双层 nextTick：detail 赋值后 <template v-if="detail"> 才渲染 svg，
-// 需要 nextTick 等 DOM 挂载完成，barcodeRef 才有值
-watch(
-  () => detail.value?.sample?.barcode,
-  (code) => {
-    if (!code) {
-      if (barcodeRef.value) barcodeRef.value.innerHTML = ''
-      return
-    }
-    nextTick(() => {
-      nextTick(() => {
-        if (!barcodeRef.value) return
-        try {
-          JsBarcode(barcodeRef.value, String(code), {
-            format: 'CODE128',
-            width: 2,
-            height: 56,
-            margin: 8,
-            displayValue: true,
-            fontSize: 14,
-            textAlign: 'center'
-          })
-        } catch (e) {
-          if (barcodeRef.value) barcodeRef.value.innerHTML = ''
-        }
-      })
-    })
-  },
-  { immediate: true }
-)
 const submitting = ref(false)
 
 // ===== 收集样品相关 =====
@@ -1205,9 +967,10 @@ function openReceive(record) {
   receiveDate.value = record?.receiveTime || todayStr()
   // 同步继承留样信息：样品已留样或存在任一留样字段时自动勾选并回填
   const hasRetain = record?.retainFlag === 1 || record?.retainFlag === '1' ||
-    record?.retainBy || record?.retainDays || record?.retainLocation || record?.retainDate
+    record?.retainBy || record?.retainDays || record?.retainAmount || record?.retainLocation || record?.retainDate
   receiveRetainChecked.value = !!hasRetain
   receiveForm.retainDays = record?.retainDays || 30
+  receiveForm.retainAmount = record?.retainAmount || ''
   receiveForm.retainBy = record?.retainBy || (userStore.realName || userStore.username || undefined)
   receiveForm.retainLocation = record?.retainLocation || ''
   receiveRetainDate.value = record?.retainDate || todayStr()
@@ -1220,8 +983,13 @@ async function submitReceive(action) {
   if (!receiveForm.receiveBy) return message.warning('请选择收样人')
   const isReject = action === 'reject'
   if (!isReject) {
-    if (receiveRetainChecked.value && !receiveForm.retainDays) return message.warning('请填写留样保存天数')
-    if (receiveRetainChecked.value && !receiveForm.retainBy) return message.warning('请选择留样人')
+    if (receiveRetainChecked.value) {
+      if (!receiveForm.retainDays) return message.warning('请填写留样保存天数')
+      if (!receiveForm.retainAmount) return message.warning('请填写留样数量')
+      if (!receiveForm.retainBy) return message.warning('请选择留样人')
+      if (!receiveRetainDate.value) return message.warning('请选择留样日期')
+      if (!receiveForm.retainLocation) return message.warning('请填写存放位置')
+    }
   }
   submitting.value = true
   try {
@@ -1233,6 +1001,7 @@ async function submitReceive(action) {
       checkItems: (receiveForm.checkItems || []).join(','),
       retainFlag: receiveRetainChecked.value ? 1 : 0,
       retainDays: receiveRetainChecked.value ? receiveForm.retainDays : null,
+      retainAmount: receiveRetainChecked.value ? receiveForm.retainAmount : null,
       retainBy: receiveRetainChecked.value ? receiveForm.retainBy : null,
       retainDate: receiveRetainChecked.value ? receiveRetainDate.value : null,
       retainLocation: receiveRetainChecked.value ? receiveForm.retainLocation : null
@@ -1248,6 +1017,7 @@ async function submitReceive(action) {
 function openRetain(record) {
   current.value = record
   retainForm.retainDays = 30
+  retainForm.retainAmount = record?.retainAmount || ''
   retainForm.retainBy = record?.retainBy || (userStore.realName || userStore.username || undefined)
   retainForm.remark = ''
   retainDate.value = record?.retainTime || todayStr()
@@ -1256,11 +1026,13 @@ function openRetain(record) {
 
 async function submitRetain() {
   if (!retainForm.retainDays || retainForm.retainDays <= 0) return message.warning('请填写有效的留样天数')
+  if (!retainForm.retainAmount) return message.warning('请填写留样数量')
   if (!retainForm.retainBy) return message.warning('请填写留样人')
   submitting.value = true
   try {
     await retainSample(current.value.id, {
       retainDays: retainForm.retainDays,
+      retainAmount: retainForm.retainAmount,
       retainBy: retainForm.retainBy,
       retainTime: retainDate.value,
       remark: retainForm.remark
@@ -1288,27 +1060,13 @@ async function submitQc() {
     await bindSampleQc(current.value.id, qcForm)
     message.success('质控样绑定成功')
     qcOpen.value = false
-    if (detailOpen.value) openDetail(current.value)
   } finally {
     submitting.value = false
   }
 }
 
-async function unbindQc(record) {
-  await unbindSampleQc(record.id)
-  message.success('已解绑')
-  if (current.value) openDetail(current.value)
-}
-
-async function openDetail(record) {
-  // 先加载采样参数配置，确保后续 sampleParams 计算属性反查分组时有数据（避免异步时序导致旧数据无法分组）
-  await loadCollectParams()
-  const res = await getSampleDetail(record.id)
-  detail.value = res.data
-  current.value = record
-  detailOpen.value = true
-  // 加载详情所需字典（用于 value→text 转换）
-  loadDetailDicts()
+function openDetail(record) {
+  router.push({ name: 'EmsSampleDetail', params: { id: record.id } })
 }
 
 async function remove(record) {
@@ -1367,13 +1125,6 @@ onMounted(loadData)
 .hint { color: #999; font-size: 12px; margin-top: 6px; }
 .photo-block { text-align: left; }
 .photo-block :deep(.ant-upload-list-picture-card) { text-align: left; }
-.barcode-card { margin-bottom: 8px; background: #fafafa; }
-.barcode-wrap { display: flex; justify-content: center; padding: 8px 0; }
-.barcode-svg { max-width: 100%; height: auto; }
-.barcode-meta { display: flex; justify-content: center; align-items: baseline; gap: 12px; margin-top: 4px; }
-.barcode-text { font-family: 'Courier New', monospace; font-size: 15px; font-weight: 600; color: #333; letter-spacing: 1px; }
-.barcode-name { font-size: 13px; color: #666; }
-.photo-grid { display: flex; flex-wrap: wrap; gap: 12px; }
 /* 样品卡片视图 */
 .sample-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-top: 12px; }
 .sample-card { background: #fff; border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; transition: all .25s; display: flex; flex-direction: column; }

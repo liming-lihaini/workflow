@@ -35,6 +35,9 @@ public class ReceiveReq {
     /** 留样天数 */
     private Integer retainDays;
 
+    /** 留样数量 */
+    private String retainAmount;
+
     /** 留样人 */
     private String retainBy;
 

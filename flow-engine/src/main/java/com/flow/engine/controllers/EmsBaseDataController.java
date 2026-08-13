@@ -38,6 +38,7 @@ public class EmsBaseDataController {
     private final EmsEmployeeService employeeService;
     private final EmsInstrumentService instrumentService;
     private final EmsSampleParamConfigService sampleParamConfigService;
+    private final EmsReminderService reminderService;
 
     // ---------- 客户 ----------
     @PostMapping("/customers")
@@ -458,6 +459,48 @@ public class EmsBaseDataController {
         java.time.LocalDateTime ps = planStart == null ? null : parseLocalDateTime(planStart);
         java.time.LocalDateTime pe = planEnd == null ? null : parseLocalDateTime(planEnd);
         return Result.ok(dispatchService.getAvailableVehicles(ps, pe));
+    }
+
+    // ---------- 通用到期提醒（多数据源：采样任务/仪器校准/标准物质/耗材/合同/收付款节点） ----------
+
+    /** 未消除的到期提醒列表（含免打扰状态与是否需要弹窗），查询时自动同步各数据源 */
+    @GetMapping("/reminders")
+    public Result<List<Map<String, Object>>> listReminders() {
+        com.flow.engine.entity.User u = currentUser();
+        if (u == null) {
+            return Result.ok(java.util.Collections.emptyList());
+        }
+        return Result.ok(reminderService.listForUser(u.getId()));
+    }
+
+    /** 关闭提醒：该提醒项不再弹窗 */
+    @PostMapping("/reminders/{id}/dismiss")
+    public Result<Void> dismissReminder(@PathVariable Long id) {
+        com.flow.engine.entity.User u = currentUser();
+        if (u != null) {
+            reminderService.dismiss(u.getId(), id);
+        }
+        return Result.ok();
+    }
+
+    /** 今日不再提醒：当天不弹窗 */
+    @PostMapping("/reminders/{id}/snooze-today")
+    public Result<Void> snoozeReminderToday(@PathVariable Long id) {
+        com.flow.engine.entity.User u = currentUser();
+        if (u != null) {
+            reminderService.snoozeToday(u.getId(), id);
+        }
+        return Result.ok();
+    }
+
+    /** 记录一次弹窗时间（1 小时间隔控制） */
+    @PostMapping("/reminders/{id}/popped")
+    public Result<Void> markReminderPopped(@PathVariable Long id) {
+        com.flow.engine.entity.User u = currentUser();
+        if (u != null) {
+            reminderService.markPopped(u.getId(), id);
+        }
+        return Result.ok();
     }
 
     // ---------- 派单资源：人员/设备 ----------

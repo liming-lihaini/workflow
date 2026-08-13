@@ -71,7 +71,7 @@
           >
             <a-select-option v-for="s in pendingSamples" :key="s.id" :value="s.id" :label="(s.barcode || '') + ' ' + (s.name || '')">
               {{ s.barcode }} - {{ s.name }}
-              <a-tag v-if="s.status" :color="s.status === '留样中' ? 'purple' : 'green'" style="margin-left:8px">{{ s.status }}</a-tag>
+              <a-tag v-if="s.status" :color="'green'" style="margin-left:8px">{{ s.status }}</a-tag>
             </a-select-option>
           </a-select>
         </a-form-item>

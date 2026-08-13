@@ -238,6 +238,12 @@ const routes = [
         meta: { title: '样品管理', permKey: 'ems:sample' }
       },
       {
+        path: 'ems/base/sample/:id',
+        name: 'EmsSampleDetail',
+        component: () => import('../views/ems/base/SampleDetail.vue'),
+        meta: { title: '样品详情', permKey: 'ems:sample', hideInMenu: true }
+      },
+      {
         path: 'ems/base/retain',
         name: 'EmsRetain',
         component: () => import('../views/ems/base/Retain.vue'),

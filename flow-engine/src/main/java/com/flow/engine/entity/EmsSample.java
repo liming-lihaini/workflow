@@ -37,6 +37,7 @@ public class EmsSample {
     private String receiveBy;    // 收样人
     private Integer retainFlag;  // 是否留样（0/1）
     private Integer retainDays;  // 留样天数
+    private String retainAmount; // 留样数量
     private String retainUntil;  // 留样到期日
     private String retainBy;     // 留样人
     private String retainDate;   // 留样日期

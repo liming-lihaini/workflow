@@ -32,6 +32,7 @@ public class EmsRetain {
     private String retainBy;  // 留样人
     private String retainTime;// 留样时间
     private Integer retainDays; // 留样天数
+    private String retainAmount; // 留样数量
     private String retainUntil; // 留样到期日
     private String disposeBy; // 处置人
     private String status;    // 留样中/销毁审批中/已销毁
