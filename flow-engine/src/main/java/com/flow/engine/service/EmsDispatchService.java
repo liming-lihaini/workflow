@@ -6,6 +6,7 @@ import com.flow.engine.common.BusinessException;
 import com.flow.engine.dto.EmsDispatchDetailVO;
 import com.flow.engine.entity.*;
 import com.flow.engine.mapper.EmsDispatchMapper;
+import com.flow.engine.mapper.EmsSampleMapper;
 import com.flow.engine.service.EmsMonitorPointService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,8 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
     private EmsEntrustService entrustService;
     @Autowired
     private EmsMonitorPointService monitorPointService;
+    @Autowired
+    private EmsSampleMapper sampleMapper;
 
     @Autowired(required = false)
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
@@ -418,6 +421,9 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
         if (order != null) {
             vo.setOrderNo(order.getOrderNo());
             vo.setOrderStatus(order.getStatus());
+            vo.setCreateBy(order.getCreateBy());
+            vo.setCreateName(order.getCreateName());
+            vo.setOrderCreateTime(order.getCreateTime());
             vo.setEntrustId(order.getEntrustId());
             if (order.getEntrustId() != null) {
                 EmsEntrust entrust = entrustService.getById(order.getEntrustId());
@@ -431,6 +437,26 @@ public class EmsDispatchService extends ServiceImpl<EmsDispatchMapper, EmsDispat
                 vo.setPointCount(pc);
             }
         }
+        // 任务关联样品（样品登记回写 t_sample.order_id，未派单时也可能存在手动收集样品）
+        List<EmsDispatchDetailVO.SampleInfo> sampleList = new java.util.ArrayList<>();
+        for (EmsSample s : sampleMapper.selectList(new LambdaQueryWrapper<EmsSample>()
+                .eq(EmsSample::getOrderId, orderId).orderByAsc(EmsSample::getId))) {
+            EmsDispatchDetailVO.SampleInfo si = new EmsDispatchDetailVO.SampleInfo();
+            si.setId(s.getId());
+            si.setBarcode(s.getBarcode());
+            si.setSampleNo(s.getSampleNo());
+            si.setName(s.getName());
+            si.setCategory(s.getCategory());
+            si.setItem(s.getItem());
+            si.setType(s.getType());
+            si.setStatus(s.getStatus());
+            si.setSampler(s.getSampler());
+            si.setSampleTime(s.getSampleTime());
+            si.setReceiveBy(s.getReceiveBy());
+            si.setReceiveTime(s.getReceiveTime());
+            sampleList.add(si);
+        }
+        vo.setSamples(sampleList);
         EmsDispatch dispatch = this.getOne(new LambdaQueryWrapper<EmsDispatch>()
                 .eq(EmsDispatch::getOrderId, orderId)
                 .orderByDesc(EmsDispatch::getCreateTime)

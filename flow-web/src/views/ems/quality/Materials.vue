@@ -5,7 +5,7 @@
       <a-tab-pane key="material" tab="标准物质">
         <a-card :bordered="false">
           <a-space style="margin-bottom:16px">
-            <a-button type="primary" @click="openMaterial()">+ 新增标物</a-button>
+            <a-button v-if="hasPerm('ems:quality:create')" type="primary" @click="openMaterial()">+ 新增标物</a-button>
             <a-input-search v-model:value="mk" placeholder="名称搜索" style="width:200px" @search="loadMaterials" allow-clear />
             <a-select v-model:value="mStatus" style="width:140px" @change="loadMaterials">
               <a-select-option value="">全部状态</a-select-option>
@@ -21,7 +21,7 @@
                 <a-tag :color="record.status==='过期'?'red':(record.status==='临期'?'orange':'green')">{{ record.status }}</a-tag>
               </template>
               <template v-else-if="column.key === 'action'">
-                <a @click="openMaterial(record)">编辑</a>
+                <a v-if="hasPerm('ems:quality:update')" @click="openMaterial(record)">编辑</a>
               </template>
             </template>
           </a-table>
@@ -32,7 +32,7 @@
       <a-tab-pane key="consumable" tab="耗材">
         <a-card :bordered="false">
           <a-space style="margin-bottom:16px">
-            <a-button type="primary" @click="openConsumable()">+ 新增耗材</a-button>
+            <a-button v-if="hasPerm('ems:quality:create')" type="primary" @click="openConsumable()">+ 新增耗材</a-button>
             <a-input-search v-model:value="ck" placeholder="名称搜索" style="width:200px" @search="loadConsumables" allow-clear />
             <a-select v-model:value="cStatus" style="width:140px" @change="loadConsumables">
               <a-select-option value="">全部状态</a-select-option>
@@ -47,7 +47,7 @@
                 <a-tag :color="record.status==='过期'?'red':(record.status==='临期'?'orange':'green')">{{ record.status }}</a-tag>
               </template>
               <template v-else-if="column.key === 'action'">
-                <a @click="openConsumable(record)">编辑</a>
+                <a v-if="hasPerm('ems:quality:update')" @click="openConsumable(record)">编辑</a>
               </template>
             </template>
           </a-table>
@@ -84,7 +84,9 @@ import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { saveMaterial, getMaterials, saveConsumable, getConsumables, checkMaterialGate } from '../../../api/ems'
+import { usePermission } from '../../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const tab = ref('material')
 const ml = ref(false), cl = ref(false)
 const mk = ref(''), mStatus = ref('')

@@ -106,7 +106,11 @@ public class EmsBaseDataController {
     @PostMapping("/entrusts")
     public Result<com.flow.engine.dto.EmsEntrustVO> createEntrust(@RequestBody com.flow.engine.dto.EntrustSaveReq req) {
         // 当前用户由统一认证过滤器(AuthContextFilter)解析后写入 RequestContext
+        // 创建/编辑委托必须携带登录身份，否则 create_by/update_by 等审计字段会落空
         User operator = currentUser();
+        if (operator == null) {
+            throw new BusinessException(ErrorCode.TOKEN_INVALID, "登录已过期或未登录，请重新登录后再保存委托");
+        }
         return Result.ok(entrustService.saveWithPoints(req.getEntrust(), req.getPoints(), operator));
     }
 
@@ -152,6 +156,8 @@ public class EmsBaseDataController {
             User op = currentUser();
             if (op != null && op.getUsername() != null) {
                 submitBy = op.getUsername();
+            } else {
+                throw new BusinessException(ErrorCode.TOKEN_INVALID, "登录已过期或未登录，请重新登录后再提交委托");
             }
         }
         EmsEntrust e = entrustService.submit(id, submitBy);
@@ -278,13 +284,14 @@ public class EmsBaseDataController {
         return Result.ok(samplingOrderService.listByStatus(status, entrustId));
     }
 
-    /** 采样调度看板聚合：补充点位名称、派单计划区间、派单负责人姓名，支持按订单号/负责人/状态筛选 */
+    /** 采样调度看板聚合：补充点位名称、派单计划区间、派单负责人姓名，支持按订单号/负责人/状态/委托筛选 */
     @GetMapping("/sampling-orders/dispatch-list")
     public Result<List<Map<String, Object>>> listDispatchBoard(
             @RequestParam(required = false) String orderNo,
             @RequestParam(required = false) String leadName,
-            @RequestParam(required = false) String status) {
-        return Result.ok(samplingOrderService.listDispatchBoard(orderNo, leadName, status));
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long entrustId) {
+        return Result.ok(samplingOrderService.listDispatchBoard(orderNo, leadName, status, entrustId));
     }
 
     /** 删除采样任务（级联删除关联派单，ISSUE-037） */

@@ -18,11 +18,15 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'action'">
-            <span class="action-link" @click="showModal(record)">编辑</span>
-            <a-divider type="vertical" />
-            <span class="action-link" @click="showPermModal(record)">权限分配</span>
-            <a-divider type="vertical" />
-            <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
+            <template v-if="hasPerm('system:role:update')">
+              <span class="action-link" @click="showModal(record)">编辑</span>
+              <a-divider type="vertical" />
+            </template>
+            <template v-if="hasPerm('system:role:assign-perm')">
+              <span class="action-link" @click="showPermModal(record)">权限分配</span>
+              <a-divider type="vertical" />
+            </template>
+            <a-popconfirm v-if="hasPerm('system:role:delete')" title="确定删除？" @confirm="handleDelete(record)">
               <span class="action-link danger">删除</span>
             </a-popconfirm>
           </template>
@@ -47,15 +51,28 @@
       </a-form>
     </a-modal>
 
-    <!-- 权限分配弹窗 -->
-    <a-modal v-model:open="permModalVisible" title="权限分配" @ok="handleAssignPerm" width="560px">
-      <a-tree
-        v-model:checkedKeys="checkedPermIds"
-        :tree-data="permTree"
-        checkable
-        default-expand-all
-        :field-names="{ title: 'title', key: 'key', children: 'children' }"
-      />
+    <!-- 权限分配弹窗（扁平化：分组 -> 权限项平铺） -->
+    <a-modal v-model:open="permModalVisible" :title="`权限分配 - ${currentRoleForPerm?.roleName || ''}`" @ok="handleAssignPerm" width="760px">
+      <div class="perm-tree-wrap">
+        <a-tree
+          v-model:checkedKeys="checkedPermKeys"
+          :tree-data="permTree"
+          checkable
+          check-strictly
+          default-expand-all
+          block-node
+          :field-names="{ title: 'title', key: 'key', children: 'children' }"
+        >
+          <template #title="node">
+            <span v-if="String(node.key).startsWith('group_')" class="perm-group-title">{{ node.title }}（{{ (node.children || []).length }} 项）</span>
+            <span v-else class="perm-item-title">
+              {{ node.title }}
+              <a-tag :color="permTypeColor(node.permType)" class="perm-type-tag">{{ node.permTypeLabel }}</a-tag>
+              <span class="perm-key">{{ node.permKey }}</span>
+            </span>
+          </template>
+        </a-tree>
+      </div>
     </a-modal>
   </div>
 </template>
@@ -77,7 +94,7 @@ const submitLoading = ref(false)
 const editingRecord = ref(null)
 const permModalVisible = ref(false)
 const permTree = ref([])
-const checkedPermIds = ref([])
+const checkedPermKeys = ref({ checked: [], halfChecked: [] })
 const currentRoleForPerm = ref(null)
 
 const pagination = reactive({
@@ -163,7 +180,7 @@ async function handleDelete(record) {
 
 async function showPermModal(record) {
   currentRoleForPerm.value = record
-  // 加载分组权限树
+  // 加载分组权限清单（扁平化两层结构）
   try {
     const res = await getPermissionsGrouped()
     const data = res.data || res
@@ -175,17 +192,26 @@ async function showPermModal(record) {
   try {
     const res = await getRolePermissions(record.id)
     const data = res.data || res
-    checkedPermIds.value = Array.isArray(data) ? data.map(p => p.id || p) : []
+    const ids = Array.isArray(data) ? data.map(p => p.id || p) : []
+    checkedPermKeys.value = { checked: ids, halfChecked: [] }
   } catch {
-    checkedPermIds.value = []
+    checkedPermKeys.value = { checked: [], halfChecked: [] }
   }
   permModalVisible.value = true
 }
 
+function permTypeColor(permType) {
+  if (permType === 1) return 'blue'
+  if (permType === 2) return 'green'
+  if (permType === 3) return 'orange'
+  return 'default'
+}
+
 async function handleAssignPerm() {
   try {
-    // 过滤掉分组节点key（字符串），只保留权限ID（数字）
-    const permIds = checkedPermIds.value.filter(k => typeof k === 'number')
+    // check-strictly 模式下 checkedKeys 为对象结构，过滤掉分组节点 key（字符串），只保留权限 ID（数字）
+    const keys = checkedPermKeys.value.checked || []
+    const permIds = keys.filter(k => typeof k === 'number')
     await assignRolePermissions(currentRoleForPerm.value.id, permIds)
     message.success('权限分配成功')
     permModalVisible.value = false
@@ -202,3 +228,35 @@ function handleTableChange(pag) {
 
 onMounted(loadData)
 </script>
+
+<style scoped>
+.perm-tree-wrap {
+  max-height: 480px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.perm-group-title {
+  font-weight: 600;
+  color: #262626;
+}
+.perm-item-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.perm-type-tag {
+  margin: 0;
+  font-size: 11px;
+  line-height: 16px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.perm-key {
+  color: #999;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

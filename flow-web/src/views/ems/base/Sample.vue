@@ -434,7 +434,7 @@ import { message } from 'ant-design-vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { Upload } from 'ant-design-vue'
 import JsBarcode from 'jsbarcode'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../../../stores/user'
 import RichTextEditor from '../../../components/RichTextEditor.vue'
 import {
@@ -454,6 +454,7 @@ import {
 import { getUsers } from '../../../api/system'
 
 const router = useRouter()
+const route = useRoute()
 
 const loading = ref(false)
 const list = ref([])
@@ -489,7 +490,7 @@ function renderCardBarcodes() {
 }
 const pagination = reactive({ current: 1, pageSize: 10, total: 0 })
 const filters = reactive({ status: undefined, keyword: '' })
-const statusOptions = ['待收样', '已收样', '异常拒收', '留样中', '实验室监测中', '检测数据复核中', '已完成', '检测异常', '已处置']
+const statusOptions = ['待收样', '已收样', '异常拒收', '已完成',  '已处置']
 const qcTypes = ['全程序空白', '现场空白', '平行样', '加标回收', '密码样']
 
 function statusColor(status) {
@@ -850,13 +851,22 @@ function handleCollectRemove(file) {
   if (idx > -1) fileList.value.splice(idx, 1)
 }
 
-function openCollect() {
+function openCollect(prefillDispatchId) {
   collectOpen.value = true
   resetCollect()
   // 采样人默认当前登录用户，采样时间默认当前时刻
   collectForm.sampler = userStore.realName || userStore.username || undefined
   collectForm.sampleTime = nowDateTimeStr()
-  loadCollectDispatchOptions()
+  loadCollectDispatchOptions().then(async () => {
+    // 采样任务列表「样品登记」跳转携带派单ID时，自动回填派单号/委托单位/客户/点位等可获取信息
+    if (prefillDispatchId) {
+      const id = Number(prefillDispatchId)
+      if (dispatchOptions.value.some(o => o.value === id)) {
+        collectForm.dispatchId = id
+        await onCollectDispatchChange(id)
+      }
+    }
+  })
   loadCollectDicts()
   loadCollectParams()
   loadUsers()
@@ -1075,7 +1085,11 @@ async function remove(record) {
   loadData()
 }
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  // 采样任务列表「样品登记」按钮跳转进入时自动打开登记表单（可携带派单ID回填）
+  if (route.query.open === 'collect') openCollect(route.query.dispatchId)
+})
 </script>
 
 <style scoped>

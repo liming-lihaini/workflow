@@ -126,6 +126,7 @@ public class EmsDetectionController {
             r.setUnit(str(m.get("unit")));
             r.setMethod(str(m.get("method")));
             r.setLimitValue(str(m.get("limitValue")));
+            r.setInnerLimit(str(m.get("innerLimit")));
             r.setConclusion(str(m.get("conclusion")));
             out.add(r);
         }

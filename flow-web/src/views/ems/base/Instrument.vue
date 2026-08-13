@@ -11,7 +11,7 @@
           <a-input-search v-if="viewMode === 'list'" v-model:value="kw" placeholder="搜索编号/名称/型号" style="width: 220px" allow-clear @search="load" />
           <a-select v-if="viewMode === 'list'" v-model:value="statusFilter" placeholder="状态" allow-clear style="width: 120px" :options="statusFilterOptions" @change="load" />
           <template v-if="viewMode === 'list'">
-            <a-button type="primary" @click="showDrawer()">新增设备</a-button>
+            <a-button v-if="hasPerm('ems:instrument:create')" type="primary" @click="showDrawer()">新增设备</a-button>
           </template>
         </a-space>
       </div>
@@ -44,18 +44,22 @@
             </template>
             <template v-if="column.key === 'action'">
               <span class="action-link" @click="openDetail(record)">申请详情</span>
-              <a-divider type="vertical" />
-              <span class="action-link" @click="showDrawer(record)">编辑</span>
-              <a-divider type="vertical" />
-              <span class="action-link" @click="showCalibrate(record)">校准登记</span>
-              <template v-if="record.status !== '报废'">
+              <template v-if="hasPerm('ems:instrument:update')">
                 <a-divider type="vertical" />
-                <span class="action-link danger" @click="startScrapProcess(record)">报废</span>
+                <span class="action-link" @click="showDrawer(record)">编辑</span>
+                <a-divider type="vertical" />
+                <span class="action-link" @click="showCalibrate(record)">校准登记</span>
+                <template v-if="record.status !== '报废'">
+                  <a-divider type="vertical" />
+                  <span class="action-link danger" @click="startScrapProcess(record)">报废</span>
+                </template>
               </template>
-              <a-divider type="vertical" />
-              <a-popconfirm title="删除该设备？" @confirm="handleDelete(record)">
-                <span class="action-link danger">删除</span>
-              </a-popconfirm>
+              <template v-if="hasPerm('ems:instrument:delete')">
+                <a-divider type="vertical" />
+                <a-popconfirm title="删除该设备？" @confirm="handleDelete(record)">
+                  <span class="action-link danger">删除</span>
+                </a-popconfirm>
+              </template>
             </template>
           </template>
         </a-table>
@@ -144,8 +148,10 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { listInstruments, createInstrument, updateInstrument, deleteInstrument, calibrateInstrument, expiringInstruments, getDictItems, getInstrumentUsage } from '../../../api/ems'
 import InstrumentDetail from './InstrumentDetail.vue'
+import { usePermission } from '../../../composables/usePermission'
 import dayjs from 'dayjs'
 
+const { hasPerm } = usePermission()
 const router = useRouter()
 
 const loading = ref(false)

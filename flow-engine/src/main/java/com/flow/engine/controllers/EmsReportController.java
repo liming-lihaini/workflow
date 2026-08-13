@@ -81,6 +81,30 @@ public class EmsReportController {
         return Result.ok("已退回");
     }
 
+    // ===================== 监测报告（委托驱动，req.md） =====================
+    @PostMapping("/create")
+    public Result<?> create(@RequestBody Map<String, Object> body) {
+        boolean draft = Boolean.TRUE.equals(body.get("draft"));
+        Long id = reportService.createMonitorReport(body, draft);
+        return Result.ok(id);
+    }
+
+    @PostMapping("/{id}/submit")
+    public Result<?> submit(@PathVariable Long id) {
+        reportService.submitDraft(id);
+        return Result.ok("已提交");
+    }
+
+    @GetMapping("/entrust/{entrustId}/tasks")
+    public Result<?> entrustTasks(@PathVariable Long entrustId) {
+        return Result.ok(reportService.entrustTasks(entrustId));
+    }
+
+    @GetMapping("/{id}/view")
+    public Result<?> view(@PathVariable Long id) {
+        return Result.ok(reportService.viewModel(id));
+    }
+
     private Long toLong(Object o) {
         if (o == null) return null;
         if (o instanceof Number) return ((Number) o).longValue();

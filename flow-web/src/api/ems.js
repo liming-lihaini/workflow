@@ -246,6 +246,12 @@ export const approveReport = (id, data) =>
 // 审核退回
 export const rejectReport = (id, data) =>
   request.post(`/ems/report/${id}/reject`, data)
+// 监测报告（委托驱动，req.md）
+export const createMonitorReport = (data) => request.post('/ems/report/create', data)
+export const submitReportDraft = (id) => request.post(`/ems/report/${id}/submit`)
+export const getEntrustReportTasks = (entrustId) =>
+  request.get(`/ems/report/entrust/${entrustId}/tasks`)
+export const getReportView = (id) => request.get(`/ems/report/${id}/view`)
 
 // ===== 监测数据驾驶舱与统计（ISSUE-028，路径 /api/v1/ems/dashboard/*）=====
 export const getDashboardOverview = () =>

@@ -91,13 +91,19 @@
                 </a-tag>
               </template>
               <template v-if="column.key === 'action'">
-                <span class="action-link" @click="showModal(record)">编辑</span>
-                <a-divider type="vertical" />
-                <span class="action-link" @click="showRoleModal(record)">授权角色</span>
-                <a-divider type="vertical" />
-                <span class="action-link" @click="handleResetPwd(record)">重置密码</span>
-                <a-divider type="vertical" />
-                <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
+                <template v-if="hasPerm('system:user:update')">
+                  <span class="action-link" @click="showModal(record)">编辑</span>
+                  <a-divider type="vertical" />
+                </template>
+                <template v-if="hasPerm('system:user:assign-role')">
+                  <span class="action-link" @click="showRoleModal(record)">授权角色</span>
+                  <a-divider type="vertical" />
+                </template>
+                <template v-if="hasPerm('system:user:reset-pwd')">
+                  <span class="action-link" @click="handleResetPwd(record)">重置密码</span>
+                  <a-divider type="vertical" />
+                </template>
+                <a-popconfirm v-if="hasPerm('system:user:delete')" title="确定删除？" @confirm="handleDelete(record)">
                   <span class="action-link danger">删除</span>
                 </a-popconfirm>
               </template>

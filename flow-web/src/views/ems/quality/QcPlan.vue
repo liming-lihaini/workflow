@@ -10,7 +10,7 @@
 
       <template v-if="viewMode === 'plan'">
         <a-space style="margin-bottom:16px">
-          <a-button type="primary" @click="openPlan()">+ 新建计划</a-button>
+          <a-button v-if="hasPerm('ems:quality:create')" type="primary" @click="openPlan()">+ 新建计划</a-button>
           <a-input-search v-model:value="kw" placeholder="名称搜索" style="width:200px" @search="load" allow-clear />
         </a-space>
         <a-table
@@ -63,11 +63,11 @@
                 </template>
                 <template v-else-if="column.key === 'op'">
                   <a-space :size="8" wrap>
-                    <a @click="openActivity(record, act)">编辑</a>
-                    <a class="danger-link" @click="removeActivity(record.id, act)">删除</a>
+                    <a v-if="hasPerm('ems:quality:update')" @click="openActivity(record, act)">编辑</a>
+                    <a v-if="hasPerm('ems:quality:update')" class="danger-link" @click="removeActivity(record.id, act)">删除</a>
                     <!-- 仅活动执行人本人可修改活动状态，已完成的任务不可修改 -->
                     <a-select
-                      v-if="act.operatorId && act.operatorId === userStore.username && act.taskStatus !== '已完成'"
+                      v-if="act.operatorId && act.operatorId === userStore.username && act.taskStatus !== '已完成' && hasPerm('ems:quality:update')"
                       :value="act.taskStatus"
                       :options="taskStatusOptions"
                       size="small"
@@ -96,12 +96,12 @@
           </template>
           <template v-else-if="column.key === 'action'">
             <a-space>
-              <a @click="openPlan(record)">编辑</a>
-              <a v-if="record.status==='草稿'" @click="submit(record)">提交</a>
-              <a v-if="record.status==='审批中'" @click="approve(record)">审批通过</a>
-              <a v-if="record.status==='执行中'" @click="complete(record)">完成</a>
-              <a @click="openActivity(record)">添加活动</a>
-              <a class="danger-link" @click="removePlan(record)">删除</a>
+              <a v-if="hasPerm('ems:quality:update')" @click="openPlan(record)">编辑</a>
+              <a v-if="record.status==='草稿' && hasPerm('ems:quality:update')" @click="submit(record)">提交</a>
+              <a v-if="record.status==='审批中' && hasPerm('ems:quality:approve')" @click="approve(record)">审批通过</a>
+              <a v-if="record.status==='执行中' && hasPerm('ems:quality:approve')" @click="complete(record)">完成</a>
+              <a v-if="hasPerm('ems:quality:update')" @click="openActivity(record)">添加活动</a>
+              <a v-if="hasPerm('ems:quality:delete')" class="danger-link" @click="removePlan(record)">删除</a>
             </a-space>
           </template>
         </template>
@@ -298,8 +298,10 @@ import { saveQcPlan, getQcPlans, submitQcPlan, approveQcPlan, completeQcPlan, de
   saveQcActivity, getQcActivities, deleteQcActivity, getDictItems } from '../../../api/ems'
 import { getUsersPage } from '../../../api/system'
 import { useUserStore } from '../../../stores/user'
+import { usePermission } from '../../../composables/usePermission'
 import RichTextEditor from '../../../components/RichTextEditor.vue'
 
+const { hasPerm } = usePermission()
 const userStore = useUserStore()
 // 处置人参数：后端记录处置历史使用
 const opParams = () => ({ opBy: userStore.username || '', opName: userStore.realName || '' })

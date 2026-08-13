@@ -9,7 +9,7 @@
             <a-radio-button value="calendar">使用日历</a-radio-button>
           </a-radio-group>
           <a-input-search v-if="viewMode === 'table'" v-model:value="kw" placeholder="搜索车牌/型号" style="width: 200px" allow-clear @search="load" />
-          <a-button v-if="viewMode === 'table'" type="primary" @click="showDrawer()">新增车辆</a-button>
+          <a-button v-if="viewMode === 'table' && hasPerm('ems:vehicle:create')" type="primary" @click="showDrawer()">新增车辆</a-button>
         </a-space>
       </div>
 
@@ -28,15 +28,19 @@
             <a-tag :color="vehicleStatusColor(record.status)">{{ vehicleStatusText(record.status) }}</a-tag>
           </template>
           <template v-if="column.key === 'action'">
-            <span class="action-link" @click="showDrawer(record)">编辑</span>
-            <a-divider type="vertical" />
-            <span class="action-link" @click="openMaintenance(record)">维修保养</span>
-            <a-divider type="vertical" />
+            <template v-if="hasPerm('ems:vehicle:update')">
+              <span class="action-link" @click="showDrawer(record)">编辑</span>
+              <a-divider type="vertical" />
+              <span class="action-link" @click="openMaintenance(record)">维修保养</span>
+              <a-divider type="vertical" />
+            </template>
             <span class="action-link" @click="openDetail(record)">详情</span>
-            <a-divider type="vertical" />
-            <a-popconfirm title="删除该车辆？" @confirm="handleDelete(record)">
-              <span class="action-link danger">删除</span>
-            </a-popconfirm>
+            <template v-if="hasPerm('ems:vehicle:delete')">
+              <a-divider type="vertical" />
+              <a-popconfirm title="删除该车辆？" @confirm="handleDelete(record)">
+                <span class="action-link danger">删除</span>
+              </a-popconfirm>
+            </template>
           </template>
         </template>
       </a-table>
@@ -194,7 +198,7 @@
                 {{ maintTypeText(record.maintType) }}
               </template>
               <template v-else-if="column.key === 'action'">
-                <a-popconfirm title="删除该维修保养记录？" @confirm="removeMaintenance(record)">
+                <a-popconfirm v-if="hasPerm('ems:vehicle:update')" title="删除该维修保养记录？" @confirm="removeMaintenance(record)">
                   <span class="action-link danger">删除</span>
                 </a-popconfirm>
               </template>
@@ -215,7 +219,9 @@ import {
   listVehicles, createVehicle, updateVehicle, deleteVehicle, getDictItems, getVehicleUsage,
   createVehicleMaintenance, listVehicleMaintenances, deleteVehicleMaintenance, getVehicleDetail
 } from '../../../api/ems'
+import { usePermission } from '../../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const loading = ref(false)
 const submitting = ref(false)
 const visible = ref(false)

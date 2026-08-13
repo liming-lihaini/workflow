@@ -31,7 +31,10 @@
             </a-tag>
           </template>
           <template v-if="column.key === 'action'">
-            <span class="action-link" @click="handleConfig(record)">配置</span>
+            <template v-if="hasPerm('process:config')">
+              <span class="action-link" @click="handleConfig(record)">配置</span>
+              <a-divider type="vertical" />
+            </template>
             <template v-if="hasPerm('process:definition:update')">
               <a-divider type="vertical" />
               <span class="action-link" @click="showModal(record)">编辑</span>

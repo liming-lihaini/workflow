@@ -25,8 +25,8 @@
                       <span class="lock-icon">🔒</span>内置
                     </a-tag>
                     <template v-else>
-                      <span class="action-link" @click.stop="showTypeModal(item, 'edit')">编辑</span>
-                      <a-popconfirm title="确定删除？" @confirm="handleDeleteType(item)">
+                      <span v-if="hasPerm('system:dict:update-type')" class="action-link" @click.stop="showTypeModal(item, 'edit')">编辑</span>
+                      <a-popconfirm v-if="hasPerm('system:dict:delete-type')" title="确定删除？" @confirm="handleDeleteType(item)">
                         <span class="action-link danger" @click.stop>删除</span>
                       </a-popconfirm>
                     </template>
@@ -69,9 +69,11 @@
                 </a-tag>
               </template>
               <template v-if="column.key === 'action'">
-                <span class="action-link" @click="showItemModal(record)">编辑</span>
-                <a-divider type="vertical" />
-                <a-popconfirm title="确定删除？" @confirm="handleDeleteItem(record)">
+                <template v-if="hasPerm('system:dict:update-item')">
+                  <span class="action-link" @click="showItemModal(record)">编辑</span>
+                  <a-divider type="vertical" />
+                </template>
+                <a-popconfirm v-if="hasPerm('system:dict:delete-item')" title="确定删除？" @confirm="handleDeleteItem(record)">
                   <span class="action-link danger">删除</span>
                 </a-popconfirm>
               </template>

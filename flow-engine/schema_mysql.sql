@@ -754,6 +754,8 @@ CREATE TABLE IF NOT EXISTS `t_sampling_order` (
     `plan_date` DATETIME(6),
     `sampler_lead` VARCHAR(512),
     `status` VARCHAR(512) DEFAULT '''待派单''',
+    `create_by` VARCHAR(512),
+    `create_name` VARCHAR(512),
     `create_time` DATETIME(6),
     `update_time` DATETIME(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='t_sampling_order';

@@ -39,10 +39,45 @@ public class DictDataInitializer implements CommandLineRunner {
         // 表结构增量迁移：t_entrust 字典 value 字段 + 创建人/更新人字段；t_monitor_point 点位类型名称
         migrateEntrustColumns();
 
+        // 表结构增量迁移：t_sampling_order 创建人字段
+        migrateSamplingOrderColumns();
+
         initDictTypes();
         initDictItems();
 
         log.info("[DictDataInitializer] 系统内置字典数据初始化完成");
+    }
+
+    /**
+     * 增量迁移 t_sampling_order 表：补充创建人（create_by/create_name）字段。
+     * 采用数据库无关的幂等写法：直接尝试 ALTER，列已存在时捕获异常忽略。
+     */
+    private void migrateSamplingOrderColumns() {
+        java.util.Map<String, String> columns = new java.util.LinkedHashMap<>();
+        columns.put("create_by", "TEXT");
+        columns.put("create_name", "TEXT");
+        for (java.util.Map.Entry<String, String> e : columns.entrySet()) {
+            try {
+                jdbcTemplate.execute("ALTER TABLE t_sampling_order ADD COLUMN " + e.getKey() + " " + e.getValue());
+                log.info("[DictDataInitializer] 迁移 t_sampling_order 新增字段: {}", e.getKey());
+            } catch (Exception ex) {
+                log.warn("[DictDataInitializer] 迁移 t_sampling_order 字段失败(可忽略已存在): {} -> {}", e.getKey(), ex.getMessage());
+            }
+        }
+        // 存量任务回填创建人：取操作历史中「新建」记录的操作人（幂等，仅回填 create_by 为空的记录）
+        try {
+            int n = jdbcTemplate.update(
+                    "UPDATE t_sampling_order o " +
+                    "JOIN (SELECT order_id, MIN(id) AS hid FROM t_sampling_order_history WHERE action = '新建' GROUP BY order_id) h ON h.order_id = o.id " +
+                    "JOIN t_sampling_order_history hh ON hh.id = h.hid " +
+                    "SET o.create_by = hh.operator_id, o.create_name = hh.operator_name " +
+                    "WHERE o.create_by IS NULL");
+            if (n > 0) {
+                log.info("[DictDataInitializer] 回填 t_sampling_order 存量创建人 {} 条", n);
+            }
+        } catch (Exception ex) {
+            log.warn("[DictDataInitializer] 回填 t_sampling_order 创建人失败(可忽略): {}", ex.getMessage());
+        }
     }
 
     /**
@@ -94,6 +129,29 @@ public class DictDataInitializer implements CommandLineRunner {
             log.info("[DictDataInitializer] 迁移 t_monitor_point 新增字段: point_type_name");
         } catch (Exception ex) {
             log.warn("[DictDataInitializer] 迁移 t_monitor_point 字段失败(可忽略已存在): point_type_name -> {}", ex.getMessage());
+        }
+
+        // 检测结果明细补充内控限值字段（录入时可编辑并持久化）
+        try {
+            jdbcTemplate.execute("ALTER TABLE t_detection_result ADD COLUMN inner_limit TEXT");
+            log.info("[DictDataInitializer] 迁移 t_detection_result 新增字段: inner_limit");
+        } catch (Exception ex) {
+            log.warn("[DictDataInitializer] 迁移 t_detection_result 字段失败(可忽略已存在): inner_limit -> {}", ex.getMessage());
+        }
+
+        // 监测报告扩展字段：CMA 证书号 / 复核人 / 批准人 / 关联委托
+        java.util.Map<String, String> reportColumns = new java.util.LinkedHashMap<>();
+        reportColumns.put("cma_cert_no", "TEXT");
+        reportColumns.put("reviewer", "TEXT");
+        reportColumns.put("approver", "TEXT");
+        reportColumns.put("entrust_id", "BIGINT");
+        for (java.util.Map.Entry<String, String> e : reportColumns.entrySet()) {
+            try {
+                jdbcTemplate.execute("ALTER TABLE t_report ADD COLUMN " + e.getKey() + " " + e.getValue());
+                log.info("[DictDataInitializer] 迁移 t_report 新增字段: {}", e.getKey());
+            } catch (Exception ex) {
+                log.warn("[DictDataInitializer] 迁移 t_report 字段失败(可忽略已存在): {} -> {}", e.getKey(), ex.getMessage());
+            }
         }
     }
 

@@ -55,16 +55,20 @@
             </a-tag>
           </template>
           <template v-if="column.key === 'action'">
-            <span class="action-link" @click="showDrawer(record)">编辑</span>
-            <a-divider type="vertical" />
+            <template v-if="hasPerm('ems:customer:update')">
+              <span class="action-link" @click="showDrawer(record)">编辑</span>
+              <a-divider type="vertical" />
+            </template>
             <span class="action-link" @click="goDetail(record)">详情</span>
-            <a-divider type="vertical" />
-            <a-popconfirm
-              :title="record.status === 1 ? '确定停用该客户？' : '确定启用该客户？'"
-              @confirm="handleDisable(record)"
-            >
-              <span class="action-link">{{ record.status === 1 ? '停用' : '启用' }}</span>
-            </a-popconfirm>
+            <template v-if="hasPerm('ems:customer:update')">
+              <a-divider type="vertical" />
+              <a-popconfirm
+                :title="record.status === 1 ? '确定停用该客户？' : '确定启用该客户？'"
+                @confirm="handleDisable(record)"
+              >
+                <span class="action-link">{{ record.status === 1 ? '停用' : '启用' }}</span>
+              </a-popconfirm>
+            </template>
           </template>
         </template>
       </a-table>

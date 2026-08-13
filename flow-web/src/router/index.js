@@ -313,6 +313,12 @@ const routes = [
         component: () => import('../views/ems/report/ReportReview.vue'),
         meta: { title: '报告审核', permKey: 'ems:report' }
       },
+      {
+        path: 'ems/report/view/:id',
+        name: 'EmsReportView',
+        component: () => import('../views/ems/report/ReportView.vue'),
+        meta: { title: '报告详情', permKey: 'ems:report', hideInMenu: true }
+      },
     ]
   }
 ]

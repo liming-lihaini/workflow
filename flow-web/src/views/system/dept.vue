@@ -36,13 +36,19 @@
               <a-tag :color="record.status === 1 ? 'green' : 'default'">{{ record.status === 1 ? '启用' : '禁用' }}</a-tag>
             </template>
             <template v-if="column.key === 'action'">
-              <span class="action-link" @click="showLeaderModal(record)">设置领导</span>
-              <a-divider type="vertical" />
-              <span class="action-link" @click="showModal(record, 'add')">添加子部门</span>
-              <a-divider type="vertical" />
-              <span class="action-link" @click="showModal(record, 'edit')">编辑</span>
-              <a-divider type="vertical" />
-              <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
+              <template v-if="hasPerm('system:dept:update')">
+                <span class="action-link" @click="showLeaderModal(record)">设置领导</span>
+                <a-divider type="vertical" />
+              </template>
+              <template v-if="hasPerm('system:dept:add-child')">
+                <span class="action-link" @click="showModal(record, 'add')">添加子部门</span>
+                <a-divider type="vertical" />
+              </template>
+              <template v-if="hasPerm('system:dept:update')">
+                <span class="action-link" @click="showModal(record, 'edit')">编辑</span>
+                <a-divider type="vertical" />
+              </template>
+              <a-popconfirm v-if="hasPerm('system:dept:delete')" title="确定删除？" @confirm="handleDelete(record)">
                 <span class="action-link danger">删除</span>
               </a-popconfirm>
             </template>

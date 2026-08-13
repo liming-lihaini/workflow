@@ -1,7 +1,6 @@
 package com.flow.engine.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -23,10 +22,9 @@ public class EmsDetectionResult {
     private String value;       // 检测值
     private String unit;        // 单位
     private String method;      // 检测方法/标准
-    private String limitValue;  // 标准限值
+    private String limitValue;  // 标准限值（合格限值，可编辑）
     private String conclusion;  // 达标/超标
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
-    @TableField(exist = false)
-    private String innerLimit;   // 内控限值（来自配置表，非结果表字段）
+    private String innerLimit;   // 内控限值（录入时可编辑，持久化到结果表）
 }

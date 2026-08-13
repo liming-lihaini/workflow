@@ -4,7 +4,7 @@
       <div class="page-header">
         <span class="page-title">表单定义</span>
         <a-space>
-          <a-button type="primary" @click="showModal()">新建</a-button>
+          <a-button v-if="hasPerm('form:definition:create')" type="primary" @click="showModal()">新建</a-button>
           <a-button @click="loadData">刷新</a-button>
         </a-space>
       </div>
@@ -22,11 +22,15 @@
             <a-tag color="blue">{{ categoryLabelMap[record.category] || record.category || '-' }}</a-tag>
           </template>
           <template v-else-if="column.key === 'action'">
-            <span class="action-link" @click="handleEdit(record)">编辑</span>
-            <a-divider type="vertical" />
-            <span class="action-link" @click="handleDesign(record)">设计</span>
-            <a-divider type="vertical" />
-            <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
+            <template v-if="hasPerm('form:definition:update')">
+              <span class="action-link" @click="handleEdit(record)">编辑</span>
+              <a-divider type="vertical" />
+            </template>
+            <template v-if="hasPerm('form:design')">
+              <span class="action-link" @click="handleDesign(record)">设计</span>
+              <a-divider type="vertical" />
+            </template>
+            <a-popconfirm v-if="hasPerm('form:definition:delete')" title="确定删除？" @confirm="handleDelete(record)">
               <span class="action-link danger">删除</span>
             </a-popconfirm>
           </template>
@@ -71,7 +75,9 @@ import {
 } from '../../../api/form'
 import { getDictItemsByCode } from '../../../api/dict'
 import { renderDate } from '../../../utils/date'
+import { usePermission } from '../../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const router = useRouter()
 const loading = ref(false)
 const submitLoading = ref(false)

@@ -71,14 +71,7 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
         task.setCreateTime(LocalDateTime.now());
         task.setUpdateTime(LocalDateTime.now());
         taskMapper.insert(task);
-        // 检测任务创建完成，关联样品状态变更为「实验室监测中」
-        if (sample != null) {
-            updateSampleStatus(sampleId, "实验室监测中");
-            // 同步关联采样任务状态为「实验室监测中」
-            if (sample.getOrderId() != null) {
-                updateOrderStatus(sample.getOrderId(), "实验室监测中");
-            }
-        }
+
         return task;
     }
 
@@ -259,10 +252,13 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
         }
         // 关联样品基础信息
         EmsSample sample = task.getSampleId() != null ? sampleMapper.selectById(task.getSampleId()) : null;
-        // 为每个检测结果明细补充内控限值（来自配置表：type=样品类别, item=监测项目）
+        // 为每个检测结果明细补充内控限值：优先取已持久化的录入值，为空时回退配置表（type=样品类别, item=监测项目）
         String category = sample != null ? sample.getCategory() : null;
         if (StringUtils.hasText(category)) {
             for (EmsDetectionResult r : results) {
+                if (StringUtils.hasText(r.getInnerLimit())) {
+                    continue; // 已录入并保存的内控限值不被配置表覆盖
+                }
                 LambdaQueryWrapper<com.flow.engine.entity.EmsSampleParamConfig> cq = new LambdaQueryWrapper<>();
                 cq.eq(com.flow.engine.entity.EmsSampleParamConfig::getType, category)
                   .eq(com.flow.engine.entity.EmsSampleParamConfig::getItem, r.getMonitorItem());

@@ -2,7 +2,7 @@
   <div class="page-container">
     <a-card title="危化品台账" :bordered="false">
       <a-space style="margin-bottom:16px">
-        <a-button type="primary" @click="openForm()">+ 新增危化品</a-button>
+        <a-button v-if="hasPerm('ems:quality:create')" type="primary" @click="openForm()">+ 新增危化品</a-button>
         <a-input-search v-model:value="kw" placeholder="名称/CAS搜索" style="width:220px" @search="load" allow-clear />
         <a-select v-model:value="status" style="width:140px" @change="load">
           <a-select-option value="">全部状态</a-select-option>
@@ -21,10 +21,10 @@
           </template>
           <template v-else-if="column.key === 'action'">
             <a-space>
-              <a v-if="record.status==='在库'" @click="apply(record)">申请</a>
-              <a v-if="record.status==='待审批'" @click="approve(record)">审批</a>
-              <a v-if="record.status==='在库'" style="color:#ff4d4f" @click="startScrapProcess(record)">报废</a>
-              <a @click="openForm(record)">编辑</a>
+              <a v-if="record.status==='在库' && hasPerm('ems:quality:update')" @click="apply(record)">申请</a>
+              <a v-if="record.status==='待审批' && hasPerm('ems:quality:approve')" @click="approve(record)">审批</a>
+              <a v-if="record.status==='在库' && hasPerm('ems:quality:update')" style="color:#ff4d4f" @click="startScrapProcess(record)">报废</a>
+              <a v-if="hasPerm('ems:quality:update')" @click="openForm(record)">编辑</a>
             </a-space>
           </template>
         </template>
@@ -74,7 +74,9 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { saveHazardous, getHazardous, applyHazardous, approveHazardous } from '../../../api/ems'
+import { usePermission } from '../../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const router = useRouter()
 
 const loading = ref(false)

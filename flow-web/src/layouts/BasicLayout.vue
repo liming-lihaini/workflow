@@ -10,7 +10,7 @@
       class="sider"
     >
       <div class="logo">
-        <span v-if="!collapsed">自定义流程引擎</span>
+        <span v-if="!collapsed">环境检测管理系统</span>
         <img v-else src="/logo.png" alt="logo" class="logo-img" />
       </div>
       <a-menu
@@ -191,7 +191,6 @@ const menuConfig = [
       { key: 'ems-qcplan', title: '质控计划', path: '/ems/quality/plan', permKey: 'ems:quality' },
       { key: 'ems-dashboard', title: '监测驾驶舱', path: '/ems/dashboard', permKey: 'ems:dashboard' },
 
-      { key: 'ems-report-generate', title: '报告生成', path: '/ems/report/generate', permKey: 'ems:report' },
       { key: 'ems-report-review', title: '报告审核', path: '/ems/report/review', permKey: 'ems:report' }
     ]
   },
@@ -307,7 +306,6 @@ watch(() => route.path, (path) => {
     '/ems/quality/plan': ['ems-qcplan'],
     '/ems/dashboard': ['ems-dashboard'],
 
-    '/ems/report/generate': ['ems-report-generate'],
     '/ems/report/review': ['ems-report-review'],
     '/monitor': ['monitor']
   }

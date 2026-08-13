@@ -47,11 +47,11 @@
           </template>
           <template v-if="column.key === 'action'">
             <template v-if="record.assignee && record.status !== 2">
-              <span class="action-link" @click="handleProcess(record)">办理</span>
-              <a-divider type="vertical" />
-              <span class="action-link" @click="showTransferModal(record)">转办</span>
+              <span v-if="hasPerm('task:todo:complete')" class="action-link" @click="handleProcess(record)">办理</span>
+              <a-divider v-if="hasPerm('task:todo:complete') && hasPerm('task:todo:transfer')" type="vertical" />
+              <span v-if="hasPerm('task:todo:transfer')" class="action-link" @click="showTransferModal(record)">转办</span>
             </template>
-            <span v-else-if="!record.assignee" class="action-link" @click="handleClaim(record)">签收</span>
+            <span v-else-if="!record.assignee && hasPerm('task:todo:claim')" class="action-link" @click="handleClaim(record)">签收</span>
             <span v-else class="text-muted">已办结</span>
           </template>
         </template>
@@ -93,9 +93,11 @@ import dayjs from 'dayjs'
 import { getTodoTasks, claimTask, transferTask, searchUsers } from '../../api/task'
 import { renderDate } from '../../utils/date'
 import { useUserStore } from '../../stores/user'
+import { usePermission } from '../../composables/usePermission'
 import { useResizableColumns, sortClientData } from '../../composables/useResizableTable'
 import { useUserMap } from '../../composables/useUserMap'
 
+const { hasPerm } = usePermission()
 const router = useRouter()
 const userStore = useUserStore()
 const { buildUserMap, realName } = useUserMap()

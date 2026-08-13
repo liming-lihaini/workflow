@@ -2,8 +2,8 @@
   <div class="login-page">
     <div class="login-left">
       <div class="login-slogan">
-        <h1>自定义流程引擎</h1>
-        <p>高效、灵活、可扩展的企业级流程管理平台</p>
+        <h1>环境检测管理系统</h1>
+        <p>高效、灵活、可扩展的轻量级环境检测管理系统</p>
       </div>
     </div>
     <div class="login-right">
@@ -117,7 +117,7 @@ async function handleLogin() {
 }
 
 .login-right {
-  width: 480px;
+  width: 600px;
   display: flex;
   align-items: center;
   justify-content: center;

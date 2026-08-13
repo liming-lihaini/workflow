@@ -3,7 +3,7 @@
     <div class="card-wrap">
       <div class="page-header">
         <span class="page-title">委托与代理</span>
-        <a-button type="primary" @click="showCreateModal">+ 创建委托</a-button>
+        <a-button v-if="hasPerm('task:delegation:create')" type="primary" @click="showCreateModal">+ 创建委托</a-button>
       </div>
 
       <a-table
@@ -25,7 +25,7 @@
           </template>
           <template v-if="column.key === 'action'">
             <a-popconfirm
-              v-if="record.status === 0"
+              v-if="record.status === 0 && hasPerm('task:delegation:cancel')"
               title="确定取消该委托？取消后代理人将无法继续代办您的任务"
               @confirm="doCancel(record)"
             >
@@ -82,8 +82,10 @@ import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { getMyDelegations, createDelegation, cancelDelegation, searchUsers } from '../../api/task'
 import { useUserStore } from '../../stores/user'
+import { usePermission } from '../../composables/usePermission'
 import { useResizableColumns } from '../../composables/useResizableTable'
 
+const { hasPerm } = usePermission()
 const userStore = useUserStore()
 const loading = ref(false)
 const dataList = ref([])

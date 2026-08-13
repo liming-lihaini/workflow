@@ -2,7 +2,7 @@
   <div class="page-container">
     <a-card title="检测数据录入工作台" :bordered="false">
       <a-space style="margin-bottom:16px">
-        <a-button type="primary" @click="showCreate">+ 新建检测任务</a-button>
+        <a-button v-if="hasPerm('ems:detection:create')" type="primary" @click="showCreate">+ 新建检测任务</a-button>
         <a-select v-model:value="filterStatus" style="width:160px" @change="loadTasks" placeholder="按状态筛选">
           <a-select-option value="">全部状态</a-select-option>
           <a-select-option value="录入中">录入中</a-select-option>
@@ -49,9 +49,9 @@
           </template>
           <template v-else-if="column.key === 'action'">
             <a-space>
-              <a @click="goEntry(record)">录入</a>
+              <a v-if="hasPerm('ems:detection:entry')" @click="goEntry(record)">录入</a>
               <a @click="goDetail(record)">详情</a>
-              <a v-if="record.status === '已提交'" @click="openReview(record)">复核</a>
+              <a v-if="record.status === '已提交' && hasPerm('ems:detection:review')" @click="openReview(record)">复核</a>
             </a-space>
           </template>
         </template>
@@ -61,7 +61,7 @@
     <!-- 新建任务 -->
     <a-modal v-model:open="createVisible" title="新建检测任务" @ok="submitCreate" :confirm-loading="saving">
       <a-form :model="createForm" layout="vertical">
-        <a-form-item label="选择样品（已收样 / 留样中）">
+        <a-form-item label="选择样品（已收样）">
           <a-select
             v-model:value="createForm.sampleId"
             placeholder="请选择样品"
@@ -138,7 +138,9 @@ import {
 } from '../../../api/ems'
 import { getUsers } from '../../../api/system'
 import { useUserMap } from '../../../composables/useUserMap'
+import { usePermission } from '../../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const router = useRouter()
 const { realName, buildUserMap } = useUserMap()
 

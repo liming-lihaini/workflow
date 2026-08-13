@@ -16,7 +16,7 @@
     <a-spin :spinning="loading">
       <a-row :gutter="16">
         <!-- 左侧：样品基础信息 & 检测责任人 -->
-        <a-col :span="9">
+        <a-col :span="6">
           <a-card size="small" title="样品基础信息" class="sample-info">
             <a-descriptions bordered :column="1" size="small">
               <a-descriptions-item label="样品编号">{{ task?.barcode || '-' }}</a-descriptions-item>
@@ -55,11 +55,17 @@
         </a-col>
 
         <!-- 右侧：检测项目 & 数据录入 -->
-        <a-col :span="15">
+        <a-col :span="18">
           <a-card size="small" title="检测项目 & 检验数据录入表">
             <a-table :columns="resultColumns" :data-source="resultRows" :pagination="false" size="small" row-key="monitorItem">
               <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'value'">
+                <template v-if="column.key === 'limitValue'">
+                  <a-input v-model:value="record.limitValue" placeholder="合格限值" />
+                </template>
+                <template v-else-if="column.key === 'innerLimit'">
+                  <a-input v-model:value="record.innerLimit" placeholder="内控限值" />
+                </template>
+                <template v-else-if="column.key === 'value'">
                   <a-input v-model:value="record.value" placeholder="实测结果" />
                 </template>
                 <template v-else-if="column.key === 'conclusion'">
@@ -149,26 +155,24 @@ const resultRows = ref([])
 const entryForm = reactive({ entryBy: undefined, envTemp: '', envHumidity: '', conclusion: 'pending', remark: '' })
 
 // 检测录入附件
+// uploadedFiles 独立维护已上传附件（uid/name/path）：v-model:file-list 下 antd 会重建文件对象，
+// 挂在 fileList 元素上的自定义 path 属性会被丢弃，导致保存时附件丢失（参照 Entrust.vue 模式）
 const fileList = ref([])
+const uploadedFiles = ref([])
 const previewOpen = ref(false)
 const previewImage = ref('')
 async function customUpload({ file, onSuccess, onError }) {
   try {
     const res = await uploadAttachment(file)
     const data = res.data || res || {}
-    const idx = fileList.value.findIndex(f => f.uid === file.uid)
-    const target = idx > -1 ? fileList.value[idx] : file
-    target.path = data.path
-    target.name = data.name || file.name
-    target.status = 'done'
-    target.response = res
-    fileList.value = [...fileList.value]
-    onSuccess(res, target)
+    uploadedFiles.value.push({
+      uid: file.uid,
+      name: data.name || file.name,
+      path: data.path
+    })
+    onSuccess(res, file)
     message.success(`${file.name} 上传成功`)
   } catch (e) {
-    const idx = fileList.value.findIndex(f => f.uid === file.uid)
-    if (idx > -1) fileList.value[idx].status = 'error'
-    fileList.value = [...fileList.value]
     onError(e)
     message.error(`${file.name} 上传失败`)
   }
@@ -179,18 +183,26 @@ function beforeUpload(file) {
   return ok
 }
 async function handlePreview(file) {
-  if (file.path) {
-    try { await downloadAttachment(file.path, file.name) } catch (e) { message.error('下载失败') }
+  const att = uploadedFiles.value.find(a => a.uid === file.uid)
+  if (att && att.path) {
+    try { await downloadAttachment(att.path, att.name) } catch (e) { message.error('下载失败') }
   }
 }
 function handleRemove(file) {
-  const idx = fileList.value.findIndex(f => f.uid === file.uid)
-  if (idx > -1) fileList.value.splice(idx, 1)
+  const idx = uploadedFiles.value.findIndex(a => a.uid === file.uid)
+  if (idx > -1) uploadedFiles.value.splice(idx, 1)
 }
 function attachmentsPayload() {
-  return JSON.stringify(fileList.value
-    .filter(f => f.status === 'done' && f.path)
-    .map(f => ({ name: f.name, path: f.path })))
+  return JSON.stringify(uploadedFiles.value.map(f => ({ name: f.name, path: f.path })))
+}
+
+// 附件仍在上传中时阻止保存，避免已选附件未入附件列表导致丢失
+function hasUploadingFile() {
+  if (fileList.value.some(f => f.status === 'uploading')) {
+    message.warning('附件仍在上传中，请上传完成后再保存')
+    return true
+  }
+  return false
 }
 
 const statusColor = (s) => ({ '录入中': 'blue', '已提交': 'orange', '已复核': 'green', '已退回': 'red' }[s] || 'default')
@@ -198,8 +210,8 @@ const statusColor = (s) => ({ '录入中': 'blue', '已提交': 'orange', '已�
 const resultColumns = [
   { title: '检测项目名称', dataIndex: 'monitorItem', key: 'monitorItem' },
   { title: '检测标准', dataIndex: 'method', key: 'method' },
-  { title: '合格限值', dataIndex: 'limitValue', key: 'limitValue' },
-  { title: '内控限制', dataIndex: 'innerLimit', key: 'innerLimit', width: 180 },
+  { title: '合格限值', key: 'limitValue', width: 140 },
+  { title: '内控限值', key: 'innerLimit', width: 140 },
   { title: '实测结果', key: 'value', width: 120 },
   { title: '单位', dataIndex: 'unit', key: 'unit', width: 80 },
   { title: '单项判定', key: 'conclusion', width: 120 }
@@ -256,13 +268,15 @@ async function loadDetail() {
     entryForm.envHumidity = t.envHumidity || ''
     entryForm.conclusion = t.conclusion || 'pending'
     entryForm.remark = t.remark || ''
-    // 回显已保存附件
+    // 回显已保存附件：fileList 仅用于展示，path 由 uploadedFiles 独立维护
     fileList.value = []
+    uploadedFiles.value = []
     if (t.attachments) {
       try {
         const arr = JSON.parse(t.attachments)
         if (Array.isArray(arr)) {
-          fileList.value = arr.map((a, i) => ({ uid: 'att-' + i, name: a.name, path: a.path, status: 'done' }))
+          uploadedFiles.value = arr.map((a, i) => ({ uid: 'att-' + i, name: a.name, path: a.path }))
+          fileList.value = arr.map((a, i) => ({ uid: 'att-' + i, name: a.name, status: 'done' }))
         }
       } catch (e) { /* 忽略损坏的附件数据 */ }
     }
@@ -294,6 +308,7 @@ async function loadDetail() {
 
 async function saveResults() {
   if (!resultRows.value.length) { message.warning('暂无检测项目'); return }
+  if (hasUploadingFile()) return
   saving.value = true
   try {
     await saveDetectionResults(taskId, {
@@ -311,6 +326,7 @@ async function saveResults() {
 
 async function saveAndSubmit() {
   if (!resultRows.value.length) { message.warning('暂无检测项目'); return }
+  if (hasUploadingFile()) return
   const emptyCount = resultRows.value.filter(r => !String(r.value || '').trim()).length
   if (emptyCount > 0) { message.warning(`尚有 ${emptyCount} 条检测项目未录入实测结果`); return }
   saving.value = true

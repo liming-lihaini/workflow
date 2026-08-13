@@ -106,16 +106,20 @@
             <template v-else-if="column.key === 'pointCount'">
               {{ record.pointCount ?? 0 }}
             </template>
+            <template v-else-if="column.key === 'createBy'">
+              {{ record.createName || record.createBy || '—' }}
+            </template>
             <template v-else-if="column.key === 'status'">
               <a-tag :color="statusColor(record.status)">{{ record.status }}</a-tag>
             </template>
             <template v-else-if="column.key === 'op'">
               <a-space>
-                <span v-if="record.status === '待派单' && hasPerm('ems:dispatch')" class="action-link" @click="openDispatch(record)">派单</span>
-                <span v-if="canEdit(record)" class="action-link" @click="openEdit(record)">编辑</span>
-                <span v-if="canComplete(record)" class="action-link" @click="openComplete(record)">完成</span>
+                <span v-if="record.status === '待派单' && hasPerm('ems:dispatch:assign')" class="action-link" @click="openDispatch(record)">派单</span>
+                <span v-if="record.status === '已派单' && hasPerm('ems:sample:create')" class="action-link" @click="goCollect(record)">样品登记</span>
+                <span v-if="canEdit(record) && hasPerm('ems:dispatch:update')" class="action-link" @click="openEdit(record)">编辑</span>
+                <span v-if="canComplete(record) && hasPerm('ems:dispatch:update')" class="action-link" @click="openComplete(record)">完成</span>
                 <span class="action-link" @click="openDetail(record)">详情</span>
-                <a-popconfirm title="确认删除该采样任务？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
+                <a-popconfirm v-if="hasPerm('ems:dispatch:delete')" title="确认删除该采样任务？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
                   <span class="action-link danger" @click.stop>删除</span>
                 </a-popconfirm>
               </a-space>
@@ -168,16 +172,20 @@
               <template v-else-if="column.key === 'pointCount'">
                 {{ record.pointCount ?? 0 }}
               </template>
+              <template v-else-if="column.key === 'createBy'">
+                {{ record.createName || record.createBy || '—' }}
+              </template>
               <template v-if="column.key === 'status'">
                 <a-tag :color="statusColor(record.status)">{{ record.status }}</a-tag>
               </template>
               <template v-else-if="column.key === 'op'">
                 <a-space>
-                  <span v-if="record.status === '待派单' && hasPerm('ems:dispatch')" class="action-link" @click="openDispatch(record)">派单</span>
-                  <span v-if="canEdit(record)" class="action-link" @click="openEdit(record)">编辑</span>
-                  <span v-if="canComplete(record)" class="action-link" @click="openComplete(record)">完成</span>
+                  <span v-if="record.status === '待派单' && hasPerm('ems:dispatch:assign')" class="action-link" @click="openDispatch(record)">派单</span>
+                  <span v-if="record.status === '已派单' && hasPerm('ems:sample:create')" class="action-link" @click="goCollect(record)">样品登记</span>
+                  <span v-if="canEdit(record) && hasPerm('ems:dispatch:update')" class="action-link" @click="openEdit(record)">编辑</span>
+                  <span v-if="canComplete(record) && hasPerm('ems:dispatch:update')" class="action-link" @click="openComplete(record)">完成</span>
                   <span class="action-link" @click="openDetail(record)">详情</span>
-                  <a-popconfirm title="确认删除该采样任务？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
+                  <a-popconfirm v-if="hasPerm('ems:dispatch:delete')" title="确认删除该采样任务？关联派单将一并清除。" @confirm="handleDeleteOrder(record)">
                     <span class="action-link danger" @click.stop>删除</span>
                   </a-popconfirm>
                 </a-space>
@@ -286,6 +294,11 @@ function goEntrust(order) {
   }
 }
 
+// 已派单任务跳转样品管理并自动打开登记表单（携带派单ID用于回填）
+function goCollect(order) {
+  router.push(`/ems/base/sample?open=collect&dispatchId=${order.id}`)
+}
+
 const orders = ref([])        // 当前展示的订单（受卡片筛选影响）
 const allOrders = ref([])      // 全量订单（不受卡片筛选影响，用于卡片统计）
 const loading = ref(false)
@@ -350,8 +363,9 @@ const orderCols = [
   { title: '点位数', dataIndex: 'pointCount', key: 'pointCount', width: 80, align: 'center' },
   { title: '计划区间', dataIndex: 'planRange', key: 'planRange', width: 200 },
   { title: '负责人', dataIndex: 'leadName', key: 'leadName', width: 80 },
+  { title: '创建人', key: 'createBy', width: 90 },
   { title: '状态', key: 'status', width: 100 },
-  { title: '操作', key: 'op', width: 150, fixed: 'right' }
+  { title: '操作', key: 'op', width: 200, fixed: 'right' }
 ]
 
 // 表格分组

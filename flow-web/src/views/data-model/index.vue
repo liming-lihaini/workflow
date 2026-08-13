@@ -4,7 +4,7 @@
       <div class="page-header">
         <span class="page-title">数据模型</span>
         <a-space>
-          <a-button type="primary" @click="showModal()">新建</a-button>
+          <a-button v-if="hasPerm('data-model:create')" type="primary" @click="showModal()">新建</a-button>
           <a-button @click="loadData">刷新</a-button>
         </a-space>
       </div>
@@ -33,13 +33,19 @@
               <span class="action-link" @click="showModal(record, true)">查看</span>
             </template>
             <template v-else>
-              <span class="action-link" @click="handleEdit(record)">编辑</span>
-              <a-divider type="vertical" />
-              <span class="action-link" @click="handlePublish(record)" v-if="record.status !== 1">发布</span>
-              <a-divider type="vertical" v-if="record.status !== 1" />
-              <span class="action-link" @click="handleGenerateTables(record)">生成表</span>
-              <a-divider type="vertical" />
-              <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
+              <template v-if="hasPerm('data-model:update')">
+                <span class="action-link" @click="handleEdit(record)">编辑</span>
+                <a-divider type="vertical" />
+              </template>
+              <template v-if="record.status !== 1 && hasPerm('data-model:publish')">
+                <span class="action-link" @click="handlePublish(record)">发布</span>
+                <a-divider type="vertical" />
+              </template>
+              <template v-if="hasPerm('data-model:generate')">
+                <span class="action-link" @click="handleGenerateTables(record)">生成表</span>
+                <a-divider type="vertical" />
+              </template>
+              <a-popconfirm v-if="hasPerm('data-model:delete')" title="确定删除？" @confirm="handleDelete(record)">
                 <span class="action-link danger">删除</span>
               </a-popconfirm>
             </template>
@@ -247,7 +253,9 @@ import {
   generateDataModelTables
 } from '../../api/model'
 import { useUserStore } from '../../stores/user'
+import { usePermission } from '../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const userStore = useUserStore()
 
 const loading = ref(false)

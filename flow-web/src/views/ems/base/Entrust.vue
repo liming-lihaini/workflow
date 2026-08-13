@@ -50,44 +50,50 @@
             <a-tag :color="statusColor(record.status)">{{ record.status }}</a-tag>
           </template>
           <template v-if="column.key === 'action'">
-            <span class="action-link" @click="showDrawer(record)">编辑</span>
-            <a-divider type="vertical" />
-            <a-popconfirm
-              v-if="record.status === '草稿' || record.status === '已退回'"
-              title="提交后进入待技术确认？"
-              @confirm="handleSubmit(record)"
-            >
-              <span class="action-link">提交</span>
-            </a-popconfirm>
-            <a-divider v-if="record.status === '草稿' || record.status === '已退回'" type="vertical" />
-            <span
-              v-if="record.status === '待技术确认'"
-              class="action-link"
-              @click.stop="handleTechConfirm(record)"
-            >技术确认</span>
-            <a-divider v-if="record.status === '待技术确认'" type="vertical" />
-            <a-popconfirm
-              v-if="record.status === '待技术确认'"
-              title="填写退回意见"
-              @confirm="handleReject(record)"
-            >
-              <span class="action-link danger" @click.stop="rejectForm.record = record">退回</span>
-            </a-popconfirm>
-            <a-popconfirm
-              v-if="record.status === '已确认'"
-              :title="`按采集频率${record.sampleFreqName ? '（' + record.sampleFreqName + '）' : ''}再生成一张待派单订单？`"
-              @confirm="handleRedispatch(record)"
-            >
-              <span class="action-link">再次派单</span>
-            </a-popconfirm>
-            <a-divider type="vertical" />
-            <a-popconfirm
-              v-if="record.status === '草稿' || record.status === '已退回'"
-              title="确认删除该委托？关联监测点位将一并清除。"
-              @confirm="handleDeleteOne(record)"
-            >
-              <span class="action-link danger">删除</span>
-            </a-popconfirm>
+            <template v-if="hasPerm('ems:entrust:update')">
+              <span class="action-link" @click="showDrawer(record)">编辑</span>
+              <template v-if="record.status === '草稿' || record.status === '已退回'">
+                <a-divider type="vertical" />
+                <a-popconfirm
+                  title="提交后进入待技术确认？"
+                  @confirm="handleSubmit(record)"
+                >
+                  <span class="action-link">提交</span>
+                </a-popconfirm>
+              </template>
+              <template v-if="record.status === '待技术确认'">
+                <a-divider type="vertical" />
+                <span
+                  class="action-link"
+                  @click.stop="handleTechConfirm(record)"
+                >技术确认</span>
+                <a-divider type="vertical" />
+                <a-popconfirm
+                  title="填写退回意见"
+                  @confirm="handleReject(record)"
+                >
+                  <span class="action-link danger" @click.stop="rejectForm.record = record">退回</span>
+                </a-popconfirm>
+              </template>
+              <template v-if="record.status === '已确认'">
+                <a-divider type="vertical" />
+                <a-popconfirm
+                  :title="`按采集频率${record.sampleFreqName ? '（' + record.sampleFreqName + '）' : ''}再生成一张待派单订单？`"
+                  @confirm="handleRedispatch(record)"
+                >
+                  <span class="action-link">再次派单</span>
+                </a-popconfirm>
+              </template>
+            </template>
+            <template v-if="hasPerm('ems:entrust:delete') && (record.status === '草稿' || record.status === '已退回')">
+              <a-divider type="vertical" />
+              <a-popconfirm
+                title="确认删除该委托？关联监测点位将一并清除。"
+                @confirm="handleDeleteOne(record)"
+              >
+                <span class="action-link danger">删除</span>
+              </a-popconfirm>
+            </template>
           </template>
         </template>
         <template #emptyText>

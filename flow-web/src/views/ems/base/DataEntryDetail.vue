@@ -43,15 +43,6 @@
           <a-card size="small" title="整体检验备注" class="mt-16">
             <div class="remark-box">{{ detail.task.remark || '暂无备注' }}</div>
           </a-card>
-
-          <a-card size="small" title="检测录入附件" class="mt-16">
-            <ul class="att-list" v-if="taskAttachments.length">
-              <li v-for="(a, i) in taskAttachments" :key="i">
-                <a @click="downloadAtt(a)"><paper-clip-outlined /> {{ a.name }}</a>
-              </li>
-            </ul>
-            <a-empty v-else description="暂无附件" />
-          </a-card>
         </a-col>
 
         <!-- 右侧：检测结果 & 复核记录 -->
@@ -74,6 +65,15 @@
                 {{ r.reviewer }} - {{ r.decision }} - {{ r.opinion }}（{{ r.createTime }}）
               </a-timeline-item>
             </a-timeline>
+          </a-card>
+
+          <a-card size="small" title="检测录入附件" class="mt-16">
+            <ul class="att-list" v-if="taskAttachments.length">
+              <li v-for="(a, i) in taskAttachments" :key="i">
+                <a @click="downloadAtt(a)"><paper-clip-outlined /> {{ a.name }}</a>
+              </li>
+            </ul>
+            <a-empty v-else description="暂无附件" />
           </a-card>
 
           <a-card size="small" title="操作记录" class="mt-16" v-if="detail.operations && detail.operations.length">
@@ -151,7 +151,7 @@ const resultColumns = [
   { title: '检测项目名称', dataIndex: 'monitorItem', key: 'monitorItem' },
   { title: '检测标准', dataIndex: 'method', key: 'method' },
   { title: '合格限值', dataIndex: 'limitValue', key: 'limitValue' },
-  { title: '内控限制', dataIndex: 'innerLimit', key: 'innerLimit', width: 180 },
+  { title: '内控限值', dataIndex: 'innerLimit', key: 'innerLimit', width: 120 },
   { title: '实测结果', dataIndex: 'value', key: 'value', width: 120 },
   { title: '单位', dataIndex: 'unit', key: 'unit', width: 80 },
   { title: '单项判定', key: 'conclusion', width: 120 }

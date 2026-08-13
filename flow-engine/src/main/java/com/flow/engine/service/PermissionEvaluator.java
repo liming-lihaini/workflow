@@ -41,6 +41,28 @@ public class PermissionEvaluator {
     }
 
     /**
+     * 判断用户是否可以查看指定模块的全部数据。
+     * 满足以下任一条件即放行：
+     * 1. 持有角色级全部数据范围（sys_data_permission.data_scope=1）；
+     * 2. 持有该模块的数据权限节点 {modulePermKey}:data-all。
+     *
+     * @param modulePermKey 模块菜单权限 Key，如 ems:entrust
+     */
+    public boolean canViewAllModuleData(Long userId, String modulePermKey) {
+        // 角色级全部数据范围直接放行
+        List<com.flow.engine.entity.Role> roles = rolePermissionService.getUserRoles(userId);
+        for (com.flow.engine.entity.Role role : roles) {
+            for (DataPermission dp : rolePermissionService.getRoleDataPermissions(role.getId())) {
+                if (dp.getDataScope() != null && dp.getDataScope() == 1) {
+                    return true;
+                }
+            }
+        }
+        // 模块级数据权限节点
+        return hasPermission(userId, modulePermKey + ":data-all");
+    }
+
+    /**
      * 判断用户是否可以访问指定部门的数据
      */
     public boolean canAccessData(Long userId, Long deptId, String dataType) {

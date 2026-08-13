@@ -98,7 +98,7 @@
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'action'">
-              <a-popconfirm title="确认解绑该质控样？" @confirm="unbindQc(record)">
+              <a-popconfirm v-if="hasPerm('ems:sample:update')" title="确认解绑该质控样？" @confirm="unbindQc(record)">
                 <a-button type="link" danger size="small">解绑</a-button>
               </a-popconfirm>
             </template>
@@ -162,7 +162,9 @@ import {
   getSampleParamConfigs,
   getDictItems
 } from '../../../api/ems'
+import { usePermission } from '../../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const route = useRoute()
 const router = useRouter()
 

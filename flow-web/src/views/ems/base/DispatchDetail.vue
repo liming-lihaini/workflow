@@ -5,17 +5,19 @@
         <template #icon><span class="btn-icon">←</span></template>
         返回
       </a-button>
-      <span class="page-title">派单详情{{ detail.orderNo ? ' · ' + detail.orderNo : '' }}</span>
+      <span class="page-title">采样任务详情{{ detail.orderNo ? ' · ' + detail.orderNo : '' }}</span>
     </div>
 
     <template v-if="loading">
       <a-skeleton active />
     </template>
     <template v-else>
-      <a-card class="block" size="small" title="订单信息">
+      <a-card class="block" size="small" title="任务信息">
         <a-descriptions bordered :column="2" size="small" :label-style="{ width: '120px' }">
-          <a-descriptions-item label="订单编号">{{ detail.orderNo || '—' }}</a-descriptions-item>
-          <a-descriptions-item label="订单状态">{{ detail.orderStatus || '—' }}</a-descriptions-item>
+          <a-descriptions-item label="任务编号">{{ detail.orderNo || '—' }}</a-descriptions-item>
+          <a-descriptions-item label="任务状态">{{ detail.orderStatus || '—' }}</a-descriptions-item>
+          <a-descriptions-item label="创建人">{{ detail.createName || detail.createBy || '—' }}</a-descriptions-item>
+          <a-descriptions-item label="创建时间">{{ renderDateTime(detail.orderCreateTime) }}</a-descriptions-item>
           <a-descriptions-item label="委托单编号">
             <span v-if="detail.entrustId" class="link-text" @click="goEntrust">{{ detail.entrustNo || '—' }}</span>
             <span v-else>—</span>
@@ -67,6 +69,28 @@
         <a-empty v-else description="未分配设备" :image="simpleImage" />
       </a-card>
 
+      <!-- 任务关联样品：样品登记后回写 t_sample.order_id，详情聚合展示 -->
+      <a-card class="block" size="small" title="关联样品">
+        <a-table
+          v-if="detail.samples && detail.samples.length"
+          :dataSource="detail.samples"
+          :columns="sampleColumns"
+          rowKey="id"
+          size="small"
+          :pagination="false"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'barcode'">
+              <span class="link-text" @click="goSample(record)">{{ record.barcode || '—' }}</span>
+            </template>
+            <template v-else-if="column.key === 'status'">
+              <a-tag :color="sampleStatusColor(record.status)">{{ record.status || '—' }}</a-tag>
+            </template>
+          </template>
+        </a-table>
+        <a-empty v-else description="暂无关联样品" :image="simpleImage" />
+      </a-card>
+
       <!-- 操作历史：新建/派单/编辑/完成等全部处置轨迹 -->
       <a-card class="block" size="small" title="操作历史">
         <a-timeline v-if="histories.length">
@@ -109,9 +133,33 @@ const insColumns = [
   { title: '校准到期', dataIndex: 'calibDue', key: 'calibDue' }
 ]
 
+const sampleColumns = [
+  { title: '样品条码', dataIndex: 'barcode', key: 'barcode' },
+  { title: '样品名称', dataIndex: 'name', key: 'name' },
+  { title: '样品类别', dataIndex: 'category', key: 'category' },
+  { title: '检测项目', dataIndex: 'item', key: 'item' },
+  { title: '状态', key: 'status', width: 110 },
+  { title: '采样人', dataIndex: 'sampler', key: 'sampler', width: 120 },
+  { title: '采样时间', dataIndex: 'sampleTime', key: 'sampleTime', width: 180 }
+]
+
+function sampleStatusColor(s) {
+  return ({
+    '待收样': 'orange', '已收样': 'cyan', '异常拒收': 'red', '检测异常': 'red',
+    '已完成': 'green', '已处置': 'default'
+  })[s] || 'blue'
+}
+
 function goEntrust() {
   if (detail.value.entrustId) {
     router.push({ path: '/ems/base/entrust', query: { detailId: detail.value.entrustId, tab: 'base' } })
+  }
+}
+
+// 关联样品条码点击跳转样品详情
+function goSample(record) {
+  if (record && record.id) {
+    router.push(`/ems/base/sample/${record.id}`)
   }
 }
 

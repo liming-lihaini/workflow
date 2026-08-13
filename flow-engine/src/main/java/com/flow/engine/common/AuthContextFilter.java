@@ -51,6 +51,13 @@ public class AuthContextFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
         String token = extractBearerToken(authHeader);
+        // 兼容旧客户端：直接用 token 请求头携带凭证（如 curl -H "token: xxx"）
+        if (token == null) {
+            String rawToken = request.getHeader("token");
+            if (StringUtils.hasText(rawToken)) {
+                token = rawToken.trim();
+            }
+        }
         if (token != null) {
             // 1) 优先尝试会话 Token
             try {

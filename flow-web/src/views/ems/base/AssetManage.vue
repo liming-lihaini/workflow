@@ -14,9 +14,9 @@
               <a-input-search v-if="instViewMode === 'list'" v-model:value="kw" placeholder="搜索编号/名称/型号" style="width: 220px" allow-clear @search="loadInstruments" />
               <a-select v-if="instViewMode === 'list'" v-model:value="statusFilter" placeholder="状态" allow-clear style="width: 120px" :options="statusOptions" @change="loadInstruments" />
               <template v-if="instViewMode === 'list'">
-                <a-button type="primary" @click="startInboundProcess('SBTKRKSQ')">单品入库申请</a-button>
-                <a-button type="primary" @click="startInboundProcess('SBTKRKSQ_PL')">批量入库申请</a-button>
-                <a-button type="primary" @click="showInstDrawer()">新增设备</a-button>
+                <a-button v-if="hasPerm('ems:instrument:create')" type="primary" @click="startInboundProcess('SBTKRKSQ')">单品入库申请</a-button>
+                <a-button v-if="hasPerm('ems:instrument:create')" type="primary" @click="startInboundProcess('SBTKRKSQ_PL')">批量入库申请</a-button>
+                <a-button v-if="hasPerm('ems:instrument:create')" type="primary" @click="showInstDrawer()">新增设备</a-button>
               </template>
             </a-space>
           </div>
@@ -51,13 +51,15 @@
                   <span :style="{ color: isExpiring(record) ? '#fa8c16' : 'inherit' }">{{ record.calibDue || '-' }}</span>
                 </template>
                 <template v-if="column.key === 'action'">
-                  <span class="action-link" @click="showInstDrawer(record)">编辑</span>
-                  <a-divider type="vertical" />
-                  <span class="action-link" @click="showCalibrate(record)">校准登记</span>
-                  <a-divider type="vertical" />
-                  <span v-if="record.status !== '报废'" class="action-link danger" @click="startScrapProcess('设备', record, 'code')">报废</span>
-                  <template v-if="record.status !== '报废'"><a-divider type="vertical" /></template>
-                  <a-popconfirm title="删除该设备？" @confirm="handleInstDelete(record)">
+                  <template v-if="hasPerm('ems:instrument:update')">
+                    <span class="action-link" @click="showInstDrawer(record)">编辑</span>
+                    <a-divider type="vertical" />
+                    <span class="action-link" @click="showCalibrate(record)">校准登记</span>
+                    <a-divider type="vertical" />
+                    <span v-if="record.status !== '报废'" class="action-link danger" @click="startScrapProcess('设备', record, 'code')">报废</span>
+                    <template v-if="record.status !== '报废'"><a-divider type="vertical" /></template>
+                  </template>
+                  <a-popconfirm v-if="hasPerm('ems:instrument:delete')" title="删除该设备？" @confirm="handleInstDelete(record)">
                     <span class="action-link danger">删除</span>
                   </a-popconfirm>
                 </template>
@@ -128,9 +130,9 @@
       <a-tab-pane key="material" tab="标准物质">
         <a-card :bordered="false">
           <a-space style="margin-bottom:16px">
-            <a-button type="primary" @click="openMaterial()">+ 新增标物</a-button>
-            <a-button type="primary" @click="startMaterialProcess('WZRKSQ', '标准物质')">入库申请</a-button>
-            <a-button type="primary" @click="startMaterialProcess('WZSYSQ', '标准物质')">使用申请</a-button>
+            <a-button v-if="hasPerm('ems:instrument:create')" type="primary" @click="openMaterial()">+ 新增标物</a-button>
+            <a-button v-if="hasPerm('ems:instrument:update')" type="primary" @click="startMaterialProcess('WZRKSQ', '标准物质')">入库申请</a-button>
+            <a-button v-if="hasPerm('ems:instrument:update')" type="primary" @click="startMaterialProcess('WZSYSQ', '标准物质')">使用申请</a-button>
             <a-input-search v-model:value="mk" placeholder="名称搜索" style="width:200px" @search="loadMaterials" allow-clear />
             <a-select v-model:value="mStatus" style="width:140px" @change="loadMaterials">
               <a-select-option value="">全部状态</a-select-option>
@@ -153,7 +155,7 @@
                 <a-tag :color="record.status==='已报废'||record.status==='过期'?'red':(record.status==='临期'?'orange':'green')">{{ record.status }}</a-tag>
               </template>
               <template v-else-if="column.key === 'action'">
-                <a-space>
+                <a-space v-if="hasPerm('ems:instrument:update')">
                   <a @click="startMaterialProcess('WZRKSQ', '标准物质', record)">入库</a>
                   <a @click="startMaterialProcess('WZSYSQ', '标准物质', record)">使用</a>
                   <a v-if="record.status !== '已报废'" class="danger-link" @click="startScrapProcess('标准物质', record, 'spec')">报废</a>
@@ -170,9 +172,9 @@
       <a-tab-pane key="consumable" tab="耗材">
         <a-card :bordered="false">
           <a-space style="margin-bottom:16px">
-            <a-button type="primary" @click="openConsumable()">+ 新增耗材</a-button>
-            <a-button type="primary" @click="startMaterialProcess('WZRKSQ', '耗材')">入库申请</a-button>
-            <a-button type="primary" @click="startMaterialProcess('WZSYSQ', '耗材')">使用申请</a-button>
+            <a-button v-if="hasPerm('ems:instrument:create')" type="primary" @click="openConsumable()">+ 新增耗材</a-button>
+            <a-button v-if="hasPerm('ems:instrument:update')" type="primary" @click="startMaterialProcess('WZRKSQ', '耗材')">入库申请</a-button>
+            <a-button v-if="hasPerm('ems:instrument:update')" type="primary" @click="startMaterialProcess('WZSYSQ', '耗材')">使用申请</a-button>
             <a-input-search v-model:value="ck" placeholder="名称搜索" style="width:200px" @search="loadConsumables" allow-clear />
             <a-select v-model:value="cStatus" style="width:140px" @change="loadConsumables">
               <a-select-option value="">全部状态</a-select-option>
@@ -194,7 +196,7 @@
                 <a-tag :color="record.status==='已报废'||record.status==='过期'?'red':(record.status==='临期'?'orange':'green')">{{ record.status }}</a-tag>
               </template>
               <template v-else-if="column.key === 'action'">
-                <a-space>
+                <a-space v-if="hasPerm('ems:instrument:update')">
                   <a @click="startMaterialProcess('WZRKSQ', '耗材', record)">入库</a>
                   <a @click="startMaterialProcess('WZSYSQ', '耗材', record)">使用</a>
                   <a v-if="record.status !== '已报废'" class="danger-link" @click="startScrapProcess('耗材', record, 'spec')">报废</a>
@@ -211,7 +213,7 @@
       <a-tab-pane key="hazardous" tab="危化品">
         <a-card :bordered="false">
           <a-space style="margin-bottom:16px">
-            <a-button type="primary" @click="openHaz()">+ 新增危化品</a-button>
+            <a-button v-if="hasPerm('ems:instrument:create')" type="primary" @click="openHaz()">+ 新增危化品</a-button>
             <a-input-search v-model:value="hzk" placeholder="名称/CAS搜索" style="width:220px" @search="loadHaz" allow-clear />
             <a-select v-model:value="hzStatus" style="width:140px" @change="loadHaz">
               <a-select-option value="">全部状态</a-select-option>
@@ -231,10 +233,10 @@
               <template v-else-if="column.key === 'action'">
                 <a-space>
                   <a @click="openHazDetail(record)">详情</a>
-                  <a v-if="record.status==='在库'" @click="applyHaz(record)">申请</a>
-                  <a v-if="record.status==='待审批'" @click="approveHaz(record)">审批</a>
-                  <a v-if="record.status==='在库'" class="danger-link" @click="startScrapProcess('危化品', record, 'casNo')">报废</a>
-                  <a @click="openHaz(record)">编辑</a>
+                  <a v-if="record.status==='在库' && hasPerm('ems:instrument:update')" @click="applyHaz(record)">申请</a>
+                  <a v-if="record.status==='待审批' && hasPerm('ems:quality:approve')" @click="approveHaz(record)">审批</a>
+                  <a v-if="record.status==='在库' && hasPerm('ems:instrument:update')" class="danger-link" @click="startScrapProcess('危化品', record, 'casNo')">报废</a>
+                  <a v-if="hasPerm('ems:instrument:update')" @click="openHaz(record)">编辑</a>
                 </a-space>
               </template>
             </template>
@@ -485,7 +487,9 @@ import {
   saveHazardous, getHazardous, getHazardousDetail, applyHazardous, approveHazardous
 } from '../../../api/ems'
 import InstrumentDetail from './InstrumentDetail.vue'
+import { usePermission } from '../../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const router = useRouter()
 const tab = ref('instrument')
 

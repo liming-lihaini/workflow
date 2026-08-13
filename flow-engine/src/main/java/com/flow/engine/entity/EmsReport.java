@@ -15,10 +15,14 @@ public class EmsReport {
     private String taskIds;       // JSON数组
     private Integer itemCount;
     private Integer exceedCount;
-    private String status;        // 待审核/已发布/已退回
+    private String status;        // 草稿/待审核/已发布/已退回
     private String antiFakeCode;  // 防伪码
     private String generator;     // 生成人
     private String publishTime;
+    private String cmaCertNo;     // CMA 资质认定证书号
+    private String reviewer;      // 复核人（username）
+    private String approver;      // 批准人（username）
+    private Long entrustId;       // 关联检测委托ID
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
@@ -54,4 +58,12 @@ public class EmsReport {
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
     public LocalDateTime getUpdateTime() { return updateTime; }
     public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
+    public String getCmaCertNo() { return cmaCertNo; }
+    public void setCmaCertNo(String cmaCertNo) { this.cmaCertNo = cmaCertNo; }
+    public String getReviewer() { return reviewer; }
+    public void setReviewer(String reviewer) { this.reviewer = reviewer; }
+    public String getApprover() { return approver; }
+    public void setApprover(String approver) { this.approver = approver; }
+    public Long getEntrustId() { return entrustId; }
+    public void setEntrustId(Long entrustId) { this.entrustId = entrustId; }
 }

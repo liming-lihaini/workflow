@@ -64,10 +64,10 @@
             <a-tag :color="statusColor(record.status, record)">{{ statusLabel(record.status) }}</a-tag>
           </template>
           <template v-else-if="column.key === 'action'">
-            <a-button type="link" size="small" @click="openDisposeModal(record)" >销毁申请</a-button>
-            <a-button type="link" size="small" @click="onReuse(record)" >领用复检</a-button>
+            <a-button v-if="hasPerm('ems:sample:update')" type="link" size="small" @click="openDisposeModal(record)" >销毁申请</a-button>
+            <a-button v-if="hasPerm('ems:sample:update')" type="link" size="small" @click="onReuse(record)" >领用复检</a-button>
             <a-button type="link" size="small" @click="onViewFlow(record)" v-if="record.status === '销毁审批中' || record.status === '已销毁'">查看流程</a-button>
-            <a-popconfirm title="确认删除该留样记录？" @confirm="handleDelete(record)">
+            <a-popconfirm v-if="hasPerm('ems:sample:delete')" title="确认删除该留样记录？" @confirm="handleDelete(record)">
               <a-button type="link" size="small" danger>删除</a-button>
             </a-popconfirm>
           </template>
@@ -118,7 +118,9 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { getRetains, getRetainStats, applyDispose, deleteRetain } from '../../../api/ems'
 import { useUserStore } from '../../../stores/user'
+import { usePermission } from '../../../composables/usePermission'
 
+const { hasPerm } = usePermission()
 const router = useRouter()
 const userStore = useUserStore()
 

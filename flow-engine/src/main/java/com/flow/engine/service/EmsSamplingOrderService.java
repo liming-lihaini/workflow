@@ -55,12 +55,20 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
      * 避免与 EmsDispatchService 互相依赖，这里直接通过 Mapper 轻量查询。
      */
     public List<Map<String, Object>> listDispatchBoard(String orderNo, String leadName, String status) {
+        return listDispatchBoard(orderNo, leadName, status, null);
+    }
+
+    /** 采样调度看板聚合：entrustId 非空时仅返回该委托关联的采样任务 */
+    public List<Map<String, Object>> listDispatchBoard(String orderNo, String leadName, String status, Long entrustId) {
         List<EmsSamplingOrder> orders = this.list(new LambdaQueryWrapper<EmsSamplingOrder>().orderByDesc(EmsSamplingOrder::getId));
         List<Map<String, Object>> result = new ArrayList<>();
         boolean hasFilter = (orderNo != null && !orderNo.trim().isEmpty())
                 || (leadName != null && !leadName.trim().isEmpty())
                 || (status != null && !status.trim().isEmpty());
         for (EmsSamplingOrder o : orders) {
+            if (entrustId != null && !entrustId.equals(o.getEntrustId())) {
+                continue;
+            }
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", o.getId());
             m.put("orderNo", o.getOrderNo());
@@ -95,6 +103,7 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
             String planStart = null;
             String planEnd = null;
             String leadNameVal = null;
+            String samplerNamesVal = null;
             Long dispatchId = null;
             if (o.getId() != null) {
                 EmsDispatch d = dispatchMapper.selectOne(new LambdaQueryWrapper<EmsDispatch>()
@@ -110,6 +119,14 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
                             .inSql(User::getId, "SELECT emp_id FROM t_dispatch_member WHERE dispatch_id = " + d.getId() + " AND role = 'LEAD'")
                             .last("LIMIT 1"));
                     if (lead != null) leadNameVal = lead.getRealName() != null ? lead.getRealName() : lead.getUsername();
+                    // 采样人：派单成员 role=MEMBER 姓名顿号拼接
+                    List<User> samplers = userMapper.selectList(new LambdaQueryWrapper<User>()
+                            .inSql(User::getId, "SELECT emp_id FROM t_dispatch_member WHERE dispatch_id = " + d.getId() + " AND role = 'MEMBER'"));
+                    if (!samplers.isEmpty()) {
+                        samplerNamesVal = samplers.stream()
+                                .map(u -> u.getRealName() != null ? u.getRealName() : u.getUsername())
+                                .collect(java.util.stream.Collectors.joining("、"));
+                    }
                 }
             }
             m.put("dispatchId", dispatchId);
@@ -117,6 +134,10 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
             m.put("planEnd", planEnd);
             m.put("planRange", (planStart != null ? planStart : "—") + " ~ " + (planEnd != null ? planEnd : "—"));
             m.put("leadName", leadNameVal != null ? leadNameVal : "—");
+            m.put("samplerNames", samplerNamesVal != null ? samplerNamesVal : "—");
+            m.put("createTime", o.getCreateTime());
+            m.put("createBy", o.getCreateBy());
+            m.put("createName", o.getCreateName());
             // 条件过滤（订单号/负责人/状态）
             if (hasFilter) {
                 if (orderNo != null && !orderNo.trim().isEmpty() && (o.getOrderNo() == null || !o.getOrderNo().contains(orderNo.trim()))) {
@@ -191,6 +212,10 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
         o.setEntrustId(entrust.getId());
         // pointId 不在此赋值，留待采样执行环节选择具体点位
         o.setStatus("待派单");
+        if (operator != null) {
+            o.setCreateBy(operator.getUsername());
+            o.setCreateName(operator.getRealName());
+        }
         o.setCreateTime(LocalDateTime.now());
         o.setUpdateTime(LocalDateTime.now());
         this.save(o);
@@ -220,6 +245,10 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
         o.setOrderNo(CodeGenerator.generate("SO", (int) (seq)));
         o.setEntrustId(entrustId);
         o.setStatus("待派单");
+        if (operator != null) {
+            o.setCreateBy(operator.getUsername());
+            o.setCreateName(operator.getRealName());
+        }
         o.setCreateTime(LocalDateTime.now());
         o.setUpdateTime(LocalDateTime.now());
         this.save(o);

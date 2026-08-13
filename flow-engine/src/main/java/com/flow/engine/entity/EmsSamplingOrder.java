@@ -24,6 +24,8 @@ public class EmsSamplingOrder {
     private String status;      // 待派单/已派单/已完成/采样执行中/样品送检/实验室检测中/报告编制/归档完成
     private LocalDateTime actualFinishTime; // 实际完成时间（负责人确认完成时录入）
     private String finishDesc;  // 完成描述（富文本）
+    private String createBy;    // 创建人账号
+    private String createName;  // 创建人姓名
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

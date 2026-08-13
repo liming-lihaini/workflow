@@ -62,7 +62,7 @@
 
     <a-card
       v-if="dispatchOrders.length"
-      title="委托派单"
+      title="采样任务"
       size="small"
       class="block"
     >
@@ -146,7 +146,7 @@ import {
   FileImageOutlined, FilePdfOutlined, FileExcelOutlined, FileWordOutlined,
   FileZipOutlined, FileOutlined, DownloadOutlined
 } from '@ant-design/icons-vue'
-import { getEntrust, getSamplingOrders, getFiles, getEntrustHistory } from '../../../api/ems'
+import { getEntrust, getDispatchBoardList, getFiles, getEntrustHistory } from '../../../api/ems'
 import { getProcessInstance } from '../../../api/process'
 import { getTasksByInstance } from '../../../api/task'
 
@@ -191,7 +191,7 @@ function formatSize(size) {
 }
 
 function goDispatch(order) {
-  router.push({ path: '/ems/base/dispatch-detail', query: { id: order.id } })
+  router.push(`/ems/base/dispatch/${order.id}`)
 }
 const pointColumns = [
   { title: '#', key: 'seq', width: 50 },
@@ -264,8 +264,8 @@ function loadRelatedProcess(processInstanceId) {
 }
 
 const dispatchColumns = [
-  { title: '订单号', key: 'orderNo', width: 140 },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
+  { title: '任务编号', key: 'orderNo', width: 140 },
+  { title: '任务状态', dataIndex: 'status', key: 'status', width: 90 },
   { title: '负责人', dataIndex: 'leadName', key: 'leadName', width: 90 },
   { title: '采样人', dataIndex: 'samplerNames', key: 'samplerNames', width: 120 },
   { title: '计划区间', key: 'planRange', width: 200 },
@@ -273,7 +273,8 @@ const dispatchColumns = [
 ]
 
 function loadDispatchOrders() {
-  getSamplingOrders({ entrustId: props.id }).then((res) => {
+  // 改用聚合接口：返回负责人/采样人/计划区间，点击任务编号可跳详情
+  getDispatchBoardList({ entrustId: props.id }).then((res) => {
     dispatchOrders.value = res.data || res || []
   }).catch(() => {})
 }

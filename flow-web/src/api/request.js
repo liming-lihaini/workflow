@@ -48,6 +48,15 @@ request.interceptors.response.use(
       if (res.code === 200 || res.code === 0) {
         return res
       }
+      // 1037 Token无效 / 1038 Token过期：会话已失效，清登录态并跳转登录页
+      if (res.code === 1037 || res.code === 1038) {
+        message.error(res.message || '登录已过期，请重新登录')
+        localStorage.removeItem('token')
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login'
+        }
+        return Promise.reject(new Error(res.message || '登录已过期'))
+      }
       const err = new Error(res.message || '请求失败')
       err.res = res
       err.code = res.code

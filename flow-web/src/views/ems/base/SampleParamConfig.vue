@@ -19,8 +19,9 @@
             allow-clear
             @search="loadData"
           />
-          <a-button type="primary" @click="openCreate">新增配置</a-button>
+          <a-button v-if="hasPerm('ems:base:update')" type="primary" @click="openCreate">新增配置</a-button>
           <a-button
+            v-if="hasPerm('ems:base:delete')"
             danger
             :disabled="!selectedRowKeys.length"
             @click="handleBatchDelete"
@@ -53,8 +54,8 @@
             </template>
             <template v-if="column.key === 'op'">
               <a-space>
-                <a @click="openEdit(record)">编辑</a>
-                <a-popconfirm title="确认删除该配置？" @confirm="handleDelete(record)">
+                <a v-if="hasPerm('ems:base:update')" @click="openEdit(record)">编辑</a>
+                <a-popconfirm v-if="hasPerm('ems:base:delete')" title="确认删除该配置？" @confirm="handleDelete(record)">
                   <a class="danger-link">删除</a>
                 </a-popconfirm>
               </a-space>
@@ -180,6 +181,9 @@ import {
   batchDeleteSampleParamConfig,
   getDictItems
 } from '../../../api/ems'
+import { usePermission } from '../../../composables/usePermission'
+
+const { hasPerm } = usePermission()
 
 /* ============ 基础数据 ============ */
 const typeOptions = [
