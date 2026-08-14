@@ -19,25 +19,30 @@
         mode="inline"
         theme="dark"
       >
-        <template v-for="item in visibleMenuItems" :key="item.key">
-          <!-- 无子菜单的菜单项 -->
-          <a-menu-item v-if="!item.children" @click="$router.push(item.path)">
-            <template #icon><component :is="item.icon" /></template>
-            <span>{{ item.title }}</span>
+        <!-- 无子菜单的菜单项 -->
+        <a-menu-item
+          v-for="item in visibleMenuItems.filter(m => !m.children)"
+          :key="item.key"
+          @click="$router.push(item.path)"
+        >
+          <template #icon><component :is="item.icon" /></template>
+          <span>{{ item.title }}</span>
+        </a-menu-item>
+        <!-- 有子菜单的子菜单 -->
+        <a-sub-menu
+          v-for="item in visibleMenuItems.filter(m => m.children && m.children.length)"
+          :key="item.key"
+        >
+          <template #icon><component :is="item.icon" /></template>
+          <template #title>{{ item.title }}</template>
+          <a-menu-item
+            v-for="child in item.children"
+            :key="child.key"
+            @click="$router.push(child.path)"
+          >
+            {{ child.title }}
           </a-menu-item>
-          <!-- 有子菜单的子菜单 -->
-          <a-sub-menu v-else>
-            <template #icon><component :is="item.icon" /></template>
-            <template #title>{{ item.title }}</template>
-            <a-menu-item
-              v-for="child in item.children"
-              :key="child.key"
-              @click="$router.push(child.path)"
-            >
-              {{ child.title }}
-            </a-menu-item>
-          </a-sub-menu>
-        </template>
+        </a-sub-menu>
       </a-menu>
     </a-layout-sider>
 
