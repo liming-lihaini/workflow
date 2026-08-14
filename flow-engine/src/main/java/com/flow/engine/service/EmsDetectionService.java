@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.flow.engine.common.BusinessException;
+import com.flow.engine.common.RequestContext;
 import com.flow.engine.entity.EmsDetectionResult;
 import com.flow.engine.entity.EmsDetectionReview;
 import com.flow.engine.entity.EmsDetectionTask;
@@ -42,6 +43,11 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
     private EmsSampleParamConfigMapper configMapper;
     @Autowired
     private EmsSamplingOrderService samplingOrderService;
+    @Autowired
+    private PermissionEvaluator permissionEvaluator;
+
+    /** 检测任务模块数据权限 Key（{模块}:data-all 表示查看模块全部数据） */
+    private static final String MODULE_PERM_KEY = "ems:detection";
 
     /** 为已收样样品创建检测任务（幂等：已存在则跳过）。 */
     public EmsDetectionTask createTask(Long sampleId, String monitorItems, String entryBy, String reviewBy) {
@@ -68,6 +74,13 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
         task.setReviewBy(reviewBy);
         task.setEntryTime(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         task.setStatus("录入中");
+        // 创建人回填：取当前登录用户账号（模块数据权限按此过滤）
+        try {
+            String createBy = RequestContext.current().getUsername();
+            if (StringUtils.hasText(createBy)) task.setCreateBy(createBy);
+        } catch (Exception ignored) {
+            // 无登录上下文（如系统内部调用）时不回填
+        }
         task.setCreateTime(LocalDateTime.now());
         task.setUpdateTime(LocalDateTime.now());
         taskMapper.insert(task);
@@ -200,12 +213,45 @@ public class EmsDetectionService extends ServiceImpl<EmsDetectionTaskMapper, Ems
         if (StringUtils.hasText(status)) q.eq(EmsDetectionTask::getStatus, status);
         if (StringUtils.hasText(entryBy)) q.eq(EmsDetectionTask::getEntryBy, entryBy);
         if (StringUtils.hasText(keyword)) {
-            q.like(EmsDetectionTask::getBarcode, keyword)
-             .or().like(EmsDetectionTask::getSampleName, keyword)
-             .or().like(EmsDetectionTask::getTaskNo, keyword);
+            q.and(kw -> kw.like(EmsDetectionTask::getBarcode, keyword)
+                    .or().like(EmsDetectionTask::getSampleName, keyword)
+                    .or().like(EmsDetectionTask::getTaskNo, keyword));
         }
+        applyDataScope(q);
         q.orderByDesc(EmsDetectionTask::getCreateTime);
         return this.page(new Page<>(page, size), q);
+    }
+
+    /**
+     * 检测任务数据范围过滤：
+     * 1. 系统管理员（角色数据范围=全部）或授权 ems:detection:data-all → 不过滤，查看全部数据；
+     * 2. 其余用户仅可见：检测人员为本人（entryBy）、复核人为本人（reviewBy）或本人创建（createBy）的任务。
+     */
+    private void applyDataScope(LambdaQueryWrapper<EmsDetectionTask> q) {
+        RequestContext ctx = RequestContext.current();
+        String userIdStr = ctx.getUserId();
+        if (!StringUtils.hasText(userIdStr)) {
+            q.apply("1 = 0");
+            return;
+        }
+        Long userId;
+        try {
+            userId = Long.valueOf(userIdStr);
+        } catch (NumberFormatException e) {
+            q.apply("1 = 0");
+            return;
+        }
+        if (permissionEvaluator.canViewAllModuleData(userId, MODULE_PERM_KEY)) {
+            return;
+        }
+        String username = ctx.getUsername();
+        if (StringUtils.hasText(username)) {
+            q.and(w -> w.eq(EmsDetectionTask::getEntryBy, username)
+                    .or().eq(EmsDetectionTask::getReviewBy, username)
+                    .or().eq(EmsDetectionTask::getCreateBy, username));
+        } else {
+            q.apply("1 = 0");
+        }
     }
 
     public Page<EmsDetectionTask> pagePendingReview(int page, int size) {

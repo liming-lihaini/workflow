@@ -225,6 +225,10 @@ public class DatabaseMigration implements CommandLineRunner {
         addColumnIfAbsent("t_qc_plan", "description", "TEXT");
         backfillActivityTaskNo();
 
+        // 样品/检测任务补充创建人字段（模块数据权限：创建人可见本人创建的数据）
+        addColumnIfAbsent("t_sample", "create_by", "VARCHAR(64)");
+        addColumnIfAbsent("t_detection_task", "create_by", "VARCHAR(64)");
+
         // 仪器设备全生命周期字段（TRD 5.5）
         addColumnIfAbsent("t_instrument", "code", "TEXT");
         addColumnIfAbsent("t_instrument", "manufacturer", "TEXT");

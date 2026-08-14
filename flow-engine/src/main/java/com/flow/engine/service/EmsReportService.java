@@ -2,6 +2,7 @@ package com.flow.engine.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.flow.engine.common.RequestContext;
 import com.flow.engine.entity.EmsCustomer;
 import com.flow.engine.entity.EmsDetectionResult;
 import com.flow.engine.entity.EmsDetectionTask;
@@ -47,6 +48,10 @@ public class EmsReportService {
     private final EmsMonitorPointMapper pointMapper;
     private final EmsEntrustMapper entrustMapper;
     private final EmsCustomerMapper customerMapper;
+    private final PermissionEvaluator permissionEvaluator;
+
+    /** 报告审核模块数据权限 Key（{模块}:data-all 表示查看模块全部数据） */
+    private static final String MODULE_PERM_KEY = "ems:report";
 
     public EmsReportService(EmsReportTemplateMapper templateMapper,
                             EmsReportMapper reportMapper,
@@ -57,7 +62,8 @@ public class EmsReportService {
                             EmsSampleMapper sampleMapper,
                             EmsMonitorPointMapper pointMapper,
                             EmsEntrustMapper entrustMapper,
-                            EmsCustomerMapper customerMapper) {
+                            EmsCustomerMapper customerMapper,
+                            PermissionEvaluator permissionEvaluator) {
         this.templateMapper = templateMapper;
         this.reportMapper = reportMapper;
         this.reportItemMapper = reportItemMapper;
@@ -68,6 +74,7 @@ public class EmsReportService {
         this.pointMapper = pointMapper;
         this.entrustMapper = entrustMapper;
         this.customerMapper = customerMapper;
+        this.permissionEvaluator = permissionEvaluator;
     }
 
     private String now() {
@@ -205,12 +212,45 @@ public class EmsReportService {
         return sb.toString();
     }
 
-    public List<Map<String, Object>> listReports(String status) {
-        QueryWrapper<EmsReport> qw = new QueryWrapper<>();
-        qw.orderByDesc("id");
-        if (StringUtils.hasText(status)) {
-            qw.eq("status", status);
+    /**
+     * 报告数据范围过滤：
+     * 1. 系统管理员（角色数据范围=全部）或授权 ems:report:data-all → 不过滤，查看全部数据；
+     * 2. 其余用户仅可见：本人创建（generator 生成人）、复核人为本人（reviewer）或批准人为本人（approver）的报告。
+     */
+    private void applyDataScope(LambdaQueryWrapper<EmsReport> qw) {
+        RequestContext ctx = RequestContext.current();
+        String userIdStr = ctx.getUserId();
+        if (!StringUtils.hasText(userIdStr)) {
+            qw.apply("1 = 0");
+            return;
         }
+        Long userId;
+        try {
+            userId = Long.valueOf(userIdStr);
+        } catch (NumberFormatException e) {
+            qw.apply("1 = 0");
+            return;
+        }
+        if (permissionEvaluator.canViewAllModuleData(userId, MODULE_PERM_KEY)) {
+            return;
+        }
+        String username = ctx.getUsername();
+        if (StringUtils.hasText(username)) {
+            qw.and(w -> w.eq(EmsReport::getGenerator, username)
+                    .or().eq(EmsReport::getReviewer, username)
+                    .or().eq(EmsReport::getApprover, username));
+        } else {
+            qw.apply("1 = 0");
+        }
+    }
+
+    public List<Map<String, Object>> listReports(String status) {
+        LambdaQueryWrapper<EmsReport> qw = new LambdaQueryWrapper<>();
+        qw.orderByDesc(EmsReport::getId);
+        if (StringUtils.hasText(status)) {
+            qw.eq(EmsReport::getStatus, status);
+        }
+        applyDataScope(qw);
         List<EmsReport> reports = reportMapper.selectList(qw);
         List<Map<String, Object>> list = new ArrayList<>();
         for (EmsReport r : reports) {

@@ -3,7 +3,9 @@ package com.flow.engine.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.flow.engine.common.BusinessException;
+import com.flow.engine.common.RequestContext;
 import com.flow.engine.entity.EmsDispatch;
+import com.flow.engine.entity.EmsDispatchMember;
 import com.flow.engine.entity.EmsCustomer;
 import com.flow.engine.entity.EmsEntrust;
 import com.flow.engine.entity.EmsMonitorPoint;
@@ -19,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -49,6 +52,13 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
     private EmsCustomerService customerService;
     @Autowired
     private EmsSamplingOrderHistoryMapper orderHistoryMapper;
+    @Autowired
+    private EmsDispatchMemberService dispatchMemberService;
+    @Autowired
+    private PermissionEvaluator permissionEvaluator;
+
+    /** 采样任务模块数据权限 Key（{模块}:data-all 表示查看模块全部数据） */
+    private static final String MODULE_PERM_KEY = "ems:dispatch";
 
     /**
      * 采样调度看板聚合数据：每个订单补充点位名称、派单计划区间、派单负责人姓名。
@@ -58,14 +68,18 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
         return listDispatchBoard(orderNo, leadName, status, null);
     }
 
-    /** 采样调度看板聚合：entrustId 非空时仅返回该委托关联的采样任务 */
+    /** 采样调度看板聚合：entrustId 非空时仅返回该委托关联的采样任务，受数据权限控制 */
     public List<Map<String, Object>> listDispatchBoard(String orderNo, String leadName, String status, Long entrustId) {
+        java.util.Set<Long> visibleOrderIds = resolveVisibleOrderIds();
         List<EmsSamplingOrder> orders = this.list(new LambdaQueryWrapper<EmsSamplingOrder>().orderByDesc(EmsSamplingOrder::getId));
         List<Map<String, Object>> result = new ArrayList<>();
         boolean hasFilter = (orderNo != null && !orderNo.trim().isEmpty())
                 || (leadName != null && !leadName.trim().isEmpty())
                 || (status != null && !status.trim().isEmpty());
         for (EmsSamplingOrder o : orders) {
+            if (visibleOrderIds != null && !visibleOrderIds.contains(o.getId())) {
+                continue;
+            }
             if (entrustId != null && !entrustId.equals(o.getEntrustId())) {
                 continue;
             }
@@ -156,6 +170,56 @@ public class EmsSamplingOrderService extends ServiceImpl<EmsSamplingOrderMapper,
             result.add(m);
         }
         return result;
+    }
+
+    /**
+     * 采样任务数据范围：
+     * 1. 系统管理员（角色数据范围=全部）或授权 ems:dispatch:data-all → 返回 null（不过滤，查看全部）；
+     * 2. 其余用户可见：本人创建（createBy）、本人作为负责人/成员参与的派单对应任务。
+     */
+    private java.util.Set<Long> resolveVisibleOrderIds() {
+        RequestContext ctx = RequestContext.current();
+        String userIdStr = ctx.getUserId();
+        if (!StringUtils.hasText(userIdStr)) {
+            return java.util.Collections.emptySet();
+        }
+        Long userId;
+        try {
+            userId = Long.valueOf(userIdStr);
+        } catch (NumberFormatException e) {
+            return java.util.Collections.emptySet();
+        }
+        if (permissionEvaluator.canViewAllModuleData(userId, MODULE_PERM_KEY)) {
+            return null;
+        }
+        java.util.Set<Long> visible = new java.util.HashSet<>();
+        // 本人创建的采样任务
+        String username = ctx.getUsername();
+        if (StringUtils.hasText(username)) {
+            this.list(new LambdaQueryWrapper<EmsSamplingOrder>()
+                    .select(EmsSamplingOrder::getId)
+                    .eq(EmsSamplingOrder::getCreateBy, username))
+                    .forEach(o -> visible.add(o.getId()));
+        }
+        // 本人作为负责人/成员参与的派单 → 对应采样任务
+        List<EmsDispatchMember> members = dispatchMemberService.list(
+                new LambdaQueryWrapper<EmsDispatchMember>().eq(EmsDispatchMember::getEmpId, userId));
+        if (!members.isEmpty()) {
+            List<Long> dispatchIds = members.stream()
+                    .map(EmsDispatchMember::getDispatchId)
+                    .filter(java.util.Objects::nonNull)
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
+            if (!dispatchIds.isEmpty()) {
+                dispatchMapper.selectList(new LambdaQueryWrapper<EmsDispatch>()
+                        .select(EmsDispatch::getOrderId)
+                        .in(EmsDispatch::getId, dispatchIds))
+                        .forEach(d -> {
+                            if (d.getOrderId() != null) visible.add(d.getOrderId());
+                        });
+            }
+        }
+        return visible;
     }
 
     /**

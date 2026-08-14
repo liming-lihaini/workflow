@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.flow.engine.common.BusinessException;
+import com.flow.engine.common.RequestContext;
 import com.flow.engine.dto.EmsHazardousDetailVO;
 import com.flow.engine.dto.EmsResourceDetailVO;
 import com.flow.engine.entity.*;
@@ -37,6 +38,10 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
     @Autowired private ProcessInstanceMapper processInstanceMapper;
     @Autowired private VariableMapper variableMapper;
     @Autowired private UserMapper userMapper;
+    @Autowired private PermissionEvaluator permissionEvaluator;
+
+    /** 质控计划模块数据权限 Key（{模块}:data-all 表示查看模块全部数据） */
+    private static final String MODULE_PERM_KEY = "ems:quality";
 
     private static final int EXPIRE_WARN_DAYS = 30; // 临期阈值
 
@@ -375,6 +380,7 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
         }
         if (StringUtils.hasText(year)) q.eq(EmsQcPlan::getYear, Integer.parseInt(year));
         if (StringUtils.hasText(status)) q.eq(EmsQcPlan::getStatus, status);
+        applyPlanDataScope(q);
         q.orderByDesc(EmsQcPlan::getCreateTime);
         Page<EmsQcPlan> result = this.page(new Page<>(page, size), q);
         fillTaskProgress(result.getRecords());
@@ -583,10 +589,100 @@ public class EmsQualityService extends ServiceImpl<EmsQcPlanMapper, EmsQcPlan> {
         // 时间范围：按活动开始日期过滤
         if (StringUtils.hasText(startDateFrom)) q.ge(EmsQcActivity::getStartDate, LocalDate.parse(startDateFrom));
         if (StringUtils.hasText(startDateTo)) q.le(EmsQcActivity::getStartDate, LocalDate.parse(startDateTo));
+        applyActivityDataScope(q);
         q.orderByDesc(EmsQcActivity::getId);
         Page<EmsQcActivity> result = activityMapper.selectPage(new Page<>(page, size), q);
         fillPlanTitle(result.getRecords());
         return result;
+    }
+
+    /**
+     * 质控计划数据范围过滤：
+     * 1. 系统管理员（角色数据范围=全部）或授权 ems:quality:data-all → 不过滤，查看全部数据；
+     * 2. 其余用户仅可见：计划责任人为本人（responsibleId）、本人创建（createdBy）的计划，
+     *    以及本人作为活动执行人参与的计划（上级计划）。
+     */
+    private void applyPlanDataScope(LambdaQueryWrapper<EmsQcPlan> q) {
+        RequestContext ctx = RequestContext.current();
+        String userIdStr = ctx.getUserId();
+        if (!StringUtils.hasText(userIdStr)) {
+            q.apply("1 = 0");
+            return;
+        }
+        Long userId;
+        try {
+            userId = Long.valueOf(userIdStr);
+        } catch (NumberFormatException e) {
+            q.apply("1 = 0");
+            return;
+        }
+        if (permissionEvaluator.canViewAllModuleData(userId, MODULE_PERM_KEY)) {
+            return;
+        }
+        String username = ctx.getUsername();
+        if (!StringUtils.hasText(username)) {
+            q.apply("1 = 0");
+            return;
+        }
+        // 本人作为活动执行人参与的上级计划
+        List<Long> operatorPlanIds = activityMapper.selectList(new LambdaQueryWrapper<EmsQcActivity>()
+                .select(EmsQcActivity::getPlanId)
+                .eq(EmsQcActivity::getOperatorId, username))
+                .stream().map(EmsQcActivity::getPlanId)
+                .filter(java.util.Objects::nonNull)
+                .distinct().collect(Collectors.toList());
+        if (operatorPlanIds.isEmpty()) {
+            q.and(w -> w.eq(EmsQcPlan::getResponsibleId, username)
+                    .or().eq(EmsQcPlan::getCreatedBy, username));
+        } else {
+            q.and(w -> w.eq(EmsQcPlan::getResponsibleId, username)
+                    .or().eq(EmsQcPlan::getCreatedBy, username)
+                    .or().in(EmsQcPlan::getId, operatorPlanIds));
+        }
+    }
+
+    /**
+     * 监控活动（计划下任务）数据范围过滤：
+     * 1. 系统管理员或授权 ems:quality:data-all → 不过滤；
+     * 2. 其余用户可见：活动执行人为本人（operatorId）、本人创建（createdBy）的活动，
+     *    以及本人可见计划（责任人/创建人）下的全部活动。
+     */
+    private void applyActivityDataScope(LambdaQueryWrapper<EmsQcActivity> q) {
+        RequestContext ctx = RequestContext.current();
+        String userIdStr = ctx.getUserId();
+        if (!StringUtils.hasText(userIdStr)) {
+            q.apply("1 = 0");
+            return;
+        }
+        Long userId;
+        try {
+            userId = Long.valueOf(userIdStr);
+        } catch (NumberFormatException e) {
+            q.apply("1 = 0");
+            return;
+        }
+        if (permissionEvaluator.canViewAllModuleData(userId, MODULE_PERM_KEY)) {
+            return;
+        }
+        String username = ctx.getUsername();
+        if (!StringUtils.hasText(username)) {
+            q.apply("1 = 0");
+            return;
+        }
+        // 本人可见的计划集合（责任人或创建人为本人）
+        List<Long> visiblePlanIds = this.list(new LambdaQueryWrapper<EmsQcPlan>()
+                .select(EmsQcPlan::getId)
+                .and(w -> w.eq(EmsQcPlan::getResponsibleId, username)
+                        .or().eq(EmsQcPlan::getCreatedBy, username)))
+                .stream().map(EmsQcPlan::getId).collect(Collectors.toList());
+        if (visiblePlanIds.isEmpty()) {
+            q.and(w -> w.eq(EmsQcActivity::getOperatorId, username)
+                    .or().eq(EmsQcActivity::getCreatedBy, username));
+        } else {
+            q.and(w -> w.eq(EmsQcActivity::getOperatorId, username)
+                    .or().eq(EmsQcActivity::getCreatedBy, username)
+                    .or().in(EmsQcActivity::getPlanId, visiblePlanIds));
+        }
     }
 
     /** 批量回填活动所属计划名称（供任务视图/待办展示） */

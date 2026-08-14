@@ -2,6 +2,7 @@ package com.flow.engine.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.flow.engine.common.RequestContext;
 import com.flow.engine.dto.EmsEntrustVO;
 import com.flow.engine.entity.DictItem;
 import com.flow.engine.entity.EmsCustomer;
@@ -54,9 +55,14 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
     private UserMapper userMapper;
     @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    @Autowired
+    private PermissionEvaluator permissionEvaluator;
 
     /** 来源字典 code（TRD 5.1 t_entrust.source） */
     private static final String SOURCE_DICT = "moni_entrust_source";
+
+    /** 检测委托模块数据权限 Key（{模块}:data-all 表示查看模块全部数据） */
+    private static final String MODULE_PERM_KEY = "ems:entrust";
 
     public EmsEntrust createDraft(EmsEntrust e) {
         if (!StringUtils.hasText(e.getEntrustName())) {
@@ -212,11 +218,13 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
         return vos;
     }
 
-    /** 列表视图：关联客户名称、来源名称（TRD 5.1 委托列表展示），可按状态过滤 */
+    /** 列表视图：关联客户名称、来源名称（TRD 5.1 委托列表展示），可按状态过滤，受数据权限控制 */
     public List<EmsEntrustVO> listVO(String status) {
-        List<EmsEntrust> list = this.list(new LambdaQueryWrapper<EmsEntrust>()
+        LambdaQueryWrapper<EmsEntrust> uw = new LambdaQueryWrapper<EmsEntrust>()
                 .eq(status != null, EmsEntrust::getStatus, status)
-                .orderByDesc(EmsEntrust::getCreateTime));
+                .orderByDesc(EmsEntrust::getCreateTime);
+        applyDataScope(uw);
+        List<EmsEntrust> list = this.list(uw);
         Map<Long, String> custNameMap = loadCustNames(list);
         Map<String, String> sourceNameMap = loadSourceNames();
         Map<String, String> sampleFreqNameMap = loadSampleFreqNames();
@@ -314,6 +322,36 @@ public class EmsEntrustService extends ServiceImpl<EmsEntrustMapper, EmsEntrust>
                     operator == null ? null : operator.getRealName());
         }
         return getVO(e.getId());
+    }
+
+    /**
+     * 检测委托数据范围过滤：
+     * 1. 系统管理员（角色数据范围=全部）或授权 ems:entrust:data-all → 不过滤，查看全部数据；
+     * 2. 其余用户仅可见本人创建（createBy）的委托。
+     */
+    private void applyDataScope(LambdaQueryWrapper<EmsEntrust> uw) {
+        RequestContext ctx = RequestContext.current();
+        String userIdStr = ctx.getUserId();
+        if (!StringUtils.hasText(userIdStr)) {
+            uw.apply("1 = 0");
+            return;
+        }
+        Long userId;
+        try {
+            userId = Long.valueOf(userIdStr);
+        } catch (NumberFormatException e) {
+            uw.apply("1 = 0");
+            return;
+        }
+        if (permissionEvaluator.canViewAllModuleData(userId, MODULE_PERM_KEY)) {
+            return;
+        }
+        String username = ctx.getUsername();
+        if (StringUtils.hasText(username)) {
+            uw.eq(EmsEntrust::getCreateBy, username);
+        } else {
+            uw.apply("1 = 0");
+        }
     }
 
     private Map<Long, String> loadCustNames(List<EmsEntrust> list) {

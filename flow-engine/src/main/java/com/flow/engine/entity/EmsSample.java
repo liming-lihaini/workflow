@@ -72,6 +72,9 @@ public class EmsSample {
     /** 现场照片（逗号分隔的相对路径/URL） */
     private String samplePhoto;
 
+    /** 创建人账号（username，模块数据权限按此过滤） */
+    private String createBy;
+
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

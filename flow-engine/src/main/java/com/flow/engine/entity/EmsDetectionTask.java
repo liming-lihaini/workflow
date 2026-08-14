@@ -34,6 +34,7 @@ public class EmsDetectionTask {
     private String conclusion;   // 综合检验结论：pending/ok/ng/abnormal
     private String remark;
     private String attachments;   // 检测录入附件（JSON 数组：[{name,path}]）
+    private String createBy;     // 创建人账号（username，模块数据权限按此过滤）
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

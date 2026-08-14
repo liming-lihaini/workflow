@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.flow.engine.common.BusinessException;
+import com.flow.engine.common.RequestContext;
 import com.flow.engine.common.utils.JsonUtils;
 import com.flow.engine.dto.ReceiveReq;
 import com.flow.engine.dto.SampleCollectReq;
@@ -59,6 +60,11 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
     private com.flow.engine.engine.FlowEngine flowEngine;
     @Autowired
     private DictService dictService;
+    @Autowired
+    private PermissionEvaluator permissionEvaluator;
+
+    /** 样品管理模块数据权限 Key（{模块}:data-all 表示查看模块全部数据） */
+    private static final String MODULE_PERM_KEY = "ems:sample";
 
     /** 按字典 code + itemValue 查字典名称；未命中返回原值 */
     private String dictText(String dictCode, String itemValue) {
@@ -143,6 +149,7 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         if (sample.getSamplingId() == null) throw new BusinessException("采样记录ID不能为空");
         if (!StringUtils.hasText(sample.getName())) throw new BusinessException("样品名称不能为空");
         sample.setStatus(StringUtils.hasText(sample.getStatus()) ? sample.getStatus() : "待收样");
+        fillCreateBy(sample);
         // 生成条码
         int seq = (int) (sampleMapper.selectCount(new LambdaQueryWrapper<>()) + 1);
         sample.setBarcode(CodeGenerator.generate("YP", seq));
@@ -163,6 +170,7 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         if (!StringUtils.hasText(sample.getName())) throw new BusinessException("样品名称不能为空");
         // 默认来源标记，便于区分小程序上报的样品
         if (!StringUtils.hasText(sample.getSource())) sample.setSource("手动收集");
+        fillCreateBy(sample);
         // 生成条码
         int seq = (int) (sampleMapper.selectCount(new LambdaQueryWrapper<>()) + 1);
         sample.setBarcode(CodeGenerator.generate("YP", seq));
@@ -225,6 +233,7 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         sample.setSamplePhoto(req.getPhotos() == null ? null : String.join(",", req.getPhotos()));
 
         sample.setSource("手动收集");
+        fillCreateBy(sample);
         // 收集保存后默认进入「待收样」状态，待收样阶段暂无收样人/收样时间，由收样环节填写
         sample.setStatus("待收样");
         int seq = (int) (sampleMapper.selectCount(new LambdaQueryWrapper<>()) + 1);
@@ -375,10 +384,53 @@ public class EmsSamplingService extends ServiceImpl<EmsSamplingRecordMapper, Ems
         if (samplingId != null) q.eq(EmsSample::getSamplingId, samplingId);
         if (StringUtils.hasText(status)) q.eq(EmsSample::getStatus, status);
         if (StringUtils.hasText(keyword)) {
-            q.like(EmsSample::getName, keyword).or().like(EmsSample::getBarcode, keyword);
+            q.and(kw -> kw.like(EmsSample::getName, keyword).or().like(EmsSample::getBarcode, keyword));
         }
+        applyDataScope(q);
         q.orderByDesc(EmsSample::getCreateTime);
         return sampleMapper.selectPage(new Page<>(page, size), q);
+    }
+
+    /**
+     * 样品数据范围过滤：
+     * 1. 系统管理员（角色数据范围=全部）或授权 ems:sample:data-all → 不过滤，查看全部数据；
+     * 2. 其余用户仅可见本人创建（createBy）或采样人为本人（sampler）的样品。
+     */
+    private void applyDataScope(LambdaQueryWrapper<EmsSample> q) {
+        RequestContext ctx = RequestContext.current();
+        String userIdStr = ctx.getUserId();
+        if (!StringUtils.hasText(userIdStr)) {
+            q.apply("1 = 0");
+            return;
+        }
+        Long userId;
+        try {
+            userId = Long.valueOf(userIdStr);
+        } catch (NumberFormatException e) {
+            q.apply("1 = 0");
+            return;
+        }
+        if (permissionEvaluator.canViewAllModuleData(userId, MODULE_PERM_KEY)) {
+            return;
+        }
+        String username = ctx.getUsername();
+        if (StringUtils.hasText(username)) {
+            q.and(w -> w.eq(EmsSample::getCreateBy, username)
+                    .or().eq(EmsSample::getSampler, username));
+        } else {
+            q.apply("1 = 0");
+        }
+    }
+
+    /** 创建人回填：未显式指定时取当前登录用户账号（模块数据权限按此过滤） */
+    private void fillCreateBy(EmsSample sample) {
+        if (StringUtils.hasText(sample.getCreateBy())) return;
+        try {
+            String username = RequestContext.current().getUsername();
+            if (StringUtils.hasText(username)) sample.setCreateBy(username);
+        } catch (Exception ignored) {
+            // 无登录上下文（如系统内部调用）时不回填
+        }
     }
 
     public List<EmsSample> listByStatus(String status) {
