@@ -3,29 +3,47 @@
     <div class="card-wrap">
       <!-- 台账统计卡片（PRD-02 §5.1） -->
       <div class="stat-row">
-        <div class="stat-card">
-          <div class="stat-label">合同总数 / 执行中</div>
-          <div class="stat-value">{{ stats.totalCount || 0 }} <span class="stat-sub">/ {{ stats.runningCount || 0 }}</span></div>
+        <div class="stat-card stat-blue">
+          <div class="stat-icon icon-blue"><FileTextOutlined /></div>
+          <div class="stat-body">
+            <div class="stat-label">合同总数 / 执行中</div>
+            <div class="stat-value">{{ stats.totalCount || 0 }} <span class="stat-sub">/ {{ stats.runningCount || 0 }}</span></div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">应收总额 / 已收</div>
-          <div class="stat-value">{{ money(stats.receivable) }} <span class="stat-sub">/ {{ money(stats.received) }}</span></div>
+        <div class="stat-card stat-green">
+          <div class="stat-icon icon-green"><DollarOutlined /></div>
+          <div class="stat-body">
+            <div class="stat-label">应收总额 / 已收（万元）</div>
+            <div class="stat-value">{{ wan(stats.receivable) }} <span class="stat-sub">/ {{ wan(stats.received) }}</span></div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">应收未收</div>
-          <div class="stat-value warn">{{ money(stats.receivableUnsettled) }}</div>
+        <div class="stat-card stat-orange">
+          <div class="stat-icon icon-orange"><ClockCircleOutlined /></div>
+          <div class="stat-body">
+            <div class="stat-label">应收未收（万元）</div>
+            <div class="stat-value warn">{{ wan(stats.receivableUnsettled) }}</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">应付总额 / 已付</div>
-          <div class="stat-value">{{ money(stats.payable) }} <span class="stat-sub">/ {{ money(stats.paid) }}</span></div>
+        <div class="stat-card stat-blue">
+          <div class="stat-icon icon-blue"><CreditCardOutlined /></div>
+          <div class="stat-body">
+            <div class="stat-label">应付总额 / 已付（万元）</div>
+            <div class="stat-value">{{ wan(stats.payable) }} <span class="stat-sub">/ {{ wan(stats.paid) }}</span></div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">应付未付</div>
-          <div class="stat-value warn">{{ money(stats.payableUnsettled) }}</div>
+        <div class="stat-card stat-orange">
+          <div class="stat-icon icon-orange"><MoneyCollectOutlined /></div>
+          <div class="stat-body">
+            <div class="stat-label">应付未付（万元）</div>
+            <div class="stat-value warn">{{ wan(stats.payableUnsettled) }}</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">逾期节点数</div>
-          <div class="stat-value" :class="{ danger: stats.overdueNodeCount > 0 }">{{ stats.overdueNodeCount || 0 }}</div>
+        <div class="stat-card stat-red">
+          <div class="stat-icon icon-red"><ExclamationCircleOutlined /></div>
+          <div class="stat-body">
+            <div class="stat-label">逾期节点数</div>
+            <div class="stat-value" :class="{ danger: stats.overdueNodeCount > 0 }">{{ stats.overdueNodeCount || 0 }}</div>
+          </div>
         </div>
       </div>
 
@@ -51,7 +69,7 @@
         </template>
         <a-form-item :class="showMore ? 'btn-row-center' : ''">
           <a-space>
-            <a-button type="primary" @click="loadList">查询</a-button>
+            <a-button type="primary" @click="searchList">查询</a-button>
             <a-button @click="resetQuery">重置</a-button>
             <a class="more-link" @click="showMore = !showMore">
               {{ showMore ? '收起' : '更多' }}
@@ -66,16 +84,17 @@
         <a-button v-if="hasPerm('ems:contract:edit')" type="primary" @click="openDrawer()">新建合同</a-button>
       </div>
 
-      <!-- 台账列表 -->
-      <a-table
-        row-key="id"
-        size="small"
-        :columns="columns"
-        :data-source="list"
-        :loading="loading"
-        :pagination="{ pageSize: 20, showTotal: (t) => `共 ${t} 条` }"
-        :scroll="{ x: 1500 }"
-      >
+      <!-- 台账列表（高度固定，内容区滚动） -->
+      <div class="table-host">
+        <a-table
+          row-key="id"
+          size="small"
+          :columns="columns"
+          :data-source="list"
+          :loading="loading"
+          :pagination="pagination"
+          :scroll="{ x: 1500, y: scrollY }"
+        >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'contractNo'">
             <span class="link-text" @click="goDetail(record)">{{ record.contractNo }}</span>
@@ -110,7 +129,8 @@
             </a-space>
           </template>
         </template>
-      </a-table>
+        </a-table>
+      </div>
     </div>
 
     <!-- 新建/编辑抽屉 -->
@@ -283,10 +303,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, h } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { UploadOutlined, DownOutlined, UpOutlined } from '@ant-design/icons-vue'
+import { UploadOutlined, DownOutlined, UpOutlined, FileTextOutlined, DollarOutlined, ClockCircleOutlined, CreditCardOutlined, MoneyCollectOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import {
   getContracts, getContractStatistics, saveContract, deleteContract,
@@ -317,6 +337,8 @@ const loading = ref(false)
 const stats = ref({})
 const query = reactive({ contractNo: '', contractName: '', contractType: undefined, status: undefined, counterparty: '' })
 const signRange = ref(null)
+// 服务端分页：默认每页10条
+const pagination = reactive({ current: 1, pageSize: 10, total: 0, showTotal: (t) => `共 ${t} 条`, onChange: (p) => { pagination.current = p; loadList() } })
 // 查询面板展开状态：默认仅显示快捷条件（编号/名称/状态），点击「更多」展开其余条件
 const showMore = ref(false)
 
@@ -337,14 +359,27 @@ const columns = [
 
 function loadList() {
   loading.value = true
-  const params = { ...query }
+  const params = { ...query, page: pagination.current, size: pagination.pageSize }
   if (signRange.value && signRange.value.length === 2) {
     params.signStart = signRange.value[0]
     params.signEnd = signRange.value[1]
   }
   getContracts(params).then((res) => {
-    list.value = res.data || res || []
-  }).catch(() => {}).finally(() => { loading.value = false })
+    const p = res.data || res
+    if (Array.isArray(p)) {
+      list.value = p
+      pagination.total = p.length
+    } else {
+      list.value = p.records || []
+      pagination.total = p.total || 0
+    }
+  }).catch(() => {}).finally(() => { loading.value = false; nextTick(syncTableHeight) })
+}
+
+/** 条件查询：回到第一页 */
+function searchList() {
+  pagination.current = 1
+  loadList()
 }
 
 function loadStats() {
@@ -354,6 +389,7 @@ function loadStats() {
 function resetQuery() {
   Object.assign(query, { contractNo: '', contractName: '', contractType: undefined, status: undefined, counterparty: '' })
   signRange.value = null
+  pagination.current = 1
   loadList()
 }
 
@@ -367,6 +403,27 @@ function money(v) {
   if (v === null || v === undefined || v === '') return '0.00'
   return Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
+/** 金额按万元展示（统计卡片） */
+function wan(v) {
+  if (v === null || v === undefined || v === '') return '0.00'
+  return (Number(v) / 10000).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// ---------- 表格固定高度：动态计算使页面布满一屏，表体内部滚动 ----------
+const scrollY = ref(420)
+let hostObserver = null
+function syncTableHeight() {
+  const box = document.querySelector('.page-wrap .table-host')
+  if (!box) return
+  const headerEl = box.querySelector('.ant-table-thead')
+  const theadTop = (headerEl || box).getBoundingClientRect().top
+  const pagEl = box.querySelector('.ant-table-pagination')
+  const pagH = pagEl ? pagEl.getBoundingClientRect().height : 32
+  // 视口底 - 表头顶部 - 分页区 - 底部留白（content 外边距12 + 页内边距16 + 卡片内边距16 + 分页上边距16）
+  const h = window.innerHeight - theadTop - pagH - 60
+  scrollY.value = h > 200 ? Math.floor(h) : 200
+}
+watch(showMore, () => nextTick(syncTableHeight))
 function statusColor(s) {
   return { '草稿': 'default', '执行中': 'blue', '已完结': 'green', '已中止': 'orange', '已作废': 'red' }[s] || 'default'
 }
@@ -674,6 +731,20 @@ function handleSave() {
 onMounted(() => {
   loadDicts()
   refreshAll()
+  nextTick(() => {
+    syncTableHeight()
+    const box = document.querySelector('.page-wrap .table-host')
+    if (box && 'ResizeObserver' in window) {
+      hostObserver = new ResizeObserver(() => syncTableHeight())
+      hostObserver.observe(box)
+    }
+    window.addEventListener('resize', syncTableHeight)
+  })
+})
+
+onUnmounted(() => {
+  if (hostObserver) hostObserver.disconnect()
+  window.removeEventListener('resize', syncTableHeight)
 })
 </script>
 
@@ -701,27 +772,61 @@ onMounted(() => {
 .stat-row {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+/* 台账表格容器：填满剩余高度，表体内部滚动 */
+.table-host {
+  flex: 1;
+  min-height: 0;
 }
 .stat-card {
-  padding: 10px 14px;
-  border: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: box-shadow 0.2s;
+}
+.stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.stat-blue { background: #eff6ff; border-color: #dbeafe; }
+.stat-green { background: #f0fdf4; border-color: #dcfce7; }
+.stat-orange { background: #fff7ed; border-color: #ffedd5; }
+.stat-red { background: #fef2f2; border-color: #fee2e2; }
+.stat-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
-  background: #fafcff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.icon-blue { background: rgba(22, 119, 255, 0.1); color: #1677ff; }
+.icon-green { background: rgba(0, 180, 42, 0.1); color: #00b42a; }
+.icon-orange { background: rgba(255, 125, 0, 0.1); color: #ff7d00; }
+.icon-red { background: rgba(245, 63, 63, 0.1); color: #f53f3f; }
+.stat-body {
+  min-width: 0;
 }
 .stat-label {
-  font-size: 12px;
-  color: #8c8c8c;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 2px;
+  white-space: nowrap;
 }
 .stat-value {
-  margin-top: 2px;
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 600;
-  color: #262626;
+  color: #1f2937;
+  white-space: nowrap;
 }
-.stat-value.warn { color: #fa8c16; }
-.stat-value.danger { color: #f5222d; }
+.stat-value.warn { color: #ff7d00; }
+.stat-value.danger { color: #f53f3f; }
 .stat-sub {
   font-size: 13px;
   font-weight: 400;

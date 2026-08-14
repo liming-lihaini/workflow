@@ -1,7 +1,11 @@
 package com.flow.engine.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.flow.engine.common.BusinessException;
+import com.flow.engine.common.ErrorCode;
+import com.flow.engine.common.RequestContext;
 import com.flow.engine.dto.ContractSaveReq;
 import com.flow.engine.dto.ContractTxnReq;
 import com.flow.engine.dto.EmsContractVO;
@@ -39,6 +43,9 @@ public class EmsContractService extends ServiceImpl<EmsContractMapper, EmsContra
     public static final String STATUS_SUSPENDED = "已中止";
     public static final String STATUS_VOID = "已作废";
 
+    /** 合同模块数据权限 Key（{模块}:data-all 表示查看模块全部数据） */
+    private static final String MODULE_PERM_KEY = "ems:contract";
+
     @Autowired
     private EmsContractNodeMapper nodeMapper;
     @Autowired
@@ -53,13 +60,15 @@ public class EmsContractService extends ServiceImpl<EmsContractMapper, EmsContra
     private EmsEntrustMapper entrustMapper;
     @Autowired
     private EmsCustomerService customerService;
+    @Autowired
+    private PermissionEvaluator permissionEvaluator;
 
     // ==================== 列表与统计 ====================
 
-    /** 台账列表（含已收付金额、进度、逾期节点数） */
-    public List<EmsContractVO> listVO(String contractNo, String contractName, String contractType,
+    /** 台账分页列表（含已收付金额、进度、逾期节点数，受数据权限控制） */
+    public Page<EmsContractVO> pageVO(String contractNo, String contractName, String contractType,
                                       String status, String counterparty, Long leadId,
-                                      String signStart, String signEnd) {
+                                      String signStart, String signEnd, int page, int size) {
         LambdaQueryWrapper<EmsContract> uw = new LambdaQueryWrapper<>();
         uw.like(StringUtils.hasText(contractNo), EmsContract::getContractNo, contractNo)
           .like(StringUtils.hasText(contractName), EmsContract::getContractName, contractName)
@@ -70,27 +79,34 @@ public class EmsContractService extends ServiceImpl<EmsContractMapper, EmsContra
           .ge(StringUtils.hasText(signStart), EmsContract::getSignDate, signStart)
           .le(StringUtils.hasText(signEnd), EmsContract::getSignDate, signEnd)
           .orderByDesc(EmsContract::getId);
-        List<EmsContract> list = this.list(uw);
-        if (list.isEmpty()) return new ArrayList<>();
-
-        List<Long> ids = list.stream().map(EmsContract::getId).collect(Collectors.toList());
-        Map<Long, BigDecimal> settledMap = sumTxnByContract(ids);
-        Map<Long, Integer> overdueMap = countOverdueNodes(ids);
-
-        return list.stream().map(c -> {
-            EmsContractVO vo = toVO(c);
-            BigDecimal settled = settledMap.getOrDefault(c.getId(), BigDecimal.ZERO);
-            vo.setSettledAmount(settled);
-            vo.setProgress(percent(settled, c.getAmount()));
-            vo.setOverdueNodeCount(overdueMap.getOrDefault(c.getId(), 0));
-            return vo;
-        }).collect(Collectors.toList());
+        applyDataScope(uw);
+        Page<EmsContract> p = this.page(new Page<>(page, size), uw);
+        Page<EmsContractVO> voPage = new Page<>(p.getCurrent(), p.getSize(), p.getTotal());
+        List<EmsContract> list = p.getRecords();
+        List<EmsContractVO> vos = new ArrayList<>();
+        if (!list.isEmpty()) {
+            List<Long> ids = list.stream().map(EmsContract::getId).collect(Collectors.toList());
+            Map<Long, BigDecimal> settledMap = sumTxnByContract(ids);
+            Map<Long, Integer> overdueMap = countOverdueNodes(ids);
+            for (EmsContract c : list) {
+                EmsContractVO vo = toVO(c);
+                BigDecimal settled = settledMap.getOrDefault(c.getId(), BigDecimal.ZERO);
+                vo.setSettledAmount(settled);
+                vo.setProgress(percent(settled, c.getAmount()));
+                vo.setOverdueNodeCount(overdueMap.getOrDefault(c.getId(), 0));
+                vos.add(vo);
+            }
+        }
+        voPage.setRecords(vos);
+        return voPage;
     }
 
     /** 台账统计卡片（PRD-02 §5.1） */
     public Map<String, Object> statistics() {
-        List<EmsContract> all = this.list(new LambdaQueryWrapper<EmsContract>()
-                .ne(EmsContract::getStatus, STATUS_VOID));
+        LambdaQueryWrapper<EmsContract> uw = new LambdaQueryWrapper<EmsContract>()
+                .ne(EmsContract::getStatus, STATUS_VOID);
+        applyDataScope(uw);
+        List<EmsContract> all = this.list(uw);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("totalCount", all.size());
         data.put("runningCount", all.stream().filter(c -> STATUS_RUNNING.equals(c.getStatus())).count());
@@ -472,6 +488,58 @@ public class EmsContractService extends ServiceImpl<EmsContractMapper, EmsContra
             throw new IllegalArgumentException("合同不存在");
         }
         return c;
+    }
+
+    /**
+     * 合同数据权限校验（详情/操作历史等按 ID 访问的接口）：
+     * 1. 系统管理员（角色数据范围=全部）或持有 ems:contract:data-all 权限 → 放行；
+     * 2. 否则仅创建人或合同负责人可查看。
+     */
+    public void checkContractVisible(Long id) {
+        RequestContext ctx = RequestContext.current();
+        String userIdStr = ctx.getUserId();
+        if (!StringUtils.hasText(userIdStr)) {
+            throw new BusinessException(ErrorCode.PERMISSION_DENIED);
+        }
+        Long userId = Long.valueOf(userIdStr);
+        if (permissionEvaluator.canViewAllModuleData(userId, MODULE_PERM_KEY)) {
+            return;
+        }
+        EmsContract c = require(id);
+        String username = ctx.getUsername();
+        boolean creator = StringUtils.hasText(username) && username.equals(c.getCreateBy());
+        boolean lead = userId.equals(c.getLeadId());
+        if (!creator && !lead) {
+            throw new BusinessException(ErrorCode.PERMISSION_DENIED);
+        }
+    }
+
+    /**
+     * 应用合同模块数据范围过滤：
+     * 1. 系统管理员（角色数据范围=全部）或授权 ems:contract:data-all → 不过滤，查看全部数据；
+     * 2. 否则仅可见「创建人 = 本人」或「负责人 = 本人」的合同。
+     */
+    private void applyDataScope(LambdaQueryWrapper<EmsContract> uw) {
+        RequestContext ctx = RequestContext.current();
+        String userIdStr = ctx.getUserId();
+        if (!StringUtils.hasText(userIdStr)) {
+            uw.apply("1 = 0");
+            return;
+        }
+        Long userId;
+        try {
+            userId = Long.valueOf(userIdStr);
+        } catch (NumberFormatException e) {
+            uw.apply("1 = 0");
+            return;
+        }
+        if (permissionEvaluator.canViewAllModuleData(userId, MODULE_PERM_KEY)) {
+            return;
+        }
+        String username = ctx.getUsername();
+        boolean hasUser = StringUtils.hasText(username);
+        uw.and(w -> w.eq(hasUser, EmsContract::getCreateBy, username)
+                .or(hasUser).eq(EmsContract::getLeadId, userId));
     }
 
     private String nextContractNo() {

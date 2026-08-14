@@ -260,7 +260,7 @@ export const getEntrustCards = (params) =>
   request.get('/ems/dashboard/entrust-cards', { params })
 
 // ===== 合同管理台账（PRD-02，路径 /api/v1/ems/contract/*）=====
-// 台账列表（编号/名称/类型/状态/相对方/负责人/签订日期区间筛选）
+// 台账分页列表（编号/名称/类型/状态/相对方/负责人/签订日期区间筛选，page/size 分页，默认每页10条）
 export const getContracts = (params) => request.get('/ems/contract', { params })
 // 台账统计卡片（应收应付/已收已付/逾期节点数）
 export const getContractStatistics = () => request.get('/ems/contract/statistics')

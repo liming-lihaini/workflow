@@ -1,5 +1,6 @@
 package com.flow.engine.controllers;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.flow.engine.common.Result;
 import com.flow.engine.dto.ContractSaveReq;
 import com.flow.engine.dto.ContractTxnReq;
@@ -28,9 +29,9 @@ public class EmsContractController {
 
     // ---------- 合同台账 ----------
 
-    /** 台账列表（支持编号/名称/类型/状态/相对方/负责人/签订日期区间筛选） */
+    /** 台账分页列表（默认每页10条，支持编号/名称/类型/状态/相对方/负责人/签订日期区间筛选） */
     @GetMapping
-    public Result<List<EmsContractVO>> listContracts(
+    public Result<Page<EmsContractVO>> pageContracts(
             @RequestParam(required = false) String contractNo,
             @RequestParam(required = false) String contractName,
             @RequestParam(required = false) String contractType,
@@ -38,9 +39,11 @@ public class EmsContractController {
             @RequestParam(required = false) String counterparty,
             @RequestParam(required = false) Long leadId,
             @RequestParam(required = false) String signStart,
-            @RequestParam(required = false) String signEnd) {
-        return Result.ok(contractService.listVO(contractNo, contractName, contractType, status,
-                counterparty, leadId, signStart, signEnd));
+            @RequestParam(required = false) String signEnd,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return Result.ok(contractService.pageVO(contractNo, contractName, contractType, status,
+                counterparty, leadId, signStart, signEnd, page, size));
     }
 
     /** 台账统计卡片：应收应付/已收已付/逾期节点数 */
@@ -55,9 +58,10 @@ public class EmsContractController {
         return Result.ok(contractService.save(req, currentUser()));
     }
 
-    /** 合同详情（节点核销进度 + 流水 + 关联委托 + 操作历史） */
+    /** 合同详情（节点核销进度 + 流水 + 关联委托 + 操作历史），受数据权限控制 */
     @GetMapping("/{id}")
     public Result<EmsContractVO> getContract(@PathVariable Long id) {
+        contractService.checkContractVisible(id);
         return Result.ok(contractService.detail(id));
     }
 
@@ -118,6 +122,7 @@ public class EmsContractController {
 
     @GetMapping("/{id}/history")
     public Result<List<EmsContractHistory>> getHistory(@PathVariable Long id) {
+        contractService.checkContractVisible(id);
         return Result.ok(contractService.listHistory(id));
     }
 
