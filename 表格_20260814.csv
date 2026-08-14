@@ -1,0 +1,14 @@
+﻿看板模块,数据来源表,真实数值
+合同总数 / 状态,t_contract,24 份（执行中 15、已完结 4、草稿 4、已作废 1）
+合同总金额,t_contract.amount 求和,"1,155.5 万元"
+已回款 / 回款率,t_contract_txn（收款 7 笔）,249.5 万元 / 21.6%
+合同月度趋势,t_contract.sign_date 按月聚合,5 月 170 万、6 月 288 万、7 月 460.4 万、8 月 237.1 万
+客户 TOP10,t_contract.counterparty_name 聚合,华测生态 347 万居首
+合同到期预警,t_contract.expire_date,最紧急：华测生态 200 万 08-26 到期（12 天）
+检测任务,t_detection_task,10 个（录入中 6、已复核 3、已提交 1）
+检测结果 / 超标,t_detection_result,8 条（达标 6、超标 1、待判定 1）
+报告,t_report,5 份（已发布 2、待审核 3）
+仪器设备,t_instrument,64 台（在用 63、报废 1）
+系统预警,t_alert,2 条（OVERRUN/HIGH，未处理）
+服务客户,t_customer,100 家（覆盖 15 + 城市）
+质控合格率,t_qc_activity,3 条记录中 2 条合格（66.7%）

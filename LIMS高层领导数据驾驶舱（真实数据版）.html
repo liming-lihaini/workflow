@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>LIMS 高层领导数据驾驶舱 · 真实数据版</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; background:#0a1628; color:#cfe3ff; font-family:"Microsoft YaHei","PingFang SC",sans-serif; overflow:hidden; }
+  .dashboard { width:100vw; height:100vh; padding:14px 18px; display:flex; flex-direction:column; background:radial-gradient(ellipse at top, #13294b 0%, #0a1628 60%, #060e1c 100%); }
+  .header { display:flex; align-items:center; justify-content:space-between; height:56px; position:relative; }
+  .header::after { content:""; position:absolute; left:0; right:0; bottom:0; height:1px; background:linear-gradient(90deg,transparent,#2a6fd6,transparent); }
+  .title { font-size:26px; font-weight:700; letter-spacing:4px; background:linear-gradient(180deg,#fff,#5fb0ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .title small { font-size:13px; color:#7aa6d9; letter-spacing:2px; margin-left:12px; font-weight:400; }
+  .header-right { display:flex; gap:24px; align-items:center; font-size:13px; color:#8fb4e0; }
+  .live { display:flex; align-items:center; gap:6px; }
+  .live-dot { width:8px; height:8px; border-radius:50%; background:#3ddc84; box-shadow:0 0 8px #3ddc84; animation:blink 1.4s infinite; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+  .kpi-row { display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-top:14px; }
+  .kpi { background:linear-gradient(135deg,rgba(30,72,140,.45),rgba(16,40,82,.25)); border:1px solid rgba(74,144,226,.35); border-radius:6px; padding:14px 16px; position:relative; overflow:hidden; }
+  .kpi::before { content:""; position:absolute; left:0; top:0; width:3px; height:100%; background:linear-gradient(180deg,#4aa3ff,#1e5fb0); }
+  .kpi .label { font-size:13px; color:#8fb4e0; }
+  .kpi .value { font-size:30px; font-weight:700; color:#fff; margin-top:6px; font-family:"DIN",Arial; }
+  .kpi .value .unit { font-size:13px; color:#8fb4e0; margin-left:4px; font-weight:400; }
+  .kpi .sub { font-size:12px; margin-top:4px; display:flex; justify-content:space-between; }
+  .up { color:#3ddc84; } .down { color:#ff6b6b; } .warn { color:#ffb547; }
+  .kpi .icon { position:absolute; right:14px; top:14px; font-size:28px; opacity:.25; }
+  .main { flex:1; display:grid; grid-template-columns:1fr 1.4fr 1fr; gap:14px; margin-top:14px; min-height:0; }
+  .col { display:flex; flex-direction:column; gap:14px; min-height:0; }
+  .panel { background:linear-gradient(135deg,rgba(20,50,100,.35),rgba(10,26,54,.25)); border:1px solid rgba(74,144,226,.25); border-radius:6px; display:flex; flex-direction:column; min-height:0; }
+  .panel-head { height:36px; display:flex; align-items:center; padding:0 14px; border-bottom:1px solid rgba(74,144,226,.2); font-size:14px; font-weight:600; color:#cfe3ff; }
+  .panel-head::before { content:""; display:inline-block; width:4px; height:14px; background:#4aa3ff; margin-right:8px; border-radius:2px; }
+  .panel-head .extra { margin-left:auto; font-size:12px; color:#7aa6d9; font-weight:400; }
+  .panel-body { flex:1; padding:8px; min-height:0; position:relative; }
+  .chart { width:100%; height:100%; }
+  .funnel { display:flex; flex-direction:column; justify-content:space-around; height:100%; padding:6px 10px; }
+  .funnel-row { display:flex; align-items:center; gap:10px; }
+  .funnel-bar-wrap { flex:1; position:relative; height:26px; background:rgba(74,144,226,.08); border-radius:3px; overflow:hidden; }
+  .funnel-bar { height:100%; background:linear-gradient(90deg,#1e5fb0,#4aa3ff); border-radius:3px; display:flex; align-items:center; justify-content:flex-end; padding-right:10px; font-size:13px; font-weight:700; color:#fff; }
+  .funnel-name { width:80px; font-size:13px; color:#a8c8ee; }
+  .funnel-rate { width:60px; text-align:right; font-size:12px; color:#7aa6d9; }
+  .tbl { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .tbl th { color:#7aa6d9; font-weight:500; text-align:left; padding:7px 8px; border-bottom:1px solid rgba(74,144,226,.2); background:rgba(74,144,226,.06); }
+  .tbl td { padding:7px 8px; border-bottom:1px dashed rgba(74,144,226,.12); color:#cfe3ff; }
+  .tbl tr:hover td { background:rgba(74,144,226,.08); }
+  .tag { display:inline-block; padding:1px 8px; border-radius:10px; font-size:11px; }
+  .tag-red { background:rgba(255,80,80,.15); color:#ff7878; border:1px solid rgba(255,80,80,.4); }
+  .tag-orange { background:rgba(255,165,60,.15); color:#ffb547; border:1px solid rgba(255,165,60,.4); }
+  .tag-green { background:rgba(60,220,130,.15); color:#3ddc84; border:1px solid rgba(60,220,130,.4); }
+  .tag-blue { background:rgba(74,163,255,.15); color:#4aa3ff; border:1px solid rgba(74,163,255,.4); }
+  .tag-gray { background:rgba(150,150,150,.15); color:#aaa; border:1px solid rgba(150,150,150,.3); }
+  .scroll-y { overflow-y:auto; height:100%; }
+  .scroll-y::-webkit-scrollbar { width:4px; }
+  .scroll-y::-webkit-scrollbar-thumb { background:rgba(74,144,226,.4); border-radius:2px; }
+  .gauge-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; height:100%; }
+  .ticker { height:32px; margin-top:10px; background:rgba(74,144,226,.08); border:1px solid rgba(74,144,226,.2); border-radius:4px; display:flex; align-items:center; padding:0 14px; font-size:12.5px; color:#a8c8ee; overflow:hidden; }
+  .ticker .lbl { color:#ffb547; font-weight:600; margin-right:12px; flex-shrink:0; }
+  .ticker-track { display:flex; gap:40px; animation:scroll 40s linear infinite; white-space:nowrap; }
+  @keyframes scroll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+  .stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:4px; }
+  .stat-box { text-align:center; padding:6px 4px; background:rgba(74,144,226,.06); border-radius:4px; }
+  .stat-box .num { font-size:20px; font-weight:700; font-family:"DIN",Arial; }
+  .stat-box .lbl { font-size:11px; color:#8fb4e0; margin-top:2px; }
+</style>
+</head>
+<body>
+<div class="dashboard">
+  <div class="header">
+    <div class="title">LIMS 实验室信息管理 · 高层数据驾驶舱<small>EXECUTIVE DASHBOARD · 数据截至 2026-08-14</small></div>
+    <div class="header-right">
+      <div class="live"><span class="live-dot"></span>数据实时同步</div>
+      <div id="clock">2026-08-14 09:30:00 周五</div>
+    </div>
+  </div>
+
+  <!-- KPI 全部基于真实数据 -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="icon">📋</div><div class="label">合同总数</div><div class="value">24<span class="unit">份</span></div><div class="sub"><span class="up">执行中 15</span><span>已完结 4</span></div></div>
+    <div class="kpi"><div class="icon">💰</div><div class="label">合同总金额</div><div class="value" style="color:#ffd166;">1,155.5<span class="unit">万元</span></div><div class="sub"><span class="up">已回款 249.5万</span><span class="warn">回款率 21.6%</span></div></div>
+    <div class="kpi"><div class="icon">🔬</div><div class="label">检测任务</div><div class="value">10<span class="unit">个</span></div><div class="sub"><span class="warn">录入中 6</span><span>已复核 3</span></div></div>
+    <div class="kpi"><div class="icon">📑</div><div class="label">已出报告</div><div class="value">5<span class="unit">份</span></div><div class="sub"><span class="up">已发布 2</span><span class="warn">待审核 3</span></div></div>
+    <div class="kpi"><div class="icon">⚠️</div><div class="label">超标/预警</div><div class="value" style="color:#ff7878;">3<span class="unit">项</span></div><div class="sub"><span class="down">检测超标 1</span><span>系统预警 2</span></div></div>
+    <div class="kpi"><div class="icon">🏢</div><div class="label">服务客户</div><div class="value">100<span class="unit">家</span></div><div class="sub"><span class="up">覆盖 15+ 城市</span><span>重点 10</span></div></div>
+  </div>
+
+  <div class="main">
+    <!-- 左列 -->
+    <div class="col">
+      <div class="panel" style="flex:1.1;">
+        <div class="panel-head">合同金额月度趋势<span class="extra">签订额 / 回款额</span></div>
+        <div class="panel-body"><div id="chartContractAmt" class="chart"></div></div>
+      </div>
+      <div class="panel" style="flex:1;">
+        <div class="panel-head">合同结构分布<span class="extra">类型 / 状态</span></div>
+        <div class="panel-body"><div id="chartContractType" class="chart"></div></div>
+      </div>
+      <div class="panel" style="flex:1.2;">
+        <div class="panel-head">客户合同金额 TOP10<span class="extra">单位：万元</span></div>
+        <div class="panel-body"><div id="chartCustomer" class="chart"></div></div>
+      </div>
+    </div>
+
+    <!-- 中列 -->
+    <div class="col">
+      <div class="panel" style="flex:0.9;">
+        <div class="panel-head">业务全链路流转<span class="extra">合同 → 检测 → 报告</span></div>
+        <div class="panel-body">
+          <div class="funnel">
+            <div class="funnel-row"><span class="funnel-name">合同签订</span><div class="funnel-bar-wrap"><div class="funnel-bar" style="width:100%;">24</div></div><span class="funnel-rate">100%</span></div>
+            <div class="funnel-row"><span class="funnel-name">检测任务</span><div class="funnel-bar-wrap"><div class="funnel-bar" style="width:42%;">10</div></div><span class="funnel-rate">41.7%</span></div>
+            <div class="funnel-row"><span class="funnel-name">检测结果</span><div class="funnel-bar-wrap"><div class="funnel-bar" style="width:33%;">8</div></div><span class="funnel-rate">33.3%</span></div>
+            <div class="funnel-row"><span class="funnel-name">报告生成</span><div class="funnel-bar-wrap"><div class="funnel-bar" style="width:21%;">5</div></div><span class="funnel-rate">20.8%</span></div>
+            <div class="funnel-row"><span class="funnel-name">报告发布</span><div class="funnel-bar-wrap"><div class="funnel-bar" style="width:8%;">2</div></div><span class="funnel-rate">8.3%</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1.3;">
+        <div class="panel-head">检测结果与超标预警<span class="extra" style="color:#ff7878;">共 8 条结果 · 1 条超标</span></div>
+        <div class="panel-body">
+          <div class="scroll-y">
+            <table class="tbl">
+              <thead><tr><th>任务编号</th><th>样品/客户</th><th>检测项目</th><th>实测值</th><th>标准限值</th><th>结论</th></tr></thead>
+              <tbody>
+                <tr><td>DT202608130002</td><td>华测生态-COD</td><td>化学需氧量(COD)</td><td style="color:#ff7878;font-weight:600;">23 mg/L</td><td>45 mg/L</td><td><span class="tag tag-red">超标</span></td></tr>
+                <tr><td>DT202608130001</td><td>华测生态-COD</td><td>化学需氧量(COD)</td><td>100 mg/L</td><td>—</td><td><span class="tag tag-gray">待判定</span></td></tr>
+                <tr><td>DT202608130003</td><td>中节能-废气</td><td>苯系物</td><td>4 mg/m³</td><td>按标准执行</td><td><span class="tag tag-green">达标</span></td></tr>
+                <tr><td>DT202608130003</td><td>中节能-废气</td><td>总悬浮颗粒物(TSP)</td><td>4 mg/m³</td><td>1.0 mg/m³</td><td><span class="tag tag-green">达标</span></td></tr>
+                <tr><td>DT202608130004</td><td>中节能-废水</td><td>石油类</td><td>2 mg/L</td><td>&lt;7 mg/L</td><td><span class="tag tag-green">达标</span></td></tr>
+                <tr><td>DT202608130004</td><td>中节能-废水</td><td>总氮</td><td>18 mg/L</td><td>&lt;27 mg/L</td><td><span class="tag tag-green">达标</span></td></tr>
+                <tr><td>DT202608130004</td><td>中节能-废水</td><td>总磷</td><td>0.6 mg/L</td><td>&lt;0.7 mg/L</td><td><span class="tag tag-green">达标</span></td></tr>
+                <tr><td>DT202608130004</td><td>中节能-废水</td><td>氨氮</td><td>3 mg/L</td><td>&lt;7 mg/L</td><td><span class="tag tag-green">达标</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="flex:0.8;">
+        <div class="panel-head">系统预警消息<span class="extra" style="color:#ff7878;">2 条未处理</span></div>
+        <div class="panel-body">
+          <div class="scroll-y">
+            <table class="tbl">
+              <thead><tr><th>预警类型</th><th>级别</th><th>消息</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr><td>OVERRUN 超标</td><td><span class="tag tag-red">HIGH</span></td><td>检测结果超标预警，请及时复核并通知客户</td><td><span class="tag tag-orange">未处理</span></td></tr>
+                <tr><td>OVERRUN 超标</td><td><span class="tag tag-red">HIGH</span></td><td>检测结果超标预警，请及时复核并通知客户</td><td><span class="tag tag-orange">未处理</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右列 -->
+    <div class="col">
+      <div class="panel" style="flex:0.9;">
+        <div class="panel-head">经营与质量概览<span class="extra">回款率 / 质控</span></div>
+        <div class="panel-body">
+          <div class="gauge-row">
+            <div id="gaugePay" class="chart"></div>
+            <div id="gaugeQC" class="chart"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1;">
+        <div class="panel-head">仪器设备状态<span class="extra">共 64 台</span></div>
+        <div class="panel-body">
+          <div class="stat-row">
+            <div class="stat-box"><div class="num" style="color:#3ddc84;">63</div><div class="lbl">在用</div></div>
+            <div class="stat-box"><div class="num" style="color:#ff7878;">1</div><div class="lbl">报废</div></div>
+            <div class="stat-box"><div class="num" style="color:#4aa3ff;">0</div><div class="lbl">维修中</div></div>
+            <div class="stat-box"><div class="num" style="color:#ffb547;">0</div><div class="lbl">校准到期</div></div>
+          </div>
+          <div id="chartInstrument" class="chart" style="height:calc(100% - 50px);margin-top:4px;"></div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1.3;">
+        <div class="panel-head">合同到期预警<span class="extra" style="color:#ff7878;">执行中合同 · 按到期排序</span></div>
+        <div class="panel-body">
+          <div class="scroll-y">
+            <table class="tbl">
+              <thead><tr><th>合同编号</th><th>对方单位</th><th>金额</th><th>到期日</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr><td>HT202608110002</td><td>华测生态科技有限公司</td><td style="color:#ffd166;">200万</td><td style="color:#ff7878;font-weight:600;">08-26</td><td><span class="tag tag-red">12天到期</span></td></tr>
+                <tr><td>HT202608130004</td><td>华测生态科技有限公司</td><td style="color:#ffd166;">26万</td><td style="color:#ffb547;">09-30</td><td><span class="tag tag-orange">47天</span></td></tr>
+                <tr><td>HT202608130019</td><td>恒大化工集团有限公司</td><td style="color:#ffd166;">18万</td><td style="color:#ffb547;">09-30</td><td><span class="tag tag-orange">47天</span></td></tr>
+                <tr><td>HT202608130002</td><td>绿源环境检测有限公司</td><td style="color:#ffd166;">45万</td><td style="color:#4aa3ff;">10-31</td><td><span class="tag tag-blue">78天</span></td></tr>
+                <tr><td>HT202608130008</td><td>华测生态科技有限公司</td><td style="color:#ffd166;">33万</td><td style="color:#4aa3ff;">10-31</td><td><span class="tag tag-blue">78天</span></td></tr>
+                <tr><td>HT202608130011</td><td>中环水务有限公司</td><td style="color:#ffd166;">72万</td><td style="color:#4aa3ff;">12-20</td><td><span class="tag tag-blue">128天</span></td></tr>
+                <tr><td>HT202608130003</td><td>蓝海仪器设备有限公司</td><td style="color:#ffd166;">38万</td><td style="color:#8fb4e0;">12-25</td><td><span class="tag tag-gray">133天</span></td></tr>
+                <tr><td>HT202608130001</td><td>华测生态科技有限公司</td><td style="color:#ffd166;">86万</td><td style="color:#8fb4e0;">12-31</td><td><span class="tag tag-gray">139天</span></td></tr>
+                <tr><td>HT202608130005</td><td>科创实验器材供应中心</td><td style="color:#ffd166;">15万</td><td style="color:#8fb4e0;">12-31</td><td><span class="tag tag-gray">139天</span></td></tr>
+                <tr><td>HT202608130009</td><td>绿源环境检测有限公司</td><td style="color:#ffd166;">10万</td><td style="color:#8fb4e0;">12-31</td><td><span class="tag tag-gray">139天</span></td></tr>
+                <tr><td>HT202608130012</td><td>恒大化工集团有限公司</td><td style="color:#ffd166;">98万</td><td style="color:#8fb4e0;">12-31</td><td><span class="tag tag-gray">139天</span></td></tr>
+                <tr><td>HT202608130014</td><td>安捷汽车租赁有限公司</td><td style="color:#ffd166;">22万</td><td style="color:#8fb4e0;">12-31</td><td><span class="tag tag-gray">139天</span></td></tr>
+                <tr><td>HT202608130015</td><td>金沙江水泥有限公司</td><td style="color:#ffd166;">56万</td><td style="color:#8fb4e0;">12-31</td><td><span class="tag tag-gray">139天</span></td></tr>
+                <tr><td>HT202608130020</td><td>中环水务有限公司</td><td style="color:#ffd166;">30万</td><td style="color:#8fb4e0;">12-31</td><td><span class="tag tag-gray">139天</span></td></tr>
+                <tr><td>HT202608130010</td><td>锦江生态环境分局</td><td style="color:#ffd166;">120万</td><td style="color:#8fb4e0;">2027-06-30</td><td><span class="tag tag-gray">长期</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ticker -->
+  <div class="ticker">
+    <span class="lbl">实时动态</span>
+    <div class="ticker-track">
+      <span>【合同】HT202608110002 华测生态科技 200万合同将于 08-26 到期，请商务跟进续签</span>
+      <span>【回款】收到合同 HT202608130001 回款 50万元，经办人：公孙胜</span>
+      <span>【检测】DT202608140005~010 共6个检测任务正在录入中，涉及 pH/COD/氨氮</span>
+      <span>【预警】检测结果 COD 超标预警（HIGH），请质量负责人及时复核</span>
+      <span>【报告】HJ-JC-2026-0002 终验报告已发布，含1项超标项</span>
+      <span>【报告】HJ-JC-2026-0003/004/005 共3份报告待审核</span>
+      <span>【合同】本月新签合同 237.1万元，环比下降 48.5%</span>
+      <span>【仪器】64台仪器设备中63台在用，1台已报废</span>
+      <span>【合同】HT202608110002 华测生态科技 200万合同将于 08-26 到期，请商务跟进续签</span>
+      <span>【回款】收到合同 HT202608130001 回款 50万元，经办人：公孙胜</span>
+      <span>【检测】DT202608140005~010 共6个检测任务正在录入中，涉及 pH/COD/氨氮</span>
+      <span>【预警】检测结果 COD 超标预警（HIGH），请质量负责人及时复核</span>
+      <span>【报告】HJ-JC-2026-0002 终验报告已发布，含1项超标项</span>
+      <span>【报告】HJ-JC-2026-0003/004/005 共3份报告待审核</span>
+      <span>【合同】本月新签合同 237.1万元，环比下降 48.5%</span>
+      <span>【仪器】64台仪器设备中63台在用，1台已报废</span>
+    </div>
+  </div>
+</div>
+
+<script>
+function tick(){
+  const d=new Date();
+  const w=['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+  const p=n=>String(n).padStart(2,'0');
+  document.getElementById('clock').textContent=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} ${w}`;
+}
+tick(); setInterval(tick,1000);
+
+const axisColor='#5a7fb0';
+const splitColor='rgba(74,144,226,.12)';
+
+// 合同金额月度趋势（真实数据）
+echarts.init(document.getElementById('chartContractAmt')).setOption({
+  tooltip:{trigger:'axis',backgroundColor:'rgba(10,22,40,.9)',borderColor:'#4aa3ff',textStyle:{color:'#cfe3ff'},formatter:p=>{let s=p[0].axisValue+'<br/>';p.forEach(i=>{s+=i.marker+i.seriesName+': '+i.value+'万元<br/>';});return s;}},
+  legend:{data:['签订额','回款额'],textStyle:{color:'#a8c8ee',fontSize:11},top:0,right:5},
+  grid:{left:'2%',right:'4%',top:'22%',bottom:'4%',containLabel:true},
+  xAxis:{type:'category',axisLine:{lineStyle:{color:axisColor}},axisLabel:{color:axisColor,fontSize:10},data:['5月','6月','7月','8月']},
+  yAxis:{type:'value',name:'万元',nameTextStyle:{color:axisColor,fontSize:10},axisLine:{show:false},axisTick:{show:false},axisLabel:{color:axisColor,fontSize:10},splitLine:{lineStyle:{color:splitColor}}},
+  series:[
+    {name:'签订额',type:'bar',barWidth:18,itemStyle:{borderRadius:[3,3,0,0],color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#ffd166'},{offset:1,color:'rgba(255,209,102,.15)'}])},label:{show:true,position:'top',color:'#ffd166',fontSize:11,formatter:'{c}'},data:[170,288,460.4,237.1]},
+    {name:'回款额',type:'line',smooth:true,symbol:'circle',symbolSize:7,lineStyle:{width:2.5,color:'#3ddc84'},itemStyle:{color:'#3ddc84'},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(61,220,132,.25)'},{offset:1,color:'rgba(61,220,132,0)'}])},label:{show:true,position:'top',color:'#3ddc84',fontSize:10,formatter:'{c}'},data:[0,0,142.5,107]}
+  ]
+});
+
+// 合同结构分布（真实数据：执行中15/已完结4/草稿4/已作废1）
+echarts.init(document.getElementById('chartContractType')).setOption({
+  tooltip:{trigger:'item',formatter:'{b}: {c}份 ({d}%)'},
+  legend:{bottom:0,textStyle:{color:'#a8c8ee',fontSize:11},itemWidth:10,itemHeight:10},
+  series:[{
+    type:'pie',radius:['38%','65%'],center:['50%','42%'],
+    avoidLabelOverlap:true,
+    itemStyle:{borderColor:'#0a1628',borderWidth:2},
+    label:{color:'#cfe3ff',fontSize:11,formatter:'{b}\n{c}份'},
+    labelLine:{lineStyle:{color:'#5a7fb0'},length:5,length2:8},
+    data:[
+      {value:15,name:'执行中',itemStyle:{color:'#4aa3ff'}},
+      {value:4,name:'已完结',itemStyle:{color:'#3ddc84'}},
+      {value:4,name:'草稿',itemStyle:{color:'#ffb547'}},
+      {value:1,name:'已作废',itemStyle:{color:'#ff7878'}}
+    ]
+  }]
+});
+
+// 客户合同金额TOP10（真实数据）
+echarts.init(document.getElementById('chartCustomer')).setOption({
+  grid:{left:'2%',right:'12%',top:'4%',bottom:'2%',containLabel:true},
+  xAxis:{type:'value',axisLine:{show:false},axisTick:{show:false},axisLabel:{color:axisColor,fontSize:10},splitLine:{lineStyle:{color:splitColor}}},
+  yAxis:{type:'category',inverse:true,axisLine:{lineStyle:{color:axisColor}},axisTick:{show:false},axisLabel:{color:'#a8c8ee',fontSize:11,width:100,overflow:'truncate'},
+    data:['华测生态科技','锦江生态环境分局','恒大化工集团','中环水务有限公司','天青环保科技','蓝天环保科技','金沙江水泥','绿源环境检测','明城县环保局','宏宇建筑安装']},
+  series:[{type:'bar',barWidth:12,itemStyle:{borderRadius:[0,6,6,0],color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:'#b8860b'},{offset:1,color:'#ffd166'}])},
+    label:{show:true,position:'right',color:'#ffd166',fontSize:11,formatter:'{c}万'},
+    data:[347,120,116,102,69,64,56,54.8,52,45]}]
+});
+
+// 仪表盘
+function gauge(id,val,title,color,unit){
+  echarts.init(document.getElementById(id)).setOption({
+    series:[{
+      type:'gauge',radius:'92%',center:['50%','58%'],
+      startAngle:210,endAngle:-30,min:0,max:100,
+      progress:{show:true,width:10,itemStyle:{color:color}},
+      axisLine:{lineStyle:{width:10,color:[[1,'rgba(74,144,226,.15)']]}},
+      pointer:{show:false},axisTick:{show:false},splitLine:{show:false},axisLabel:{show:false},anchor:{show:false},
+      title:{offsetCenter:[0,'30%'],color:'#a8c8ee',fontSize:12},
+      detail:{valueAnimation:true,offsetCenter:[0,'-5%'],fontSize:22,fontWeight:'bold',color:'#fff',formatter:'{value}'+(unit||'%')},
+      data:[{value:val,name:title}]
+    }]
+  });
+}
+gauge('gaugePay',21.6,'合同回款率','#ffd166','%');
+gauge('gaugeQC',66.7,'质控合格率','#3ddc84','%');
+
+// 仪器状态饼图
+echarts.init(document.getElementById('chartInstrument')).setOption({
+  tooltip:{trigger:'item',formatter:'{b}: {c}台 ({d}%)'},
+  series:[{
+    type:'pie',radius:['45%','70%'],center:['50%','50%'],
+    itemStyle:{borderColor:'#0a1628',borderWidth:2},
+    label:{color:'#a8c8ee',fontSize:11,formatter:'{b} {c}台'},
+    labelLine:{lineStyle:{color:'#5a7fb0'},length:5,length2:8},
+    data:[
+      {value:63,name:'在用',itemStyle:{color:'#3ddc84'}},
+      {value:1,name:'报废',itemStyle:{color:'#ff7878'}}
+    ]
+  }]
+});
+
+window.addEventListener('resize',()=>{document.querySelectorAll('.chart').forEach(el=>{const i=echarts.getInstanceByDom(el);if(i)i.resize();});});
+</script>
+</body>
+</html>
