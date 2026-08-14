@@ -41,7 +41,9 @@ public class PermissionController {
     }
 
     /**
-     * 按功能模块分组返回权限清单（扁平化两层结构：分组 -> 权限项平铺）
+     * 按功能模块分组返回权限清单（三层结构：分组 -> 菜单子分组 -> 权限项）。
+     * 二级分组以菜单类权限（permType=1）为子分组头，其按钮/数据权限按 parentId 归入；
+     * 无法归属任何菜单的权限汇入“其他权限”子分组。
      */
     @GetMapping("/grouped")
     public Result<List<Map<String, Object>>> listGrouped() {
@@ -74,24 +76,95 @@ public class PermissionController {
         groupNode.put("key", "group_" + groupKey);
         groupNode.put("title", groupLabel);
         groupNode.put("permGroup", groupKey);
-        groupNode.put("selectable", false);
 
-        List<Map<String, Object>> children = new ArrayList<>();
-        List<Permission> sorted = perms.stream()
+        // 组内权限索引：id -> 权限
+        Map<Long, Permission> byId = new LinkedHashMap<>();
+        for (Permission p : perms) {
+            byId.put(p.getId(), p);
+        }
+
+        // 二级分组：菜单类权限作为子分组头，其余权限归入最近的菜单祖先下
+        List<Permission> menus = perms.stream()
+                .filter(p -> p.getPermType() != null && p.getPermType() == 1)
                 .sorted(Comparator.comparing(Permission::getId))
                 .toList();
-        for (Permission p : sorted) {
-            Map<String, Object> node = new LinkedHashMap<>();
-            node.put("key", p.getId());
-            node.put("title", p.getPermName());
-            node.put("id", p.getId());
-            node.put("permKey", p.getPermKey());
-            node.put("permType", p.getPermType());
-            node.put("permTypeLabel", TYPE_LABELS.getOrDefault(p.getPermType(), ""));
-            children.add(node);
+        Map<Long, List<Permission>> childrenByMenu = new LinkedHashMap<>();
+        for (Permission m : menus) {
+            childrenByMenu.put(m.getId(), new ArrayList<>());
         }
-        groupNode.put("children", children);
+        List<Permission> ungrouped = new ArrayList<>();
+        for (Permission p : perms) {
+            if (p.getPermType() != null && p.getPermType() == 1) {
+                continue;
+            }
+            Long menuId = findMenuAncestor(p, byId);
+            if (menuId != null) {
+                childrenByMenu.get(menuId).add(p);
+            } else {
+                ungrouped.add(p);
+            }
+        }
+
+        List<Map<String, Object>> subGroups = new ArrayList<>();
+        for (Permission m : menus) {
+            subGroups.add(buildSubGroupNode(m, childrenByMenu.get(m.getId())));
+        }
+        if (!ungrouped.isEmpty()) {
+            subGroups.add(buildSubGroupNode(null, ungrouped));
+        }
+        groupNode.put("subGroups", subGroups);
         return groupNode;
+    }
+
+    /** 沿 parentId 向上查找最近的菜单类祖先（仅限组内） */
+    private Long findMenuAncestor(Permission p, Map<Long, Permission> byId) {
+        Long pid = p.getParentId();
+        int guard = 0;
+        while (pid != null && guard++ < 10) {
+            Permission parent = byId.get(pid);
+            if (parent == null) {
+                return null;
+            }
+            if (parent.getPermType() != null && parent.getPermType() == 1) {
+                return parent.getId();
+            }
+            pid = parent.getParentId();
+        }
+        return null;
+    }
+
+    /** 构建二级子分组节点（菜单自身也作为可勾选项列在首位） */
+    private Map<String, Object> buildSubGroupNode(Permission menu, List<Permission> children) {
+        Map<String, Object> node = new LinkedHashMap<>();
+        if (menu != null) {
+            node.put("key", "sub_" + menu.getId());
+            node.put("id", menu.getId());
+            node.put("title", menu.getPermName());
+            node.put("permKey", menu.getPermKey());
+        } else {
+            node.put("key", "sub_other");
+            node.put("title", "其他权限");
+        }
+        List<Map<String, Object>> items = new ArrayList<>();
+        if (menu != null) {
+            items.add(buildPermNode(menu));
+        }
+        children.stream()
+                .sorted(Comparator.comparing(Permission::getId))
+                .forEach(c -> items.add(buildPermNode(c)));
+        node.put("perms", items);
+        return node;
+    }
+
+    private Map<String, Object> buildPermNode(Permission p) {
+        Map<String, Object> node = new LinkedHashMap<>();
+        node.put("key", p.getId());
+        node.put("id", p.getId());
+        node.put("title", p.getPermName());
+        node.put("permKey", p.getPermKey());
+        node.put("permType", p.getPermType());
+        node.put("permTypeLabel", TYPE_LABELS.getOrDefault(p.getPermType(), ""));
+        return node;
     }
 
     @PostMapping

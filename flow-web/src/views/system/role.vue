@@ -51,29 +51,60 @@
       </a-form>
     </a-modal>
 
-    <!-- 权限分配弹窗（扁平化：分组 -> 权限项平铺） -->
-    <a-modal v-model:open="permModalVisible" :title="`权限分配 - ${currentRoleForPerm?.roleName || ''}`" @ok="handleAssignPerm" width="760px">
-      <div class="perm-tree-wrap">
-        <a-tree
-          v-model:checkedKeys="checkedPermKeys"
-          :tree-data="permTree"
-          checkable
-          check-strictly
-          default-expand-all
-          block-node
-          :field-names="{ title: 'title', key: 'key', children: 'children' }"
-        >
-          <template #title="node">
-            <span v-if="String(node.key).startsWith('group_')" class="perm-group-title">{{ node.title }}（{{ (node.children || []).length }} 项）</span>
-            <span v-else class="perm-item-title">
-              {{ node.title }}
-              <a-tag :color="permTypeColor(node.permType)" class="perm-type-tag">{{ node.permTypeLabel }}</a-tag>
-              <span class="perm-key">{{ node.permKey }}</span>
-            </span>
-          </template>
-        </a-tree>
+    <!-- 权限分配抽屉（二级分组：分组 -> 菜单子分组 -> 权限项，每行 3 项） -->
+    <a-drawer
+      v-model:open="permModalVisible"
+      :title="`权限分配 - ${currentRoleForPerm?.roleName || ''}`"
+      width="1000px"
+      placement="right"
+      :destroy-on-close="true"
+    >
+      <div class="perm-panel-wrap">
+        <div v-for="group in permGroups" :key="group.key" class="perm-group">
+          <div class="perm-group-header">
+            <a-checkbox
+              :checked="isGroupChecked(group)"
+              :indeterminate="isGroupIndeterminate(group)"
+              @change="(e) => toggleGroup(group, e.target.checked)"
+            >
+              <span class="perm-group-title">{{ group.title }}</span>
+            </a-checkbox>
+            <span class="perm-count">{{ countGroupPerms(group) }} 项</span>
+          </div>
+          <div v-for="sub in group.subGroups" :key="sub.key" class="perm-sub">
+            <div class="perm-sub-header">
+              <a-checkbox
+                :checked="isSubChecked(sub)"
+                :indeterminate="isSubIndeterminate(sub)"
+                @change="(e) => toggleSub(sub, e.target.checked)"
+              >
+                <span class="perm-sub-title">{{ sub.title }}</span>
+              </a-checkbox>
+            </div>
+            <div class="perm-grid">
+              <a-checkbox
+                v-for="p in sub.perms"
+                :key="p.id"
+                :checked="checkedIds.includes(p.id)"
+                :title="p.permKey"
+                @change="() => togglePerm(p.id)"
+              >
+                <span class="perm-item-title">
+                  {{ p.title }}
+                  <a-tag :color="permTypeColor(p.permType)" class="perm-type-tag">{{ p.permTypeLabel }}</a-tag>
+                </span>
+              </a-checkbox>
+            </div>
+          </div>
+        </div>
       </div>
-    </a-modal>
+      <template #footer>
+        <div class="perm-drawer-footer">
+          <a-button @click="permModalVisible = false">取消</a-button>
+          <a-button type="primary" @click="handleAssignPerm">确定</a-button>
+        </div>
+      </template>
+    </a-drawer>
   </div>
 </template>
 
@@ -93,8 +124,8 @@ const modalVisible = ref(false)
 const submitLoading = ref(false)
 const editingRecord = ref(null)
 const permModalVisible = ref(false)
-const permTree = ref([])
-const checkedPermKeys = ref({ checked: [], halfChecked: [] })
+const permGroups = ref([])
+const checkedIds = ref([])
 const currentRoleForPerm = ref(null)
 
 const pagination = reactive({
@@ -180,24 +211,69 @@ async function handleDelete(record) {
 
 async function showPermModal(record) {
   currentRoleForPerm.value = record
-  // 加载分组权限清单（扁平化两层结构）
+  // 加载分组权限清单（三层结构：分组 -> 菜单子分组 -> 权限项）
   try {
     const res = await getPermissionsGrouped()
     const data = res.data || res
-    permTree.value = Array.isArray(data) ? data : []
+    permGroups.value = Array.isArray(data) ? data : []
   } catch {
-    permTree.value = []
+    permGroups.value = []
   }
   // 加载已分配权限
   try {
     const res = await getRolePermissions(record.id)
     const data = res.data || res
-    const ids = Array.isArray(data) ? data.map(p => p.id || p) : []
-    checkedPermKeys.value = { checked: ids, halfChecked: [] }
+    checkedIds.value = Array.isArray(data) ? data.map(p => p.id || p) : []
   } catch {
-    checkedPermKeys.value = { checked: [], halfChecked: [] }
+    checkedIds.value = []
   }
   permModalVisible.value = true
+}
+
+// ========== 二级分组勾选逻辑 ==========
+function subPermIds(sub) {
+  return (sub.perms || []).map(p => p.id)
+}
+function groupPermIds(group) {
+  return (group.subGroups || []).flatMap(subPermIds)
+}
+function countGroupPerms(group) {
+  return groupPermIds(group).length
+}
+function isSubChecked(sub) {
+  const ids = subPermIds(sub)
+  return ids.length > 0 && ids.every(id => checkedIds.value.includes(id))
+}
+function isSubIndeterminate(sub) {
+  const ids = subPermIds(sub)
+  const hit = ids.filter(id => checkedIds.value.includes(id)).length
+  return hit > 0 && hit < ids.length
+}
+function toggleSub(sub, on) {
+  const ids = subPermIds(sub)
+  checkedIds.value = on
+    ? [...new Set([...checkedIds.value, ...ids])]
+    : checkedIds.value.filter(id => !ids.includes(id))
+}
+function isGroupChecked(group) {
+  const ids = groupPermIds(group)
+  return ids.length > 0 && ids.every(id => checkedIds.value.includes(id))
+}
+function isGroupIndeterminate(group) {
+  const ids = groupPermIds(group)
+  const hit = ids.filter(id => checkedIds.value.includes(id)).length
+  return hit > 0 && hit < ids.length
+}
+function toggleGroup(group, on) {
+  const ids = groupPermIds(group)
+  checkedIds.value = on
+    ? [...new Set([...checkedIds.value, ...ids])]
+    : checkedIds.value.filter(id => !ids.includes(id))
+}
+function togglePerm(id) {
+  checkedIds.value = checkedIds.value.includes(id)
+    ? checkedIds.value.filter(x => x !== id)
+    : [...checkedIds.value, id]
 }
 
 function permTypeColor(permType) {
@@ -209,9 +285,8 @@ function permTypeColor(permType) {
 
 async function handleAssignPerm() {
   try {
-    // check-strictly 模式下 checkedKeys 为对象结构，过滤掉分组节点 key（字符串），只保留权限 ID（数字）
-    const keys = checkedPermKeys.value.checked || []
-    const permIds = keys.filter(k => typeof k === 'number')
+    // checkedIds 均为权限 ID（数字），分组/子分组头仅为展示与批量勾选
+    const permIds = checkedIds.value.filter(k => typeof k === 'number')
     await assignRolePermissions(currentRoleForPerm.value.id, permIds)
     message.success('权限分配成功')
     permModalVisible.value = false
@@ -230,20 +305,53 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.perm-tree-wrap {
-  max-height: 480px;
-  overflow-y: auto;
+.perm-panel-wrap {
   padding: 4px 0;
+}
+.perm-group {
+  margin-bottom: 12px;
+}
+.perm-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #f5f7fa;
+  border-radius: 4px;
 }
 .perm-group-title {
   font-weight: 600;
   color: #262626;
 }
+.perm-count {
+  color: #999;
+  font-size: 12px;
+}
+.perm-sub {
+  margin: 8px 0 0 8px;
+  padding: 6px 10px;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+}
+.perm-sub-header {
+  margin-bottom: 4px;
+}
+.perm-sub-title {
+  font-weight: 600;
+  color: #434343;
+}
+.perm-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 8px;
+  padding-left: 24px;
+}
 .perm-item-title {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  width: 100%;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
 }
 .perm-type-tag {
   margin: 0;
@@ -252,11 +360,9 @@ onMounted(loadData)
   padding: 0 4px;
   flex-shrink: 0;
 }
-.perm-key {
-  color: #999;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.perm-drawer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>
